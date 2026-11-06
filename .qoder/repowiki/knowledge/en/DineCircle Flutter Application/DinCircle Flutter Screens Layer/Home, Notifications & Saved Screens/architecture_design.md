@@ -1,0 +1,6 @@
+Three sibling screen files under `lib/screens/`, each a self-contained entry point that reads data from Riverpod providers in `../../providers/` and renders via shared widgets in `../../widgets/`:
+- `home_screen.dart` (`HomeScreen`) is the largest — a `ConsumerStatefulWidget` composing nine editorial sections (header/search/quick-actions/next-table/featured/social/categories/restaurants/this-week/moods/host-invite) inside a single `CustomScrollView` + `SliverAppBar`. It owns local private data classes (`_SocialCategory`, `_Occasion`, `_QuickAction`, `_SocialCategoryCard`, `_DinnerListItem`, `_UpcomingBookingCard`) and delegates navigation through callback props (`onDinnerTap`, `onRestaurantTap`, `onBookingsTap`, `onSavedTap`, etc.) passed down from the shell.
+- `notifications_screen.dart` (`NotificationsScreen`) is a `ConsumerWidget` wrapping a `ListView.builder` of `NotificationItem`s with per-type icon/color mapping helpers; 'Mark all read' calls `socialControllerProvider.markAllRead()`.
+- `saved_screen.dart` (`SavedScreen`) is a `ConsumerWidget` listing `Dinner` bookmarks from `savedEventsProvider`, navigating to `DinnerDetailScreen` on tap.
+
+Dependency direction is one-way: screens → providers/models/widgets/theme. There is no cross-import between these three screens; they are leaf UI components consumed by the app shell/router.

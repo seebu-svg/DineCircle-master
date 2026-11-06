@@ -1,0 +1,644 @@
+[
+  {
+    "test": 1,
+    "feature": "email/password signup",
+    "status": "PASS",
+    "detail": "201, role=user, handle=qadiner17929331093"
+  },
+  {
+    "test": 1,
+    "feature": "interests + location (Karachi) + profile completion",
+    "status": "PASS",
+    "detail": "PATCH /users/me → 200 city=Karachi tastes=[\"BBQ\",\"brunch\"]"
+  },
+  {
+    "test": 1,
+    "feature": "session token restores user",
+    "status": "PASS",
+    "detail": "GET /auth/me → 200"
+  },
+  {
+    "test": 1,
+    "feature": "wrong password rejected",
+    "status": "PASS",
+    "detail": "401 expected, got 401"
+  },
+  {
+    "test": 1,
+    "feature": "logout invalidates server session",
+    "status": "PASS",
+    "detail": "signout 200; old token reuse → 401 (expect 401)"
+  },
+  {
+    "test": 1,
+    "feature": "login again + data persistence",
+    "status": "PASS",
+    "detail": "relogin 200; city after relogin=Karachi"
+  },
+  {
+    "test": 1,
+    "feature": "phone OTP sign-in (server flow)",
+    "status": "PASS",
+    "detail": "otp/request 200, otp/verify 200; NOT surfaced in UI — AuthScreen is email/password only (by design, comment in auth_screen.dart)"
+  },
+  {
+    "test": 1,
+    "feature": "signup default city",
+    "status": "PASS",
+    "detail": "new account default city='Karachi' (expect 'Karachi'; was 'Lyon' before the fix)"
+  },
+  {
+    "test": 2,
+    "feature": "events feed (homepage/discovery)",
+    "status": "PASS",
+    "detail": "GET /events → 200, 18 upcoming rows"
+  },
+  {
+    "test": 2,
+    "feature": "category filters (multi-select)",
+    "status": "PASS",
+    "detail": "type=dinner,tasting → 7 rows, out-of-filter rows=0"
+  },
+  {
+    "test": 2,
+    "feature": "search events (title/tag/venue)",
+    "status": "PASS",
+    "detail": "q=bbq → 2 rows"
+  },
+  {
+    "test": 2,
+    "feature": "search restaurants + city/tag/price filters",
+    "status": "PASS",
+    "detail": "→ 1 venues"
+  },
+  {
+    "test": 2,
+    "feature": "search people/influencers (tier flags live)",
+    "status": "PASS",
+    "detail": "fatima_tariqft role=influencer isVerified=true isInfluencer=true"
+  },
+  {
+    "test": 2,
+    "feature": "Deals & Offers discovery feed",
+    "status": "PASS",
+    "detail": "6 packages, 4 promo codes"
+  },
+  {
+    "test": 2,
+    "feature": "open event profile (host/venue/menu/attendees)",
+    "status": "PASS",
+    "detail": "GET /events/:id → 200; menuItems=3 host=Nora Feld venue=Skyline Rooftop"
+  },
+  {
+    "test": 2,
+    "feature": "open restaurant profile (+ upcoming events)",
+    "status": "PASS",
+    "detail": "→ Chef's Table Pakistan, upcomingEvents=3"
+  },
+  {
+    "test": 2,
+    "feature": "open user profile (hosted events + reviews)",
+    "status": "PASS",
+    "detail": "hostedUpcoming=0 reviews=10"
+  },
+  {
+    "test": 2,
+    "feature": "save / unsave favorite EVENTS",
+    "status": "PASS",
+    "detail": "save 201→listed true→unsave→removed true"
+  },
+  {
+    "test": 2,
+    "feature": "save restaurants or users",
+    "status": "NOT_IMPLEMENTED",
+    "detail": "saved_events covers events only — no venue/people bookmarks endpoint or table"
+  },
+  {
+    "test": 2,
+    "feature": "personalized recommendations",
+    "status": "NOT_IMPLEMENTED",
+    "detail": "home feed is featured+upcoming order; no per-user recommendation endpoint/logic"
+  },
+  {
+    "test": 2,
+    "feature": "location-based discovery for events",
+    "status": "PARTIAL",
+    "detail": "restaurants support ?city=; events feed has no city/geo param (only q which can match venue name); map_screen entirely MockData"
+  },
+  {
+    "test": 3,
+    "feature": "restaurant table booking (date/time/guests)",
+    "status": "NOT_IMPLEMENTED",
+    "detail": "POST /restaurants/:id/bookings → 404; backend has no table-reservation model — \"booking\" means event seats only"
+  },
+  {
+    "test": 3,
+    "feature": "book 1 seat (checkout)",
+    "status": "PASS",
+    "detail": "201 status=confirmed total=95 (price 95) ref=DC-4FQL4"
+  },
+  {
+    "test": 3,
+    "feature": "book for a group of friends (4 seats)",
+    "status": "PASS",
+    "detail": "201 seats=4 total=380 ref=DC-5QR4H"
+  },
+  {
+    "test": 3,
+    "feature": "booking confirmation + reservation details",
+    "status": "PASS",
+    "detail": "GET /bookings → upcoming=1 reference=DC-4FQL4 status=confirmed"
+  },
+  {
+    "test": 3,
+    "feature": "duplicate seat hold rejected",
+    "status": "PASS",
+    "detail": "rebook same event → 409 \"You already hold a seat request at this event\""
+  },
+  {
+    "test": 3,
+    "feature": "cancel booking + seats released + history",
+    "status": "PASS",
+    "detail": "cancel 200 refund={amount:95} ; history buckets upcoming=0 past=0 cancelled=1"
+  },
+  {
+    "test": 3,
+    "feature": "re-book after cancellation allowed",
+    "status": "PASS",
+    "detail": "201 — cancelled booking does not block new holds"
+  },
+  {
+    "test": 3,
+    "feature": "over-capacity booking rejected",
+    "status": "PASS",
+    "detail": "seats 7 > left 6 → 409 \"Only 6 seat(s) left\""
+  },
+  {
+    "test": 3,
+    "feature": "cannot cancel another user's booking",
+    "status": "PASS",
+    "detail": "diner002 cancels QA booking → 403 \"This booking belongs to another guest\""
+  },
+  {
+    "test": 4,
+    "feature": "browse deals; couple/group/tasting kinds",
+    "status": "PASS",
+    "detail": "kind=couple → 3 rows, all-couple=true"
+  },
+  {
+    "test": 4,
+    "feature": "apply offer + discount math (server-authoritative)",
+    "status": "PASS",
+    "detail": "WELCOME10 on 2×14000: discount=2800 (expect 2800) total=25200 (expect 25200)"
+  },
+  {
+    "test": 4,
+    "feature": "invalid promo rejected (validation)",
+    "status": "PASS",
+    "detail": "→ 400 \"That promo code is not valid.\""
+  },
+  {
+    "test": 4,
+    "feature": "inactive promo rejected",
+    "status": "PASS",
+    "detail": "EXPIRED0 → 400 \"That promo code is not valid.\""
+  },
+  {
+    "test": 4,
+    "feature": "offer eligibility + conditions (min guests etc.)",
+    "status": "NOT_IMPLEMENTED",
+    "detail": "special_menus packages are display-only (minGuests/price shown in Deals feed); no endpoint books a package onto a booking, so eligibility cannot be enforced end-to-end"
+  },
+  {
+    "test": 4,
+    "feature": "couple/friends offer → booking completion",
+    "status": "PARTIAL",
+    "detail": "only promo-code discounts apply at booking; the offer cards tap through to the venue profile, not to a purchasable package"
+  },
+  {
+    "test": 5,
+    "feature": "discover upcoming dining events",
+    "status": "PASS",
+    "detail": "type=tasting → 5"
+  },
+  {
+    "test": 5,
+    "feature": "select seats + checkout (mock payment)",
+    "status": "PASS",
+    "detail": "2 seats at Tasting Menu Tryout → 201 status=pending total=90"
+  },
+  {
+    "test": 5,
+    "feature": "digital event pass (reference code)",
+    "status": "PASS",
+    "detail": "booking carries printable reference DC-VNSFM"
+  },
+  {
+    "test": 5,
+    "feature": "QR on pass is decorative (client)",
+    "status": "PARTIAL",
+    "detail": "widgets/qr_code_view.dart paints a fake glyph seeded by booking id — no real QR payload/encoder; doc comment defers scanner to \"Phase 5\""
+  },
+  {
+    "test": 5,
+    "feature": "check-in by ticket reference (API) + idempotency",
+    "status": "PASS",
+    "detail": "checkin 200 → repeat 409 \"Already checked in\""
+  },
+  {
+    "test": 5,
+    "feature": "actual QR scan at door",
+    "status": "NOT_IMPLEMENTED",
+    "detail": "no scanner/camera integration anywhere in the client — check-in is a button on My Tables / Event Manage"
+  },
+  {
+    "test": 5,
+    "feature": "attendance recorded on event (participants)",
+    "status": "PASS",
+    "detail": "attendeeIds=2"
+  },
+  {
+    "test": 5,
+    "feature": "review after attending (live flow)",
+    "status": "PASS",
+    "detail": "booking status after check-in=completed; review → 201 \"created\""
+  },
+  {
+    "test": 5,
+    "feature": "review endpoint (seeded completed attendee)",
+    "status": "PASS",
+    "detail": "diner034.demo@example.test → 201"
+  },
+  {
+    "test": 5,
+    "feature": "duplicate review rejected",
+    "status": "PASS",
+    "detail": "→ 409 \"You already reviewed this event\""
+  },
+  {
+    "test": 5,
+    "feature": "cancel + checked-in ticket states",
+    "status": "PASS",
+    "detail": "cancel completed ticket → 409 \"Completed bookings cannot be cancelled\"; fresh cancel 200; check-in after cancel → 409 \"Cancelled bookings cannot be checked in\""
+  },
+  {
+    "test": 6,
+    "feature": "create social dining tables (followers/friends)",
+    "status": "PASS",
+    "detail": "followers event 3878a1ec + friends event 0cb392fb published by seeded host"
+  },
+  {
+    "test": 6,
+    "feature": "gated discovery: non-follower cannot see/open",
+    "status": "PASS",
+    "detail": "GET /events/:id (followers-only, not following) → 404"
+  },
+  {
+    "test": 6,
+    "feature": "gated events hidden from feed",
+    "status": "PASS",
+    "detail": "feed contains followers event: 0"
+  },
+  {
+    "test": 6,
+    "feature": "follow host → table becomes discoverable/joinable",
+    "status": "PASS",
+    "detail": "follow 201; detail after follow 200"
+  },
+  {
+    "test": 6,
+    "feature": "join a public-to-followers dining group (3 seats)",
+    "status": "PASS",
+    "detail": "→ 201 status=confirmed"
+  },
+  {
+    "test": 6,
+    "feature": "view participants",
+    "status": "PASS",
+    "detail": "attendees list=1 attendeeIds=1"
+  },
+  {
+    "test": 6,
+    "feature": "group chat: member posts, host reads",
+    "status": "PASS",
+    "detail": "POST 201; host thread GET 200 contains-message=true"
+  },
+  {
+    "test": 6,
+    "feature": "chat authorization: non-member blocked",
+    "status": "PASS",
+    "detail": "→ 403"
+  },
+  {
+    "test": 6,
+    "feature": "filter by interests / group size",
+    "status": "NOT_IMPLEMENTED",
+    "detail": "no interests or party-size params on GET /events; client Explore maps categories to audience/type only"
+  },
+  {
+    "test": 7,
+    "feature": "browse chef's tables / tastings / experiences",
+    "status": "PASS",
+    "detail": "→ 10 rows; premium sample: Kolachi Long Table Session @ 14000"
+  },
+  {
+    "test": 7,
+    "feature": "book an experience + mock payment + ticket",
+    "status": "PASS",
+    "detail": "201 seatsLeft=19/36 price=14000 ref=DC-8AWKS"
+  },
+  {
+    "test": 7,
+    "feature": "packages (special menus) with own price/booking",
+    "status": "PARTIAL",
+    "detail": "3 tasting packages visible, but not bookable — read-only display; confirmation/payment for packages NIEP"
+  },
+  {
+    "test": 8,
+    "feature": "follow profile + follower count updates",
+    "status": "PASS",
+    "detail": "followers 0 → 1; viewerFollows=true"
+  },
+  {
+    "test": 8,
+    "feature": "unfollow + count reverts",
+    "status": "PASS",
+    "detail": "→ 0"
+  },
+  {
+    "test": 8,
+    "feature": "self-follow blocked",
+    "status": "PASS",
+    "detail": "→ 403"
+  },
+  {
+    "test": 8,
+    "feature": "followers/following lists",
+    "status": "PASS",
+    "detail": "GET /users/:id/followers → 200 rows=1"
+  },
+  {
+    "test": 8,
+    "feature": "batched follow-status (list screens)",
+    "status": "PASS",
+    "detail": "diner003→qaHost followed={\"cebcf093-93fe-4efe-9e20-ab45d77b5082\":true}"
+  },
+  {
+    "test": 8,
+    "feature": "follow restaurants",
+    "status": "NOT_IMPLEMENTED",
+    "detail": "follows table is users-only; no venue follow endpoint — \"Follow a restaurant\" impossible"
+  },
+  {
+    "test": 8,
+    "feature": "Following feed (content from followed people/venues)",
+    "status": "NOT_IMPLEMENTED",
+    "detail": "GET /activity is a personal notification feed (follows, bookings, reviews) — no chronological content feed of followed hosts/venues; People tab Profile menu \"Following\" item is a no-op (onTap: (){})"
+  },
+  {
+    "test": 8,
+    "feature": "notifications (activity) + mark-read",
+    "status": "PASS",
+    "detail": "items=2 follower-alert=true unreadAfterRead=0"
+  },
+  {
+    "test": 8,
+    "feature": "profile updates persist",
+    "status": "PASS",
+    "detail": "→ QA Renamed, tastes=[\"karahi\"]"
+  },
+  {
+    "test": 8,
+    "feature": "API requires auth (401 without token)",
+    "status": "PASS",
+    "detail": "→ 401"
+  },
+  {
+    "test": 9,
+    "feature": "diner cannot publish events (pre-promotion)",
+    "status": "PASS",
+    "detail": "→ 403 \"Only hosts or partners can create events\""
+  },
+  {
+    "test": 9,
+    "feature": "enable hosting on the same account",
+    "status": "PASS",
+    "detail": "POST /users/me/host → 200 role=host (client: Create-tab \"Become a host\" sheet)"
+  },
+  {
+    "test": 9,
+    "feature": "host promotion idempotent",
+    "status": "PASS",
+    "detail": "second call → 200"
+  },
+  {
+    "test": 9,
+    "feature": "save draft (skips full validation, hidden from others, private to host)",
+    "status": "PASS",
+    "detail": "draft 201; hidden from other users=true; visible to its host=true"
+  },
+  {
+    "test": 9,
+    "feature": "publish draft (server re-validates full schema)",
+    "status": "PASS",
+    "detail": "PATCH status=published → 200 event.status=confirmed"
+  },
+  {
+    "test": 9,
+    "feature": "full six-step wizard publish (venue/menu/date/capacity/price)",
+    "status": "PASS",
+    "detail": "→ 201 menuItems in payload=2 price=2200 seats=12"
+  },
+  {
+    "test": 9,
+    "feature": "event appears in discovery + by-host listing",
+    "status": "PASS",
+    "detail": "q-search hit=true; /events?hostId rows=2"
+  },
+  {
+    "test": 9,
+    "feature": "publishing at unverified venue blocked",
+    "status": "PASS",
+    "detail": "→ 403 \"Venue not verified yet\""
+  },
+  {
+    "test": 9,
+    "feature": "submission/approval workflow (admin review before live)",
+    "status": "NOT_IMPLEMENTED",
+    "detail": "hosts publish instantly (status confirmed on POST); no moderation/approval queue exists — spec table says events \"Submit/publish according to approval workflow\""
+  },
+  {
+    "test": 9,
+    "feature": "growth ladder: tier progress + ineligible claim error",
+    "status": "PASS",
+    "detail": "tier=host eligible=false; claim → 403 progress={\"followers\":1,\"eventsHosted\":0,\"rating\":0,\"ratingCount\":0}"
+  },
+  {
+    "test": 10,
+    "feature": "Host Studio: my events (drafts included)",
+    "status": "PASS",
+    "detail": "GET /events/mine → 2 rows"
+  },
+  {
+    "test": 10,
+    "feature": "incoming bookings park as pending (payment authorized)",
+    "status": "PASS",
+    "detail": "diner002 → pending; diner007 → pending"
+  },
+  {
+    "test": 10,
+    "feature": "host guest list",
+    "status": "PASS",
+    "detail": "rows=2"
+  },
+  {
+    "test": 10,
+    "feature": "guest list authorization (other users blocked)",
+    "status": "PASS",
+    "detail": "→ 403"
+  },
+  {
+    "test": 10,
+    "feature": "approve guest request (captures payment)",
+    "status": "PASS",
+    "detail": "→ 200 status=confirmed paymentLabel=Visa •••• 4242"
+  },
+  {
+    "test": 10,
+    "feature": "decline releases seats + refunds authorization",
+    "status": "PASS",
+    "detail": "decline 200; seatsBooked back to 2 (expect 2)"
+  },
+  {
+    "test": 10,
+    "feature": "stranger cannot approve (bad id → 404)",
+    "status": "PASS",
+    "detail": "→ 404"
+  },
+  {
+    "test": 10,
+    "feature": "manage capacity of a PUBLISHED event",
+    "status": "NOT_IMPLEMENTED",
+    "detail": "PATCH published event → 400 \"Only drafts can be edited\" (drafts are editable, published events are frozen)"
+  },
+  {
+    "test": 10,
+    "feature": "host checks in a guest",
+    "status": "PASS",
+    "detail": "→ 200"
+  },
+  {
+    "test": 10,
+    "feature": "guest notified of approval",
+    "status": "PASS",
+    "detail": "activity rows=1"
+  },
+  {
+    "test": 10,
+    "feature": "earnings endpoints for live host (empty state)",
+    "status": "INFO",
+    "detail": "summary earned=0 payouts=0 — approved bookings do NOT generate payout rows (ledger only seeded)"
+  },
+  {
+    "test": 10,
+    "feature": "revenue/commission/earnings review (seeded host)",
+    "status": "PASS",
+    "detail": "earned=373500 inTransit=0 lifetimeGross=415000 commissionRate=0.1 payouts=3 perfRows=3"
+  },
+  {
+    "test": 10,
+    "feature": "withdrawal request + balance + payout history",
+    "status": "PASS",
+    "detail": "available 373500 → 373475; history=1"
+  },
+  {
+    "test": 10,
+    "feature": "over-balance withdrawal rejected",
+    "status": "PASS",
+    "detail": "→ 400 \"Amount exceeds available balance ($373475.00)\""
+  },
+  {
+    "test": 10,
+    "feature": "earnings authorization (other hosts/users blocked)",
+    "status": "PASS",
+    "detail": "read 403 / summary 403 / withdraw 403"
+  },
+  {
+    "test": 10,
+    "feature": "live host with $0 earned cannot withdraw",
+    "status": "PASS",
+    "detail": "available=0 → 400 \"Amount exceeds available balance ($0.00)\""
+  },
+  {
+    "test": 11,
+    "feature": "supported payment method",
+    "status": "PARTIAL",
+    "detail": "single simulated instrument: free-text paymentLabel (default \"Visa •••• 4242\"); no gateway, no card form — client checkout just picks cosmetic method indices"
+  },
+  {
+    "test": 11,
+    "feature": "ticket price/fees/discount/total math",
+    "status": "PASS",
+    "detail": "sample booking total=95 pricePerSeat=95 seats=1; NOTE no tax/fee fields exist anywhere"
+  },
+  {
+    "test": 11,
+    "feature": "failed / cancelled payment states via API",
+    "status": "NOT_IMPLEMENTED",
+    "detail": "POST /events/:id/bookings cannot fail a payment — payment_status is set solely from event.requires_approval (authorized|paid); \"failed\"/\"unpaid\" only exist in seeded rows"
+  },
+  {
+    "test": 11,
+    "feature": "transaction records & receipts endpoint",
+    "status": "NOT_IMPLEMENTED",
+    "detail": "no /transactions or receipt endpoint; PaymentsScreen renders 100% MockData (hardcoded cards, transactions, totals) — zero API calls"
+  },
+  {
+    "test": 11,
+    "feature": "refund status recorded after cancellation",
+    "status": "INFO",
+    "detail": "no cancelled booking on this event to inspect"
+  },
+  {
+    "test": 11,
+    "feature": "diners cannot deposit into any wallet",
+    "status": "PASS",
+    "detail": "POST /hosts/:id/deposit → 404; /wallet/deposit → 404 (no deposit surface exists server-side; UI \"Add Funds\" button in WalletScreen is a dead no-op)"
+  },
+  {
+    "test": 11,
+    "feature": "explicit refund request endpoint",
+    "status": "NOT_IMPLEMENTED",
+    "detail": "POST /bookings/:id/refund → 404; refund is implicit in cancel (returned as {amount,method} echo, no money movement record)"
+  },
+  {
+    "test": 12,
+    "feature": "logout → re-login: account+events+roles persist (Postgres)",
+    "status": "PASS",
+    "detail": "re-login 200 role=host; hosted events still 3"
+  },
+  {
+    "test": 12,
+    "feature": "diner bookings survive re-login",
+    "status": "PASS",
+    "detail": "diner003 has 3 bookings incl. social table"
+  },
+  {
+    "test": 12,
+    "feature": "full journey register→follow venue→offer booking→event→review→host→earnings",
+    "status": "PARTIAL",
+    "detail": "journey passes through: register ✓, follow HOST ✓ (venues ✗), promo booking ✓, join event ✓, become host ✓, publish ✓, receive+approve booking ✓, guest check-in ✓, attend→review ✓ (check-in settles booking to completed); broken links: earnings from live events (no payout rows), follow/book restaurants (no model)"
+  },
+  {
+    "test": 12,
+    "feature": "horizontal-auth: GET /bookings never takes other users",
+    "status": "PASS",
+    "detail": "no-token → 401"
+  },
+  {
+    "test": 12,
+    "feature": "GET /bookings?userId=<other> ignored (returns caller)",
+    "status": "PASS",
+    "detail": "userId override removed server-side"
+  }
+]

@@ -1,0 +1,3 @@
+- Screens consume data exclusively through Riverpod providers rather than holding local state.
+- Feature directories follow a one-screen-per-file naming convention (e.g., *_screen.dart).
+- Navigation between screens uses the app's shared routing helpers instead of raw Navigator calls.

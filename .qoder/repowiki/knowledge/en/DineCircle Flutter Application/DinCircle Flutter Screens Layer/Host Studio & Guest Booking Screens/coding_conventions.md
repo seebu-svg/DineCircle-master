@@ -1,0 +1,5 @@
+- Screens that own tabs use a `SingleTickerProviderStateMixin` plus a local `_tabController` created in `initState` and disposed in `dispose`, wired to both `AppBar.bottom: TabBar` and `body: TabBarView`.
+- Navigation to nested screens is done through `Navigator.push` with `MaterialPageRoute(builder: (_) => ...)`, often passing an `onComplete` callback or refreshing via `setState` after return.
+- Async API mutations are wrapped in try/catch against `ApiException`, with success shown via `ScaffoldMessenger.of(context).showSnackBar` using `AppColors.success` and failures using `AppColors.danger`.
+- UI text and spacing come from centralized theme files (`app_colors.dart`, `app_spacing.dart`, `app_text_styles.dart`) rather than inline literals.
+- Empty states are rendered through a shared `EmptyState` widget (or `_EmptyBox` inside the host dashboard) instead of ad-hoc center widgets.

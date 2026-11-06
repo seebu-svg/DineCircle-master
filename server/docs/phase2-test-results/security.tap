@@ -1,0 +1,175 @@
+TAP version 13
+# Subtest: partner admin cannot join an unrelated restaurant
+ok 1 - partner admin cannot join an unrelated restaurant
+  ---
+  duration_ms: 17.005574
+  ...
+# Subtest: active assigned staff can join their restaurant
+ok 2 - active assigned staff can join their restaurant
+  ---
+  duration_ms: 2.211055
+  ...
+# Subtest: owner keeps implicit venue access
+ok 3 - owner keeps implicit venue access
+  ---
+  duration_ms: 1.76805
+  ...
+# Subtest: super admin must target an existing venue
+ok 4 - super admin must target an existing venue
+  ---
+  duration_ms: 2.152476
+  ...
+# Subtest: partner admin cannot join an unrelated event
+ok 5 - partner admin cannot join an unrelated event
+  ---
+  duration_ms: 4.334624
+  ...
+# Subtest: event host or booked guest keeps access
+ok 6 - event host or booked guest keeps access
+  ---
+  duration_ms: 2.09954
+  ...
+# Subtest: active restaurant member can access venue event
+ok 7 - active restaurant member can access venue event
+  ---
+  duration_ms: 2.561312
+  ...
+# Subtest: invalid handshake token types are rejected before querying
+ok 8 - invalid handshake token types are rejected before querying
+  ---
+  duration_ms: 2.05257
+  ...
+# Subtest: socket lookup hashes tokens and checks expiry and deleted accounts
+ok 9 - socket lookup hashes tokens and checks expiry and deleted accounts
+  ---
+  duration_ms: 6.614848
+  ...
+# Subtest: malformed messages and unbounded read receipts cannot invoke handlers
+ok 10 - malformed messages and unbounded read receipts cannot invoke handlers
+  ---
+  duration_ms: 24.235304
+  ...
+# Subtest: expired or revoked sessions disconnect before socket operation
+ok 11 - expired or revoked sessions disconnect before socket operation
+  ---
+  duration_ms: 2.636196
+  ...
+# Subtest: roles are refreshed and valid message payload is preserved
+ok 12 - roles are refreshed and valid message payload is preserved
+  ---
+  duration_ms: 2.707933
+  ...
+# Subtest: listener database failures become safe errors without unhandled rejection
+ok 13 - listener database failures become safe errors without unhandled rejection
+  ---
+  duration_ms: 3.900656
+  ...
+# Subtest: partner admins cannot inspect or operate other hosts financial records
+ok 14 - partner admins cannot inspect or operate other hosts financial records
+  ---
+  duration_ms: 4.193722
+  ...
+# Subtest: HTTP bearer middleware rejects missing and expired sessions
+ok 15 - HTTP bearer middleware rejects missing and expired sessions
+  ---
+  duration_ms: 2.406961
+  ...
+# Subtest: HTTP bearer middleware resolves the database identity and role
+ok 16 - HTTP bearer middleware resolves the database identity and role
+  ---
+  duration_ms: 2.013008
+  ...
+# Subtest: revoked session cannot receive from a previously joined room
+ok 17 - revoked session cannot receive from a previously joined room
+  ---
+  duration_ms: 2.306746
+  ...
+# Subtest: revoked staff cannot receive restaurant updates on a stale room
+ok 18 - revoked staff cannot receive restaurant updates on a stale room
+  ---
+  duration_ms: 3.666942
+  ...
+# Subtest: departed conversation participant cannot receive on a stale room
+ok 19 - departed conversation participant cannot receive on a stale room
+  ---
+  duration_ms: 3.255902
+  ...
+# Subtest: read receipts use conversation scoped SQL and broadcast only matched IDs
+ok 20 - read receipts use conversation scoped SQL and broadcast only matched IDs
+  ---
+  duration_ms: 2.590081
+  ...
+# Subtest: revoked invite cannot be reactivated during acceptance
+ok 21 - revoked invite cannot be reactivated during acceptance
+  ---
+  duration_ms: 3.420687
+  ...
+# Subtest: valid invite accepts and keeps the mobile response contract
+ok 22 - valid invite accepts and keeps the mobile response contract
+  ---
+  duration_ms: 1.847631
+  ...
+# Subtest: acceptance remains idempotent for an active member
+ok 23 - acceptance remains idempotent for an active member
+  ---
+  duration_ms: 2.397804
+  ...
+# Subtest: GET /:restaurantId/menu rejects cross-tenant access before resource query
+ok 24 - GET /:restaurantId/menu rejects cross-tenant access before resource query
+  ---
+  duration_ms: 4.708711
+  ...
+# Subtest: POST /:restaurantId/menu/sections rejects cross-tenant access before resource query
+ok 25 - POST /:restaurantId/menu/sections rejects cross-tenant access before resource query
+  ---
+  duration_ms: 1.962758
+  ...
+# Subtest: POST /:restaurantId/menu/items rejects cross-tenant access before resource query
+ok 26 - POST /:restaurantId/menu/items rejects cross-tenant access before resource query
+  ---
+  duration_ms: 1.77107
+  ...
+# Subtest: PATCH /:restaurantId/menu/items/:itemId rejects cross-tenant access before resource query
+ok 27 - PATCH /:restaurantId/menu/items/:itemId rejects cross-tenant access before resource query
+  ---
+  duration_ms: 1.965791
+  ...
+# Subtest: DELETE /:restaurantId/menu/items/:itemId rejects cross-tenant access before resource query
+ok 28 - DELETE /:restaurantId/menu/items/:itemId rejects cross-tenant access before resource query
+  ---
+  duration_ms: 2.202923
+  ...
+# Subtest: GET /:restaurantId/deals rejects cross-tenant access before resource query
+ok 29 - GET /:restaurantId/deals rejects cross-tenant access before resource query
+  ---
+  duration_ms: 3.266783
+  ...
+# Subtest: POST /:restaurantId/deals rejects cross-tenant access before resource query
+ok 30 - POST /:restaurantId/deals rejects cross-tenant access before resource query
+  ---
+  duration_ms: 2.997197
+  ...
+# Subtest: PATCH /:restaurantId/deals/:dealId rejects cross-tenant access before resource query
+ok 31 - PATCH /:restaurantId/deals/:dealId rejects cross-tenant access before resource query
+  ---
+  duration_ms: 3.584721
+  ...
+# Subtest: DELETE /:restaurantId/deals/:dealId rejects cross-tenant access before resource query
+ok 32 - DELETE /:restaurantId/deals/:dealId rejects cross-tenant access before resource query
+  ---
+  duration_ms: 3.670424
+  ...
+# Subtest: forwarded IP trust defaults to disabled and explicit true means one hop
+ok 33 - forwarded IP trust defaults to disabled and explicit true means one hop
+  ---
+  duration_ms: 2.791336
+  ...
+1..33
+# tests 33
+# suites 0
+# pass 33
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 357.952346

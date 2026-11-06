@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: screens/auth_and_onboarding
+title: Auth, Onboarding & Splash Entry Screens
+scope:
+    - lib/screens/auth/
+    - lib/screens/onboarding/
+    - lib/screens/splash/
+source_files: []
+depends_on: []
+related_to: []

@@ -1,0 +1,6 @@
+- Bottom-sheet forms are exposed via a top-level `Future<void> showXxxSheet(BuildContext)` helper that calls `showModalBottomSheet` with `isScrollControlled: true`, `surfaceElevated` background, and rounded top corners, then returns the sheet's future to the caller.
+- All async mutations catch `ApiException` separately from generic exceptions, surface the error message via `SnackBar` or an in-sheet `_error` field, and guard UI updates with `if (!mounted) return` / `if (!context.mounted) return` before accessing `BuildContext`.
+- List-style navigation uses a private `_push(context, Widget)` helper that wraps `Navigator.push` with `MaterialPageRoute`, keeping route transitions uniform across the settings screen.
+- Sensitive destructive actions (log out, log out all devices, delete account) are wrapped in confirmation dialogs built inline inside the screen rather than delegated to a separate dialog widget.
+- Layout spacing and typography come exclusively from the shared `AppSpacing` and `AppTextStyles` constants instead of hard-coded sizes or styles.
+- Testable interactive elements carry explicit `Key` identifiers (e.g. `deleteAccountPassword`, `emailCodeField`, `newEmailField`, `currentPasswordField`) on their `TextField`s.

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DineCircle launch background (API < 21).
+     Brand field with the centred DineCircle mark. launch_logo.png exists in
+     every density bucket at 96dp, so gravity=center lands at the same physical
+     size on every device without per-item width/height (which needs API 23).
+     Regenerate the art with tool/branding/generate_brand_assets.py. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/dinecircle_bg" />
+    <item
+        android:drawable="@drawable/launch_logo"
+        android:gravity="center" />
+</layer-list>

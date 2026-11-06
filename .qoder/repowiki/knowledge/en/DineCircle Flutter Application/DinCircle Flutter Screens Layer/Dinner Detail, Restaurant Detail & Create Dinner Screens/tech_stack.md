@@ -1,0 +1,1 @@
+Flutter Material + Riverpod (`flutter_riverpod`) for reactive providers; `ScaffoldMessenger` for snackbars; `Clipboard` API for sharing event links; `ModalBottomSheet` for review composer and more-actions menu.

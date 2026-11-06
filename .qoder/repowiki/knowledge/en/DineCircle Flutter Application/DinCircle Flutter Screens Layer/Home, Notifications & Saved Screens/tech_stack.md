@@ -1,0 +1,1 @@
+Flutter Material + Riverpod (`flutter_riverpod`) for state consumption; shared theming via `app_colors.dart`, `app_spacing.dart`, `app_text_styles.dart`; list rendering uses `DataView` wrapper for async loading/error/empty states.

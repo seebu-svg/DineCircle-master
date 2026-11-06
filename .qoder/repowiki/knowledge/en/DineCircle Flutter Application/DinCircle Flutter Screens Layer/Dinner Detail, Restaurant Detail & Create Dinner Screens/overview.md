@@ -1,0 +1,1 @@
+Flutter screens for viewing a dinner's full details, browsing a restaurant's profile and upcoming events, and hosting the six-step create-dinner wizard.

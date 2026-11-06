@@ -1,0 +1,1 @@
+Flutter widget and integration tests that drive screens, checkout flows, overflow audits, and domain mappers against in-memory repository fakes.

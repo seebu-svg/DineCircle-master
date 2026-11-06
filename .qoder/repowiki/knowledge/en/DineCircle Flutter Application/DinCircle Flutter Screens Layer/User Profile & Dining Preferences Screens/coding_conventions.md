@@ -1,0 +1,6 @@
+- Screens are implemented as `ConsumerWidget` or `ConsumerStatefulWidget` subclasses that read data via `ref.watch(...)` and mutate state through `ref.read(provider.notifier).action()` calls rather than holding their own copies of user data.
+- All visual constants (spacing, colors, text styles, radii) are sourced from the shared `AppSpacing`, `AppColors`, `AppTextStyles` modules instead of inline literals.
+- Async mutations wrap try/catch around `ApiException`, surface errors via `ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)))`, and guard post-mutation UI updates with `if (!mounted) return` / `if (!context.mounted) return`.
+- Server-imposed limits are enforced at the UI layer before the API call (e.g. `_maxTastes = 8`, `_maxLabels = 12`, trimming `tastes.take(8)`), so the client never surfaces a 422 response.
+- Navigation between screens uses a local `_push(BuildContext, Widget)` helper that wraps `Navigator.push` with `MaterialPageRoute`, keeping route dispatch uniform across the profile screen.
+- Private helper widgets inside a screen file are prefixed with an underscore (e.g. `_SectionHeader`, `_StatChip`, `_DiningTag`, `_Badge`, `_StarBar`, `_ChipWall`) to mark them as module-local.

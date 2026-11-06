@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: screens/social_interaction
+title: Social Interaction Screens (Chat, Messages & People)
+scope:
+    - lib/screens/chat_detail/
+    - lib/screens/messages/
+    - lib/screens/people/
+source_files: []
+depends_on: []
+related_to: []

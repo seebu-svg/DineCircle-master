@@ -1,0 +1,1 @@
+Cross-platform Flutter dining-event app paired with a TypeScript/Express REST + Socket.IO server backed by PostgreSQL (via pg), providing dinner discovery, booking, payments, chat, and partner venue management.

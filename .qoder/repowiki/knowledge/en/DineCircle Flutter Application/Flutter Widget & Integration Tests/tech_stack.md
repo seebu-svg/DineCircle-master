@@ -1,0 +1,1 @@
+Flutter `flutter_test` with `flutter_riverpod`'s `ProviderScope.overrideWith` / `overrideWithValue` for dependency injection; `google_fonts` is forced offline via `GoogleFonts.config.allowRuntimeFetching = false` to keep headless tests deterministic.

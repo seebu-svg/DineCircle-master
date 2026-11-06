@@ -1,0 +1,24 @@
+
+> dinecircle-server@0.1.0 test:integration
+> tsx --test src/tests/*.integration.test.ts
+
+node:net:1883
+      const error = new UVExceptionWithHostPort(rval, 'listen', address, port);
+                    ^
+
+Error: listen EPERM: operation not permitted /tmp/tsx-1000/113.pipe
+    at Server.setupListenHandle [as _listen2] (node:net:1883:21)
+    at listenInCluster (node:net:1962:12)
+    at Server.listen (node:net:2081:5)
+    at file:///home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/node_modules/tsx/dist/cli.mjs:53:32174
+    at new Promise (<anonymous>)
+    at createIpcServer (file:///home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/node_modules/tsx/dist/cli.mjs:53:32152)
+    at async file:///home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/node_modules/tsx/dist/cli.mjs:55:542 {
+  code: 'EPERM',
+  errno: -1,
+  syscall: 'listen',
+  address: '/tmp/tsx-1000/113.pipe',
+  port: -1
+}
+
+Node.js v20.19.2

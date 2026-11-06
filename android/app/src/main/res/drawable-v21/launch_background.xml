@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DineCircle launch background (API 21+).
+     Same composition as drawable/launch_background.xml, but the field follows
+     the brand palette directly instead of the platform colour background. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/dinecircle_bg" />
+    <item
+        android:drawable="@drawable/launch_logo"
+        android:gravity="center" />
+</layer-list>

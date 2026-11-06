@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: screens/user_profile
+title: User Profile & Dining Preferences Screens
+scope:
+    - lib/screens/profile/
+    - lib/screens/user_profile/
+    - lib/screens/preferences/
+source_files: []
+depends_on: []
+related_to: []

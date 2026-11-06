@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: test
+title: Flutter Widget & Integration Tests
+scope:
+    - test/
+source_files: []
+depends_on: []
+related_to:
+    - path: screens/booking_flow
+    - path: widgets

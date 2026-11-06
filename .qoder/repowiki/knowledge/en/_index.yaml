@@ -1,0 +1,173 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: en-US
+branch: master
+nodes_managed: true
+exported_at: "2026-10-30T09:51:08Z"
+modules:
+    "":
+        dir_name: DineCircle Flutter Application
+        title: DineCircle Flutter Application
+        scope: []
+        source_files: []
+        children:
+            - screens
+            - test
+            - widgets
+        depends_on: []
+        related_to: []
+    screens:
+        dir_name: DinCircle Flutter Screens Layer
+        title: DinCircle Flutter Screens Layer
+        scope:
+            - lib/screens/
+        source_files: []
+        children:
+            - screens/account_management
+            - screens/auth_and_onboarding
+            - screens/booking_flow
+            - screens/dining_detail
+            - screens/host_dashboard
+            - screens/location_services
+            - screens/notifications_saved
+            - screens/safety_support
+            - screens/social_interaction
+            - screens/user_profile
+        depends_on: []
+        related_to: []
+    screens/account_management:
+        dir_name: Account, Payments & Wallet Screens
+        title: Account, Payments & Wallet Screens
+        scope:
+            - lib/screens/settings/
+            - lib/screens/payments/
+            - lib/screens/wallet/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: screens/safety_support
+            - path: widgets
+    screens/auth_and_onboarding:
+        dir_name: Auth, Onboarding & Splash Entry Screens
+        title: Auth, Onboarding & Splash Entry Screens
+        scope:
+            - lib/screens/auth/
+            - lib/screens/onboarding/
+            - lib/screens/splash/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    screens/booking_flow:
+        dir_name: Booking Flow Screens (Checkout, My Bookings, Confirmation)
+        title: Booking Flow Screens (Checkout, My Bookings, Confirmation)
+        scope:
+            - lib/screens/booking_confirmed/
+            - lib/screens/bookings/
+            - lib/screens/checkout/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: test
+            - path: widgets
+    screens/dining_detail:
+        dir_name: Dinner Detail, Restaurant Detail & Create Dinner Screens
+        title: Dinner Detail, Restaurant Detail & Create Dinner Screens
+        scope:
+            - lib/screens/detail/
+            - lib/screens/restaurant_detail/
+            - lib/screens/create/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    screens/host_dashboard:
+        dir_name: Host Studio & Guest Booking Screens
+        title: Host Studio & Guest Booking Screens
+        scope:
+            - lib/screens/host/
+            - lib/screens/tables/
+            - lib/screens/offers/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    screens/location_services:
+        dir_name: Location Picker, Settings & Saved Locations Screens
+        title: Location Picker, Settings & Saved Locations Screens
+        scope:
+            - lib/screens/location/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    screens/notifications_saved:
+        dir_name: Home, Notifications & Saved Screens
+        title: Home, Notifications & Saved Screens
+        scope:
+            - lib/screens/notifications/
+            - lib/screens/saved/
+            - lib/screens/home/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    screens/safety_support:
+        dir_name: Safety, Support & Help Screens
+        title: Safety, Support & Help Screens
+        scope:
+            - lib/screens/safety/
+            - lib/screens/support/
+            - lib/screens/help/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: screens/account_management
+    screens/social_interaction:
+        dir_name: Social Interaction Screens (Chat, Messages & People)
+        title: Social Interaction Screens (Chat, Messages & People)
+        scope:
+            - lib/screens/chat_detail/
+            - lib/screens/messages/
+            - lib/screens/people/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    screens/user_profile:
+        dir_name: User Profile & Dining Preferences Screens
+        title: User Profile & Dining Preferences Screens
+        scope:
+            - lib/screens/profile/
+            - lib/screens/user_profile/
+            - lib/screens/preferences/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    test:
+        dir_name: Flutter Widget & Integration Tests
+        title: Flutter Widget & Integration Tests
+        scope:
+            - test/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: screens/booking_flow
+            - path: widgets
+    widgets:
+        dir_name: Reusable Flutter Widget Library
+        title: Reusable Flutter Widget Library
+        scope:
+            - lib/widgets/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: screens/account_management
+            - path: screens/booking_flow
+            - path: test

@@ -1,0 +1,6 @@
+- Screens expose their data via Riverpod providers consumed with `ref.watch` and refresh by calling `ref.invalidate(provider)` after mutations rather than manual reloads.
+- Network calls go through `safetyRepositoryProvider` and errors are handled by catching `ApiException` to show `error.message` in a `SnackBar`, with a generic fallback catch for unknown failures.
+- User-facing text strings live inline in the widget code and are referenced in tests via explicit `Key('...')` identifiers on interactive widgets (e.g. `unblockConfirm_${user.id}`, `reportSubmitButton`, `feedbackCategory_${category.wire}`).
+- Theming is centralized through `AppSpacing`, `AppColors`, and `AppTextStyles` constants instead of hard-coded sizes, colors, or font weights.
+- List screens wrap their content in `DataView<List<T>>` providing `onRetry`, `isEmpty`, and `emptyMessage` so retry and empty states are uniform across blocked users, reports, and tickets.
+- Long-running actions set a local `_submitting` flag before the async call, disable the submit button while submitting, and reset it in both success and error branches.

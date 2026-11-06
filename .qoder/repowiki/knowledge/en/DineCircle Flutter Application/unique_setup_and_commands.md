@@ -1,0 +1,1 @@
+Flutter app boots via `flutter run`; the backend lives in `server/` and is built/run independently (Dockerfile + docker-compose.yml present). CI for the server is defined in `.github/workflows/server-ci.yml`.

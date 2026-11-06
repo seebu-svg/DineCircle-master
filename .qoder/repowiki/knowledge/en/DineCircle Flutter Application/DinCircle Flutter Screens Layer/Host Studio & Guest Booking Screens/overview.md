@@ -1,0 +1,1 @@
+Flutter screens for the host-facing studio dashboard (events, earnings, collabs) and guest-facing booking/offer listings.

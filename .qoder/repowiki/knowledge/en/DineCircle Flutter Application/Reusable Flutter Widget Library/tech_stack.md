@@ -1,0 +1,1 @@
+Flutter Material 3 widgets with Riverpod (`flutter_riverpod`) for provider access inside bottom sheets; QR rendering via `qr_code_view.dart`; theming centralized through `app_colors.dart`, `app_spacing.dart`, `app_text_styles.dart`.

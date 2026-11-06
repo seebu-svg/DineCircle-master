@@ -1,0 +1,1 @@
+Shared Flutter widget library providing theme-driven UI primitives, domain cards (restaurant, dinner, offer, occasion), data-view wrappers, skeleton loaders, and booking-related bottom sheets.

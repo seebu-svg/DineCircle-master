@@ -1,0 +1,4 @@
+- Screens consume data through `ref.watch(...)` on Riverpod providers and render via `AsyncValue.when` or the `DataView` wrapper rather than holding local state.
+- Navigation out of a screen is expressed as typed callback props on the widget constructor (e.g. `onDinnerTap`, `onBookingsTap`, `onSavedTap`) instead of direct `Navigator.push` calls.
+- Visual tokens come exclusively from the shared `AppColors`, `AppSpacing`, and `AppTextStyles` modules — no hardcoded colors, spacings, or font sizes appear inline.
+- Section builders return `SizedBox.shrink()` when their data is empty, so the home feed hides unused sections rather than showing blank placeholders.

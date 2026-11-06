@@ -1,0 +1,1 @@
+Flutter SDK ^3.13.4 with Riverpod 2.6 for state management, Dio 5 for HTTP, Stripe 14 for payments, Google Maps/Geolocator for location, and flutter_secure_storage for token persistence; the sibling `server/` runs on Node.js/TypeScript with Express.

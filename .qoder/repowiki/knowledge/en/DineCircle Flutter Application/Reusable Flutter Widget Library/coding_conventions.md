@@ -1,0 +1,6 @@
+- Visual styling is sourced exclusively from the shared theme helpers `AppColors`, `AppSpacing`, and `AppTextStyles` rather than hard-coded literals.
+- Presentational widgets are implemented as `StatelessWidget`s with const constructors and named optional parameters, exposing only display props and callbacks.
+- Interactive leaf widgets wrap their content in `GestureDetector` with `HitTestBehavior.opaque` and annotate it with `Semantics(button: true, ...)` for accessibility.
+- Data surfaces follow the `DataView<T>` pattern: wrap an `AsyncValue<T>` and branch on loading/empty/error/data, using `SkeletonList` for loading and `ErrorStateView`/`EmptyStateView` for terminal states.
+- Bottom-sheet entry points are top-level async functions returning `showModalBottomSheet` (e.g. `showBookingCheckInSheet`), keeping sheet state local to a private `ConsumerStatefulWidget` class.
+- Asynchronous user actions set a local `_busy` flag before calling the provider, then use `if (!mounted) return` guards before updating state or showing `SnackBar` results.

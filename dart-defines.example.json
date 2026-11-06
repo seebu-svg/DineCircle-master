@@ -1,0 +1,5 @@
+{
+  "STRIPE_PUBLISHABLE_KEY": "pk_test_replace_with_your_publishable_key",
+  "GOOGLE_MAPS_API_KEY": "AIza_replace_with_your_maps_key",
+  "API_BASE_URL": "http://10.0.2.2:4000"
+}

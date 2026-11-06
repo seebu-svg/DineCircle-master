@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: screens/location_services
+title: Location Picker, Settings & Saved Locations Screens
+scope:
+    - lib/screens/location/
+source_files: []
+depends_on: []
+related_to: []

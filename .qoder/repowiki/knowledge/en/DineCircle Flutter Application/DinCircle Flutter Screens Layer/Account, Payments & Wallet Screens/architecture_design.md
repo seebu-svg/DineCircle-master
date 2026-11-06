@@ -1,0 +1,6 @@
+Three sibling screen folders under `lib/screens/` with no internal sub-packages:
+- `settings/` — a list-driven `SettingsScreen` (`ConsumerWidget`) that groups rows into Account / Preferences / Privacy / Support / Session sections via a private `_SettingsTile` widget; sensitive actions (logout, logout-all, delete-account) are guarded by inline `AlertDialog`s, while email and password changes are implemented as bottom sheets exposed through top-level `showChangeEmailSheet` / `showChangePasswordSheet` helpers.
+- `payments/payments_screen.dart` — a thin `ConsumerWidget` that reads `myBookingsProvider` and delegates rendering to the shared `PaymentLedger` widget from `widgets/payment_ledger.dart`, reusing the same data source as My Bookings so both entry points stay in sync.
+- `wallet/wallet_screen.dart` — a static `StatelessWidget` presenting balance, earnings stats, recent earnings and payout history using local placeholder values and reusable `_EarningsTile` / `_PayoutTile` widgets.
+
+Dependency direction is one-way: screens depend on shared providers (`sessionControllerProvider`, `currentUserProvider`, `myBookingsProvider`), models, theme tokens (`AppColors`, `AppSpacing`, `AppTextStyles`), and reusable widgets (`DataView`, `PrimaryButton`, `StatTile`, `PaymentLedger`). No cross-imports between the three screen folders.

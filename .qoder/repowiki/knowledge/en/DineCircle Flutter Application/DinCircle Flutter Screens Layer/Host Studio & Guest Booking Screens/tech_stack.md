@@ -1,0 +1,1 @@
+Flutter Material + Riverpod (`flutter_riverpod`) for state consumption in the host dashboard; mock data via `data/mock_data.dart` for guest screens.

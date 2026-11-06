@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+ system splash (API 31+).
+         Styles are resolved per configuration, not merged, so this variant must
+         repeat windowBackground as well as declaring the splash attributes.
+         AppCompat parents are mandatory: flutter_stripe's PaymentSheet needs an
+         AppCompat-descendant host theme (see MainActivity.kt). -->
+    <style name="LaunchTheme" parent="@style/Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:windowSplashScreenBackground">@color/dinecircle_bg</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/launch_logo</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/dinecircle_bg</item>
+    </style>
+</resources>

@@ -1,0 +1,47 @@
+# Render Blueprint — the public HTTPS home of the DineCircle API.
+#
+# The Flutter apps never talk to Postgres directly: they call this Express
+# service, which holds the database credentials and talks to the live Supabase
+# project (dinecircle-prod / xrbaswdkiexuthtiizqr) over TLS.
+#
+# Deploy: push this repo to GitHub, then Render → New → Blueprint → pick the
+# repo. Render asks for the two `sync: false` secrets once, then redeploys on
+# every push. The resulting base URL is what the APK is built against, e.g.
+#   flutter build apk --release \
+#     --dart-define=API_BASE_URL=https://dinecircle-api.onrender.com
+services:
+  - type: web
+    name: dinecircle-api
+    runtime: docker
+    plan: free
+    # Singapore is the closest free region to the Supabase ap-south-1 database.
+    region: singapore
+    rootDir: server
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      # Production turns on TLS enforcement and the strict CORS allowlist.
+      - key: NODE_ENV
+        value: production
+      # Render terminates TLS in front of the container, so exactly one proxy
+      # hop is trusted (auth rate limiting keys off the client IP).
+      - key: TRUST_PROXY
+        value: 1
+      # Supabase session-pooler connection string. Paste it in the dashboard —
+      # never in the repo. Requires ?sslmode=require.
+      - key: DATABASE_URL
+        sync: false
+      # CA bundle shipped inside the image by the Dockerfile; the system trust
+      # store does not include the Supabase issuer.
+      - key: DATABASE_SSL_CA_FILE
+        value: database/supabase-ca.pem
+      # The pooler is shared, so keep the pool small.
+      - key: DATABASE_POOL_MAX
+        value: 5
+      - key: DATABASE_CONNECT_TIMEOUT_MS
+        value: 30000
+      # Comma-separated browser origins (the marketing site). Mobile clients
+      # send no Origin header and need nothing here.
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false

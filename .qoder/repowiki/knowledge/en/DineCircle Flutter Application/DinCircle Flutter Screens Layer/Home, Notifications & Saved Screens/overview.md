@@ -1,0 +1,1 @@
+Top-level Flutter screens for the app's home feed, activity notifications, and saved dinners, wired to Riverpod providers and shared theme/widget libraries.

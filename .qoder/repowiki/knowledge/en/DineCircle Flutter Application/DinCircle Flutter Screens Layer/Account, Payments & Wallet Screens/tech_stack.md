@@ -1,0 +1,1 @@
+Flutter Material + Riverpod (`flutter_riverpod`); session/account mutations go through `sessionControllerProvider.notifier` which wraps Express endpoints (`POST /auth/change-email`, `/auth/change-password`, `DELETE /users/me`).

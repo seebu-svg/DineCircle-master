@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: screens/host_dashboard
+title: Host Studio & Guest Booking Screens
+scope:
+    - lib/screens/host/
+    - lib/screens/tables/
+    - lib/screens/offers/
+source_files: []
+depends_on: []
+related_to: []

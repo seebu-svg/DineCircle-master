@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: screens/dining_detail
+title: Dinner Detail, Restaurant Detail & Create Dinner Screens
+scope:
+    - lib/screens/detail/
+    - lib/screens/restaurant_detail/
+    - lib/screens/create/
+source_files: []
+depends_on: []
+related_to: []

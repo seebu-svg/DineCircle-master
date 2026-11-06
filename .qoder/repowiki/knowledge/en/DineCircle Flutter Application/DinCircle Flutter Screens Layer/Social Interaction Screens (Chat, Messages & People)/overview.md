@@ -1,0 +1,1 @@
+Flutter screens for event chat threads, the conversation list, and the people discovery/following roster — the social layer of DinCircle's UI.

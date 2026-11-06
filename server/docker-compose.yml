@@ -1,0 +1,50 @@
+# DineCircle API + Postgres for a disposable local/staging bring-up.
+# The native PostgreSQL service owns port 5432, so this container publishes on
+# 5433 — point DATABASE_URL at 5433 if you connect from the host.
+#   podman compose up --build      (or: docker compose up --build)
+# The API waits for Postgres (built-in readiness retry), then applies schema
+# and seed before serving.
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dinecircle
+      POSTGRES_PASSWORD: dinecircle
+      POSTGRES_DB: dinecircle
+    ports:
+      - '5433:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U dinecircle -d dinecircle']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://dinecircle:dinecircle@db:5432/dinecircle
+      PORT: '4000'
+      NODE_ENV: development
+      # Stripe (Phase 4, test mode). Empty = simulated gateway (no behavior
+      # change). Provide real values via the host shell or a .env file next
+      # to this compose file — never bake keys into the image.
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_CURRENCY: ${STRIPE_CURRENCY:-usd}
+      PAYMENTS_MODE: ${PAYMENTS_MODE:-}
+    ports:
+      - '4000:4000'
+    # Apply the schema on boot (no seed — see C3: seeding is an explicit
+    # opt-in to avoid shipping a known partner-admin credential). Then start
+    # the compiled server.
+    command: sh -c "node dist/schema.js && node dist/server.js"
+
+volumes:
+  pgdata:

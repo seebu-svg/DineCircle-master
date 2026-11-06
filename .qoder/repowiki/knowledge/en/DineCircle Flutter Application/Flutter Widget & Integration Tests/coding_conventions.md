@@ -1,0 +1,6 @@
+- Screens are rendered inside a `ProviderScope` whose `overrides` list wires `sessionControllerProvider`, `eventsRepositoryProvider`, `restaurantsRepositoryProvider`, `usersRepositoryProvider`, and `offersRepositoryProvider` to fakes from `fake_repositories.dart`.
+- Repository fakes expose per-method call counters (e.g. `joinCalls`, `cancelCalls`, `approveCalls`) and `last*` fields so tests assert both behavior and exact invocation parameters.
+- Fixture data is constructed via top-level `fixture*` functions with named optional parameters instead of ad-hoc object literals, keeping test setup concise and consistent across files.
+- Overflow detection is implemented by wrapping `FlutterError.onError` to collect messages containing `A RenderFlex overflowed`, then asserting the collected list is empty after `pumpAndSettle()`.
+- The app theme used in tests is always `AppTheme.darkTheme` wrapped in `MaterialApp`, matching the running application's root theme.
+- Platform dependencies such as `FlutterSecureStorage` are replaced by `InMemorySecureStorage`, which routes all methods through `noSuchMethod` to avoid restating long option-parameter signatures.

@@ -1,0 +1,1 @@
+Flutter Material with Riverpod (`flutter_riverpod`) for state; server endpoints documented in file comments (`GET /users/me/blocked`, `POST /users/:id/block`, `POST /users/me/report`, `POST /feedback`, `GET /users/me/feedback`).

@@ -1,0 +1,1 @@
+Flutter Material + Riverpod (`flutter_riverpod`); GPS via `geolocator` with permission checks; reverse geocoding via `geocoding`'s `Geocoding.placemarkFromCoordinates`.

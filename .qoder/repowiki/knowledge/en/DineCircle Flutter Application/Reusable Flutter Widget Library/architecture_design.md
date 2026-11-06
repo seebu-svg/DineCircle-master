@@ -1,0 +1,7 @@
+Flat collection of single-purpose `StatelessWidget` / `StatefulWidget` files under `lib/widgets/`, each exporting one visual component consumed by screens in `lib/screens/`. Internal layering:
+- Theme primitives: `buttons.dart` (`PrimaryButton`, `SecondaryButton`, `_ButtonContent`) and `common_widgets.dart` (`SectionHeader`, `RatingPill`, `TagChip`, `GlassCard`, `StatTile`, `EmptyState`, `ProgressSteps`) are pure presentational widgets built on `AppColors`, `AppSpacing`, `AppTextStyles`.
+- Domain cards: `restaurant_card.dart`, `dinner_card.dart`, `offer_card.dart`, `occasion_card.dart`, `experience_card.dart`, `deal_card.dart` render business entities.
+- Data presentation: `data_view.dart` wraps an `AsyncValue<T>` into uniform loading/empty/error/data states using `SkeletonList`; `skeleton_placeholder.dart` provides static shimmer placeholders (`SkeletonBox`, `SkeletonList`) chosen deliberately to avoid `pumpAndSettle()` hangs in tests.
+- Booking flow UI: `booking_check_in_sheet.dart` exposes `showBookingCheckInSheet` via `showModalBottomSheet` with a `ConsumerStatefulWidget` that calls `bookingsControllerProvider.checkIn` and shows success/error via `ScaffoldMessenger`.
+- Supporting visuals: `avatar_widget.dart`, `qr_code_view.dart`, `connectivity_banner.dart`, `payment_ledger.dart`, `edit_profile_sheet.dart`.
+Dependency direction is strictly outward-only: widgets depend on `../theme/*`, `../api/*`, `../models/*`, and Riverpod providers; no screen imports another widget file except through these public classes.

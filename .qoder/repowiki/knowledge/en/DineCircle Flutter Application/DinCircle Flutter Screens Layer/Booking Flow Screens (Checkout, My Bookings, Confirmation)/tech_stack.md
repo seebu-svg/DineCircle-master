@@ -1,0 +1,1 @@
+Flutter Material 3 UI over Riverpod (`flutter_riverpod`) for state, Google Maps Flutter (`google_maps_flutter`) for the directions bottom sheet, and Stripe via `services/stripe_payments.dart` (client-secret + webhook settlement pattern).

@@ -1,0 +1,1 @@
+Flutter + Riverpod (`flutter_riverpod`) for state; REST polling for chat threads (Socket.IO realtime noted as a Phase 3b drop-in behind the same provider); `flutter/material` for UI primitives.

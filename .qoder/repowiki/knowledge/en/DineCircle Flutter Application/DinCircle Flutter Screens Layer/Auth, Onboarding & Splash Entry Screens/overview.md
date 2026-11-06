@@ -1,0 +1,1 @@
+Flutter screens that bootstrap the app: a branded splash, a multi-slide onboarding carousel, and an email/password sign-in/sign-up form that delegates session state to Riverpod.

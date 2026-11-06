@@ -1,0 +1,1 @@
+Flutter screens for the signed-in user's profile hub, a public host profile view, and taste/dietary/allergy preference editors backed by Riverpod providers.

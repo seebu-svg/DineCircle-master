@@ -1,0 +1,1 @@
+Flutter with Riverpod for state consumption across all screens; shared theme/widget libraries consumed uniformly by every child module.

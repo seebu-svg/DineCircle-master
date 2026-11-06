@@ -1,0 +1,1 @@
+Flutter screens that drive the end-to-end booking lifecycle: checkout with seat selection and Stripe payment, the My Bookings hub for managing reservations, and the post-booking confirmation pass.

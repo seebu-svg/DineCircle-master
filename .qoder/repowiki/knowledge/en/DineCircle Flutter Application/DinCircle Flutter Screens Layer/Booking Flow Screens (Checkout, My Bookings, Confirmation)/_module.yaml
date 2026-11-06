@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: screens/booking_flow
+title: Booking Flow Screens (Checkout, My Bookings, Confirmation)
+scope:
+    - lib/screens/booking_confirmed/
+    - lib/screens/bookings/
+    - lib/screens/checkout/
+source_files: []
+depends_on: []
+related_to:
+    - path: test
+    - path: widgets

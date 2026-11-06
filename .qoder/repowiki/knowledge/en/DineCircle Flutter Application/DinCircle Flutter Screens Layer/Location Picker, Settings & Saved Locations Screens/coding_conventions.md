@@ -1,0 +1,5 @@
+- Screen state is held in a private `ConsumerState` class with local `TextEditingController`s disposed in `dispose()`.
+- User feedback is surfaced through `ScaffoldMessenger.of(context).showSnackBar(...)` using `AppColors` for success/info/danger variants rather than custom dialogs.
+- Theming goes through shared tokens (`AppColors`, `AppSpacing`, `AppTextStyles`) instead of hard-coded colors, sizes, or font families.
+- Async operations guard against double-tap by checking a local `_saving`/`_locating` flag before entering the async block and resetting it in a `finally` or catch branch.
+- List items use `Key(...)` on interactive rows (e.g. `Key('cityChip_$city')`, `Key(location.id)`) so Flutter can track identity across rebuilds.

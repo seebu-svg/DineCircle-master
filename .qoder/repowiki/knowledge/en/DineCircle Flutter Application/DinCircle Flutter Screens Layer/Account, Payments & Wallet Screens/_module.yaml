@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: screens/account_management
+title: Account, Payments & Wallet Screens
+scope:
+    - lib/screens/settings/
+    - lib/screens/payments/
+    - lib/screens/wallet/
+source_files: []
+depends_on: []
+related_to:
+    - path: screens/safety_support
+    - path: widgets

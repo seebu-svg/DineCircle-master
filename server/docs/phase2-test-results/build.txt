@@ -1,0 +1,4 @@
+
+> dinecircle-server@0.1.0 build
+> tsc -p tsconfig.build.json && cp src/schema.sql dist/schema.sql
+

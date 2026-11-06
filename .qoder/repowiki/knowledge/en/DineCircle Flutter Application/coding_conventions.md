@@ -1,0 +1,3 @@
+- Screens consume state exclusively through Riverpod `ConsumerStatefulWidget` / `ref.watch` rather than passing props down the tree.
+- Reusable UI is factored into `lib/widgets/` as theme-aware primitives and domain cards, keeping screens focused on layout and navigation.
+- Test fixtures use fake repositories from `test/fake_repositories.dart` so widget/integration tests exercise screens without hitting the network.

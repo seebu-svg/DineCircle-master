@@ -1,0 +1,1 @@
+Flutter + Riverpod client application for the DineCircle restaurant booking platform, pairing a feature-organized screens layer with shared widgets and tests against a separate Node/TypeScript server.

@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: screens/safety_support
+title: Safety, Support & Help Screens
+scope:
+    - lib/screens/safety/
+    - lib/screens/support/
+    - lib/screens/help/
+source_files: []
+depends_on: []
+related_to:
+    - path: screens/account_management

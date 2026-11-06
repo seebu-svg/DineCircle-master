@@ -1,0 +1,6 @@
+- Flutter entry points wrap the widget tree in `ProviderScope` and use `ConsumerStatefulWidget` / `ref.watch(ref.notifier)` for all reactive state rather than local setState-only patterns.
+- Server route handlers are organized as one file per resource under `src/routes/` and mounted via `app.use('/api/<resource>', router)` in `src/server.ts`, keeping URL prefixes declarative.
+- Authentication and authorization are centralized: `requireAuth` middleware injects the caller into the request context, and fine-grained checks like `canAccessEvent` / `canAccessRestaurant` are reused across routes and WebSocket handlers.
+- Database access goes exclusively through the typed pg pool in `src/db.ts` with parameterized queries; raw SQL strings are kept in `schema.sql` and regenerated via `src/schema.ts`.
+- Error handling uses domain-specific classes (`ApiError` from `context.ts`, `ZodError` from zod) caught by a single Express error middleware that maps them to JSON responses.
+- Real-time events are broadcast through exported helpers (`emitBookingUpdated`, `emitEventUpdated`, `emitRestaurantNotification`) that target Socket.IO rooms named after the entity id, instead of emitting directly from route handlers.

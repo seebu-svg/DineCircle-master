@@ -1,0 +1,5 @@
+- Screens consume data via `ref.watch(...Provider(id))` and fall back to the slim object passed as a constructor parameter while the provider loads (`valueOrNull ?? widget.dinner`).
+- Server mutations (follow/unfollow, save/unsave, publish, save draft) are wrapped in try/catch blocks that catch `ApiException` and display `error.message` through `ScaffoldMessenger.of(context).showSnackBar(...)`, with a `mounted` guard before any UI update.
+- Theming is centralized through `AppColors`, `AppSpacing`, and `AppTextStyles` constants rather than inline literals — colors, radii, font sizes, and spacings are reused across all three screens.
+- Hero-style app bars use a pinned `SliverAppBar` with `expandedHeight` ~260–280, a semi-transparent circular icon container (`Colors.black.withValues(alpha: 0.5)`), and a `FlexibleSpaceBar` background Stack combining an image and `AppColors.imageOverlay` gradient.
+- Wizard steps are implemented as separate private `StatelessWidget` classes receiving all fields and `ValueChanged` callbacks from the parent, with each step assigned a stable `ValueKey` so `AnimatedSwitcher` preserves state across transitions.

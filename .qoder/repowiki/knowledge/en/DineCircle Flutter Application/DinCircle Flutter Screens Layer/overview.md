@@ -1,0 +1,1 @@
+Flutter UI screens organized by feature area, all consuming Riverpod providers and shared theme widgets to render DinCircle's guest, host, and administrative flows.

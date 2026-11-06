@@ -1,0 +1,35 @@
+# Regenerate the launcher icons with:
+#   python3 tool/branding/generate_brand_assets.py
+#   /home/til3fishnix001/flutter/bin/dart run flutter_launcher_icons
+#
+# Every size below is projected from the authored lockup at
+# assets/branding/dinecircle_master.png by tool/branding/generate_brand_assets.py:
+# the script crops the arc + "D" + fork mark out of the lockup, keys its dark
+# field to alpha and re-plates it on the brand field. The wordmark and the
+# candlelit table stay in the master because neither survives 48dp -- use the
+# master for store/marketing art only.
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true
+
+  # Legacy (pre-API 26) icon: brand field with the mark inset slightly so
+  # squircle-masking launchers such as One UI never clip the arc.
+  image_path: assets/branding/dinecircle_logo.png
+  min_sdk_android: 21
+
+  # Adaptive icon (API 26+). The foreground is authored inside the central
+  # 66/108 safe zone already, so the generator must not pad it any further --
+  # inset 0 keeps the mark at full optical size under any launcher mask.
+  adaptive_icon_background: "#0A090C"
+  adaptive_icon_foreground: assets/branding/dinecircle_foreground.png
+  adaptive_icon_foreground_inset: 0
+
+  # Android 13+ themed icons (One UI 5+ "Apply themed icons").
+  adaptive_icon_monochrome: assets/branding/dinecircle_monochrome.png
+
+  # Web icons and the favicon are owned by the generator script as well, so the
+  # maskable variants get their own 80% safe-circle padding and the favicon is
+  # rendered at 64px instead of the 16px the plugin emits.
+  web:
+    generate: false

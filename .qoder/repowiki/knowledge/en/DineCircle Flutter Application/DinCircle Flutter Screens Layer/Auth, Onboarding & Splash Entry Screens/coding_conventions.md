@@ -1,0 +1,5 @@
+- Each screen file defines exactly one public widget class named `<Name>Screen` paired with a private state class prefixed with underscore (`_AuthScreenState`, `_OnboardingScreenState`).
+- Screens receive navigation callbacks as constructor parameters (`onGetStarted`, `onComplete`) rather than calling `Navigator.push` themselves, keeping routing decisions at the app root.
+- Theming is centralized through shared theme imports (`AppColors`, `AppSpacing`, `AppTextStyles`) instead of inline literals or per-screen style definitions.
+- Reusable UI chrome (e.g. the gradient circular logo container) is repeated inline across screens rather than extracted into a shared widget, keeping each entry screen self-contained.
+- Form submission wraps async API calls in try/catch, sets a local `_submitting` flag before the call, and catches `ApiException` separately from generic network errors to surface server messages vs. connectivity messages.

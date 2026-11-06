@@ -1,0 +1,1 @@
+Flutter Material 3 UI with Riverpod (`flutter_riverpod`) for state consumption of `currentUserProvider`, `userProfileProvider`, `socialControllerProvider`, and `sessionControllerProvider`; styling goes through shared `AppColors`, `AppSpacing`, `AppTextStyles`.

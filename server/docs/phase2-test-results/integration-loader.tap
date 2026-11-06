@@ -1,0 +1,292 @@
+TAP version 13
+# /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/node_modules/pg-pool/index.js:45
+#     Error.captureStackTrace(err)
+#           ^
+# AggregateError [EPERM]: 
+#     at /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/node_modules/pg-pool/index.js:45:11
+#     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+#     at async bootstrap (/home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/util.ts:205:3)
+#     at async <anonymous> (/home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/account.integration.test.ts:17:27) {
+#   code: 'EPERM',
+#   [errors]: [
+#     Error: connect EPERM ::1:5433 - Local (undefined:undefined)
+#         at internalConnectMultiple (node:net:1188:16)
+#         at defaultTriggerAsyncIdScope (node:internal/async_hooks:464:18)
+#         at GetAddrInfoReqWrap.emitLookup [as callback] (node:net:1523:7)
+#         at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:132:8) {
+#       errno: -1,
+#       code: 'EPERM',
+#       syscall: 'connect',
+#       address: '::1',
+#       port: 5433
+#     },
+#     Error: connect EPERM 127.0.0.1:5433 - Local (undefined:undefined)
+#         at internalConnectMultiple (node:net:1188:16)
+#         at internalConnectMultiple (node:net:1192:5)
+#         at defaultTriggerAsyncIdScope (node:internal/async_hooks:464:18)
+#         at GetAddrInfoReqWrap.emitLookup [as callback] (node:net:1523:7)
+#         at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:132:8) {
+#       errno: -1,
+#       code: 'EPERM',
+#       syscall: 'connect',
+#       address: '127.0.0.1',
+#       port: 5433
+#     }
+#   ]
+# }
+# Node.js v20.19.2
+# Subtest: /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/account.integration.test.ts
+not ok 1 - /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/account.integration.test.ts
+  ---
+  duration_ms: 4651.954281
+  location: '/home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/account.integration.test.ts:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/node_modules/pg-pool/index.js:45
+#     Error.captureStackTrace(err)
+#           ^
+# AggregateError [EPERM]: 
+#     at /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/node_modules/pg-pool/index.js:45:11
+#     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+#     at async bootstrap (/home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/util.ts:205:3)
+#     at async <anonymous> (/home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/money.integration.test.ts:15:27) {
+#   code: 'EPERM',
+#   [errors]: [
+#     Error: connect EPERM ::1:5433 - Local (undefined:undefined)
+#         at internalConnectMultiple (node:net:1188:16)
+#         at defaultTriggerAsyncIdScope (node:internal/async_hooks:464:18)
+#         at GetAddrInfoReqWrap.emitLookup [as callback] (node:net:1523:7)
+#         at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:132:8) {
+#       errno: -1,
+#       code: 'EPERM',
+#       syscall: 'connect',
+#       address: '::1',
+#       port: 5433
+#     },
+#     Error: connect EPERM 127.0.0.1:5433 - Local (undefined:undefined)
+#         at internalConnectMultiple (node:net:1188:16)
+#         at internalConnectMultiple (node:net:1192:5)
+#         at defaultTriggerAsyncIdScope (node:internal/async_hooks:464:18)
+#         at GetAddrInfoReqWrap.emitLookup [as callback] (node:net:1523:7)
+#         at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:132:8) {
+#       errno: -1,
+#       code: 'EPERM',
+#       syscall: 'connect',
+#       address: '127.0.0.1',
+#       port: 5433
+#     }
+#   ]
+# }
+# Node.js v20.19.2
+# Subtest: /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/money.integration.test.ts
+not ok 2 - /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/money.integration.test.ts
+  ---
+  duration_ms: 5050.875779
+  location: '/home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/money.integration.test.ts:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/node_modules/pg-pool/index.js:45
+#     Error.captureStackTrace(err)
+#           ^
+# AggregateError [EPERM]: 
+#     at /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/node_modules/pg-pool/index.js:45:11
+#     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+#     at async bootstrap (/home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/util.ts:205:3)
+#     at async <anonymous> (/home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/partner.integration.test.ts:27:27) {
+#   code: 'EPERM',
+#   [errors]: [
+#     Error: connect EPERM ::1:5433 - Local (undefined:undefined)
+#         at internalConnectMultiple (node:net:1188:16)
+#         at defaultTriggerAsyncIdScope (node:internal/async_hooks:464:18)
+#         at GetAddrInfoReqWrap.emitLookup [as callback] (node:net:1523:7)
+#         at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:132:8) {
+#       errno: -1,
+#       code: 'EPERM',
+#       syscall: 'connect',
+#       address: '::1',
+#       port: 5433
+#     },
+#     Error: connect EPERM 127.0.0.1:5433 - Local (undefined:undefined)
+#         at internalConnectMultiple (node:net:1188:16)
+#         at internalConnectMultiple (node:net:1192:5)
+#         at defaultTriggerAsyncIdScope (node:internal/async_hooks:464:18)
+#         at GetAddrInfoReqWrap.emitLookup [as callback] (node:net:1523:7)
+#         at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:132:8) {
+#       errno: -1,
+#       code: 'EPERM',
+#       syscall: 'connect',
+#       address: '127.0.0.1',
+#       port: 5433
+#     }
+#   ]
+# }
+# Node.js v20.19.2
+# Subtest: /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/partner.integration.test.ts
+not ok 3 - /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/partner.integration.test.ts
+  ---
+  duration_ms: 4508.567738
+  location: '/home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/partner.integration.test.ts:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/node_modules/pg-pool/index.js:45
+#     Error.captureStackTrace(err)
+#           ^
+# AggregateError [EPERM]: 
+#     at /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/node_modules/pg-pool/index.js:45:11
+#     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+#     at async bootstrap (/home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/util.ts:205:3)
+#     at async <anonymous> (/home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/payments.integration.test.ts:25:27) {
+#   code: 'EPERM',
+#   [errors]: [
+#     Error: connect EPERM ::1:5433 - Local (undefined:undefined)
+#         at internalConnectMultiple (node:net:1188:16)
+#         at defaultTriggerAsyncIdScope (node:internal/async_hooks:464:18)
+#         at GetAddrInfoReqWrap.emitLookup [as callback] (node:net:1523:7)
+#         at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:132:8) {
+#       errno: -1,
+#       code: 'EPERM',
+#       syscall: 'connect',
+#       address: '::1',
+#       port: 5433
+#     },
+#     Error: connect EPERM 127.0.0.1:5433 - Local (undefined:undefined)
+#         at internalConnectMultiple (node:net:1188:16)
+#         at internalConnectMultiple (node:net:1192:5)
+#         at defaultTriggerAsyncIdScope (node:internal/async_hooks:464:18)
+#         at GetAddrInfoReqWrap.emitLookup [as callback] (node:net:1523:7)
+#         at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:132:8) {
+#       errno: -1,
+#       code: 'EPERM',
+#       syscall: 'connect',
+#       address: '127.0.0.1',
+#       port: 5433
+#     }
+#   ]
+# }
+# Node.js v20.19.2
+# Subtest: /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/payments.integration.test.ts
+not ok 4 - /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/payments.integration.test.ts
+  ---
+  duration_ms: 6339.055868
+  location: '/home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/payments.integration.test.ts:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/node_modules/pg-pool/index.js:45
+#     Error.captureStackTrace(err)
+#           ^
+# AggregateError [EPERM]: 
+#     at /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/node_modules/pg-pool/index.js:45:11
+#     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+#     at async bootstrap (/home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/util.ts:205:3)
+#     at async <anonymous> (/home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/profile.integration.test.ts:13:27) {
+#   code: 'EPERM',
+#   [errors]: [
+#     Error: connect EPERM ::1:5433 - Local (undefined:undefined)
+#         at internalConnectMultiple (node:net:1188:16)
+#         at defaultTriggerAsyncIdScope (node:internal/async_hooks:464:18)
+#         at GetAddrInfoReqWrap.emitLookup [as callback] (node:net:1523:7)
+#         at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:132:8) {
+#       errno: -1,
+#       code: 'EPERM',
+#       syscall: 'connect',
+#       address: '::1',
+#       port: 5433
+#     },
+#     Error: connect EPERM 127.0.0.1:5433 - Local (undefined:undefined)
+#         at internalConnectMultiple (node:net:1188:16)
+#         at internalConnectMultiple (node:net:1192:5)
+#         at defaultTriggerAsyncIdScope (node:internal/async_hooks:464:18)
+#         at GetAddrInfoReqWrap.emitLookup [as callback] (node:net:1523:7)
+#         at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:132:8) {
+#       errno: -1,
+#       code: 'EPERM',
+#       syscall: 'connect',
+#       address: '127.0.0.1',
+#       port: 5433
+#     }
+#   ]
+# }
+# Node.js v20.19.2
+# Subtest: /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/profile.integration.test.ts
+not ok 5 - /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/profile.integration.test.ts
+  ---
+  duration_ms: 4867.136006
+  location: '/home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/profile.integration.test.ts:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/node_modules/pg-pool/index.js:45
+#     Error.captureStackTrace(err)
+#           ^
+# AggregateError [EPERM]: 
+#     at /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/node_modules/pg-pool/index.js:45:11
+#     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+#     at async bootstrap (/home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/util.ts:205:3)
+#     at async <anonymous> (/home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/safety.integration.test.ts:20:27) {
+#   code: 'EPERM',
+#   [errors]: [
+#     Error: connect EPERM ::1:5433 - Local (undefined:undefined)
+#         at internalConnectMultiple (node:net:1188:16)
+#         at defaultTriggerAsyncIdScope (node:internal/async_hooks:464:18)
+#         at GetAddrInfoReqWrap.emitLookup [as callback] (node:net:1523:7)
+#         at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:132:8) {
+#       errno: -1,
+#       code: 'EPERM',
+#       syscall: 'connect',
+#       address: '::1',
+#       port: 5433
+#     },
+#     Error: connect EPERM 127.0.0.1:5433 - Local (undefined:undefined)
+#         at internalConnectMultiple (node:net:1188:16)
+#         at internalConnectMultiple (node:net:1192:5)
+#         at defaultTriggerAsyncIdScope (node:internal/async_hooks:464:18)
+#         at GetAddrInfoReqWrap.emitLookup [as callback] (node:net:1523:7)
+#         at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:132:8) {
+#       errno: -1,
+#       code: 'EPERM',
+#       syscall: 'connect',
+#       address: '127.0.0.1',
+#       port: 5433
+#     }
+#   ]
+# }
+# Node.js v20.19.2
+# Subtest: /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/safety.integration.test.ts
+not ok 6 - /home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/safety.integration.test.ts
+  ---
+  duration_ms: 5054.223224
+  location: '/home/til3fishnix001/Downloads/Projects/DineCircle/DineCircle-master/server/src/tests/safety.integration.test.ts:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 0
+# fail 6
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6435.343685

@@ -1,0 +1,260 @@
+name: server-ci
+
+on:
+  push:
+    paths: ['server/**', '.github/workflows/server-ci.yml']
+  pull_request:
+    paths: ['server/**', '.github/workflows/server-ci.yml']
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: dinecircle
+          POSTGRES_PASSWORD: dinecircle
+          POSTGRES_DB: dinecircle
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U dinecircle -d dinecircle"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://dinecircle:dinecircle@localhost:5432/dinecircle
+      PORT: '4000'
+      NODE_ENV: test
+
+    defaults:
+      run:
+        working-directory: server
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build (tsc → dist, copy schema.sql)
+        run: npm run build
+
+      - name: Database configuration tests
+        run: npm run test:unit
+
+      - name: Apply schema + seed
+        run: npm run db:setup
+
+      # The integration suite owns the real contract: each file boots the API
+      # against its own freshly-seeded database. It was previously absent from
+      # CI, so nothing but the curl smoke below guarded the API surface.
+      - name: Integration suite (auth, money, safety, partner contract)
+        run: npm run test:integration
+
+      - name: Start server and smoke-test routes
+        run: |
+          npm start &
+          SERVER_PID=$!
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:4000/api/health && break
+            sleep 1
+          done
+          echo "--- signin ---"
+          TOKEN=$(curl -fsS -X POST http://localhost:4000/api/auth/signin \
+            -H 'content-type: application/json' \
+            -d '{"phone":"+15550001111"}' | sed -E 's/.*"token":"([^"]+)".*/\1/')
+          echo "--- events (authed) ---"
+          curl -fsS http://localhost:4000/api/events -H "Authorization: Bearer $TOKEN"
+          echo "--- restaurants ---"
+          curl -fsS http://localhost:4000/api/restaurants -H "Authorization: Bearer $TOKEN"
+
+          echo "--- write-path smoke (signup -> host -> book -> cancel -> seat-lock -> authz) ---"
+          BASE=http://localhost:4000/api
+          E1=eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1   # Omakase: 12 total, 3 booked -> 9 left
+          E2=eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee2   # Brunch:   16 total, 5 booked -> 11 left
+          ROOFTOP=aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1
+          TRATTORIA=aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2
+          STAMP=$(date +%s)
+
+          # Sign up guest A, then self-promote to host.
+          curl -s -o /tmp/a.json -w '%{http_code}' -X POST $BASE/auth/signup \
+            -H 'content-type: application/json' \
+            -d "{\"name\":\"CI Guest A\",\"email\":\"ci+$STAMP+a@example.com\",\"password\":\"password123\"}" >/tmp/code
+          [ "$(cat /tmp/code)" = "201" ] || { echo 'FAIL signup A'; cat /tmp/a.json; exit 1; }
+          TOKEN_A=$(jq -r .token /tmp/a.json)
+          ID_A=$(jq -r .user.id /tmp/a.json)
+          curl -s -o /tmp/a.json -w '%{http_code}' -X POST $BASE/users/me/host \
+            -H "Authorization: Bearer $TOKEN_A" >/tmp/code
+          [ "$(cat /tmp/code)" = "200" ] || { echo 'FAIL promote host'; cat /tmp/a.json; exit 1; }
+          [ "$(jq -r .role /tmp/a.json)" = "host" ] || { echo 'FAIL role != host'; exit 1; }
+          echo '  OK signup + become-host'
+
+          # Sign up guest B (the other user, for the authz check).
+          curl -s -o /tmp/b.json -w '%{http_code}' -X POST $BASE/auth/signup \
+            -H 'content-type: application/json' \
+            -d "{\"name\":\"CI Guest B\",\"email\":\"ci+$STAMP+b@example.com\",\"password\":\"password123\"}" >/tmp/code
+          [ "$(cat /tmp/code)" = "201" ] || { echo 'FAIL signup B'; cat /tmp/b.json; exit 1; }
+          TOKEN_B=$(jq -r .token /tmp/b.json)
+          ID_B=$(jq -r .user.id /tmp/b.json)
+
+          # Seat lock: only 9 seats left on e1, so a 10-seat booking is refused.
+          curl -s -o /tmp/seat.json -w '%{http_code}' -X POST $BASE/events/$E1/bookings \
+            -H "Authorization: Bearer $TOKEN_A" -H 'content-type: application/json' \
+            -d '{"seats":10}' >/tmp/code
+          [ "$(cat /tmp/code)" = "409" ] || { echo 'FAIL seat lock (want 409)'; cat /tmp/seat.json; exit 1; }
+          echo '  OK seat lock (409 oversell refused)'
+
+          # Server-side promo validation: an unknown code is refused (400).
+          curl -s -o /tmp/promo.json -w '%{http_code}' -X POST $BASE/events/$E2/bookings \
+            -H "Authorization: Bearer $TOKEN_A" -H 'content-type: application/json' \
+            -d '{"seats":1,"promoCode":"NOTREAL"}' >/tmp/code
+          [ "$(cat /tmp/code)" = "400" ] || { echo 'FAIL promo validation (want 400)'; cat /tmp/promo.json; exit 1; }
+          echo '  OK promo rejected server-side (400)'
+
+          # B books e2 with a real promo (2 x 38 = 76, 10% -> 7.6 off).
+          curl -s -o /tmp/bbook.json -w '%{http_code}' -X POST $BASE/events/$E2/bookings \
+            -H "Authorization: Bearer $TOKEN_B" -H 'content-type: application/json' \
+            -d '{"seats":2,"promoCode":"WELCOME10"}' >/tmp/code
+          [ "$(cat /tmp/code)" = "201" ] || { echo 'FAIL B booking'; cat /tmp/bbook.json; exit 1; }
+          REF_B=$(jq -r .booking.reference /tmp/bbook.json)
+          jq -e '.booking.discount == 7.6' /tmp/bbook.json >/dev/null \
+            || { echo 'FAIL promo discount (want 7.6)'; cat /tmp/bbook.json; exit 1; }
+          echo '  OK booking with server-computed discount'
+
+          # A books e2 (no promo, 2 x 38 = 76) so it has its own ticket.
+          curl -s -o /tmp/abook.json -w '%{http_code}' -X POST $BASE/events/$E2/bookings \
+            -H "Authorization: Bearer $TOKEN_A" -H 'content-type: application/json' \
+            -d '{"seats":2}' >/tmp/code
+          [ "$(cat /tmp/code)" = "201" ] || { echo 'FAIL A booking'; cat /tmp/abook.json; exit 1; }
+          BOOK_A=$(jq -r .booking.id /tmp/abook.json)
+
+          # Authz fix: asking for B's bookings via ?userId must still return only A's.
+          curl -s -o /tmp/alist.json -w '%{http_code}' "$BASE/bookings?userId=$ID_B" \
+            -H "Authorization: Bearer $TOKEN_A" >/tmp/code
+          [ "$(cat /tmp/code)" = "200" ] || { echo 'FAIL list bookings'; cat /tmp/alist.json; exit 1; }
+          ! grep -q "$REF_B" /tmp/alist.json \
+            || { echo 'FAIL authz: A can read B booking'; exit 1; }
+          echo '  OK horizontal authz (A cannot read B bookings)'
+
+          # A cancels its own booking -> refund of the 2 seats.
+          curl -s -o /tmp/cancel.json -w '%{http_code}' -X POST $BASE/bookings/$BOOK_A/cancel \
+            -H "Authorization: Bearer $TOKEN_A" >/tmp/code
+          [ "$(cat /tmp/code)" = "200" ] || { echo 'FAIL cancel'; cat /tmp/cancel.json; exit 1; }
+          jq -e '.refund.seats == 2' /tmp/cancel.json >/dev/null \
+            || { echo 'FAIL refund seats'; cat /tmp/cancel.json; exit 1; }
+          echo '  OK cancel + refund'
+
+          # Creating an event: a promoted host who does not own the venue is refused,
+          # the venue's partner admin succeeds. The refusal is driven by the venue's
+          # verification state, so the 403 case targets the seeded *unverified*
+          # venue (TRATTORIA) while the 201 case uses the verified Rooftop.
+          START=$(node -e 'console.log(new Date(Date.now()+7*864e5).toISOString())')
+          EVENT_JSON="{\"title\":\"CI Smoke Dinner\",\"coverImage\":\"assets/images/dish_pasta.png\",\"restaurantId\":\"$ROOFTOP\",\"startAt\":\"$START\",\"seatsTotal\":8,\"pricePerSeat\":42,\"audience\":\"public\"}"
+          UNVERIFIED_JSON="{\"title\":\"CI Smoke Dinner Unverified\",\"coverImage\":\"assets/images/dish_pasta.png\",\"restaurantId\":\"$TRATTORIA\",\"startAt\":\"$START\",\"seatsTotal\":8,\"pricePerSeat\":42,\"audience\":\"public\"}"
+          curl -s -o /tmp/ev403.json -w '%{http_code}' -X POST $BASE/events \
+            -H "Authorization: Bearer $TOKEN_A" -H 'content-type: application/json' \
+            -d "$UNVERIFIED_JSON" >/tmp/code
+          [ "$(cat /tmp/code)" = "403" ] || { echo 'FAIL create-event authz (want 403)'; cat /tmp/ev403.json; exit 1; }
+          TOKEN_M=$(curl -s -X POST $BASE/auth/signin -H 'content-type: application/json' \
+            -d '{"phone":"+15550004444"}' | jq -r .token)
+          curl -s -o /tmp/ev201.json -w '%{http_code}' -X POST $BASE/events \
+            -H "Authorization: Bearer $TOKEN_M" -H 'content-type: application/json' \
+            -d "$EVENT_JSON" >/tmp/code
+          [ "$(cat /tmp/code)" = "201" ] || { echo 'FAIL create-event'; cat /tmp/ev201.json; exit 1; }
+          echo '  OK create-event (403 non-owner, 201 partner admin)'
+
+          echo "--- Phase 4 host-studio (approve/decline + wallet + invites + analytics) ---"
+          NORA=22222222-2222-2222-2222-222222222222
+          E4=eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee4   # host-approval-gated event
+          INVITE=31313131-3131-3131-3131-313131313132   # an 'invited' row for Nora
+
+          # Sign in as the host.
+          TOKEN_N=$(curl -s -X POST $BASE/auth/signin -H 'content-type: application/json' \
+            -d '{"phone":"+15550002222"}' | jq -r .token)
+
+          # Read surfaces return seeded rows (all host-guarded).
+          curl -s -o /tmp/perf.json -w '%{http_code}' $BASE/hosts/$NORA/performance \
+            -H "Authorization: Bearer $TOKEN_N" >/tmp/code
+          [ "$(cat /tmp/code)" = "200" ] || { echo 'FAIL performance'; cat /tmp/perf.json; exit 1; }
+          jq -e '.performance | length >= 4' /tmp/perf.json >/dev/null \
+            || { echo 'FAIL performance rows'; cat /tmp/perf.json; exit 1; }
+          curl -s $BASE/hosts/$NORA/partners -H "Authorization: Bearer $TOKEN_N" -o /tmp/part.json
+          jq -e '.partners | length >= 2' /tmp/part.json >/dev/null \
+            || { echo 'FAIL partners'; cat /tmp/part.json; exit 1; }
+          curl -s $BASE/hosts/$NORA/invites -H "Authorization: Bearer $TOKEN_N" -o /tmp/inv.json
+          jq -e '.invites | length >= 3' /tmp/inv.json >/dev/null \
+            || { echo 'FAIL invites'; cat /tmp/inv.json; exit 1; }
+          echo '  OK host read surfaces (performance/partners/invites)'
+
+          # Accept a pending invite -> flips to accepted.
+          curl -s -o /tmp/acc.json -w '%{http_code}' \
+            -X POST $BASE/hosts/$NORA/invites/$INVITE/accept \
+            -H "Authorization: Bearer $TOKEN_N" >/tmp/code
+          [ "$(cat /tmp/code)" = "200" ] || { echo 'FAIL accept invite'; cat /tmp/acc.json; exit 1; }
+          [ "$(jq -r .invite.status /tmp/acc.json)" = "accepted" ] \
+            || { echo 'FAIL invite not accepted'; cat /tmp/acc.json; exit 1; }
+          echo '  OK invite accept'
+
+          # Wallet ledger: over-balance refused (400), valid recorded (201) and
+          # reduces the available balance.
+          AVAIL=$(curl -s $BASE/hosts/$NORA/wallet -H "Authorization: Bearer $TOKEN_N" | jq -r .available)
+          curl -s -o /tmp/wover.json -w '%{http_code}' -X POST $BASE/hosts/$NORA/withdrawals \
+            -H "Authorization: Bearer $TOKEN_N" -H 'content-type: application/json' \
+            -d '{"amount":99999,"method":"Bank"}' >/tmp/code
+          [ "$(cat /tmp/code)" = "400" ] || { echo 'FAIL over-balance (want 400)'; cat /tmp/wover.json; exit 1; }
+          curl -s -o /tmp/wok.json -w '%{http_code}' -X POST $BASE/hosts/$NORA/withdrawals \
+            -H "Authorization: Bearer $TOKEN_N" -H 'content-type: application/json' \
+            -d '{"amount":50,"method":"PayPal"}' >/tmp/code
+          [ "$(cat /tmp/code)" = "201" ] || { echo 'FAIL withdrawal (want 201)'; cat /tmp/wok.json; exit 1; }
+          NEWAVAIL=$(jq -r .available /tmp/wok.json)
+          awk "BEGIN{exit !($NEWAVAIL <= $AVAIL - 50 + 0.001)}" \
+            || { echo "FAIL available not reduced ($AVAIL -> $NEWAVAIL)"; exit 1; }
+          echo '  OK withdrawals (400 over-balance, 201 recorded, balance reduced)'
+
+          # Approve the seeded pending request on the gated event, then a second
+          # approve must be refused (409) because it is no longer pending.
+          PENDING=$(curl -s "$BASE/bookings?eventId=$E4" -H "Authorization: Bearer $TOKEN_N" \
+            | jq -r '[.bookings[] | select(.status=="pending")][0].id')
+          [ "$PENDING" != "null" ] && [ -n "$PENDING" ] || { echo 'FAIL no pending booking'; exit 1; }
+          curl -s -o /tmp/appr.json -w '%{http_code}' -X POST $BASE/bookings/$PENDING/approve \
+            -H "Authorization: Bearer $TOKEN_N" >/tmp/code
+          [ "$(cat /tmp/code)" = "200" ] || { echo 'FAIL approve'; cat /tmp/appr.json; exit 1; }
+          [ "$(jq -r .booking.status /tmp/appr.json)" = "confirmed" ] \
+            || { echo 'FAIL approve status'; cat /tmp/appr.json; exit 1; }
+          curl -s -o /tmp/appr2.json -w '%{http_code}' -X POST $BASE/bookings/$PENDING/approve \
+            -H "Authorization: Bearer $TOKEN_N" >/tmp/code
+          [ "$(cat /tmp/code)" = "409" ] || { echo 'FAIL re-approve (want 409)'; cat /tmp/appr2.json; exit 1; }
+          echo '  OK approve (confirmed) + 409 on an already-handled request'
+
+          # A fresh guest request parks as pending; the host declining it releases
+          # the held seat back to the event.
+          STAMP2=$(date +%s%N)
+          curl -s -o /tmp/g.json -X POST $BASE/auth/signup -H 'content-type: application/json' \
+            -d "{\"name\":\"CI Approvee\",\"email\":\"ci+$STAMP2@example.com\",\"password\":\"password123\"}"
+          TOKEN_G=$(jq -r .token /tmp/g.json)
+          curl -s -o /tmp/gb.json -X POST $BASE/events/$E4/bookings \
+            -H "Authorization: Bearer $TOKEN_G" -H 'content-type: application/json' -d '{"seats":1}'
+          [ "$(jq -r .booking.status /tmp/gb.json)" = "pending" ] \
+            || { echo 'FAIL approval-gated booking (want pending)'; cat /tmp/gb.json; exit 1; }
+          SEATS_BEFORE=$(jq -r .event.seatsBooked /tmp/gb.json)
+          GB=$(jq -r .booking.id /tmp/gb.json)
+          curl -s -o /tmp/dec.json -w '%{http_code}' -X POST $BASE/bookings/$GB/decline \
+            -H "Authorization: Bearer $TOKEN_N" >/tmp/code
+          [ "$(cat /tmp/code)" = "200" ] || { echo 'FAIL decline'; cat /tmp/dec.json; exit 1; }
+          SEATS_AFTER=$(jq -r .event.seatsBooked /tmp/dec.json)
+          [ "$SEATS_AFTER" = "$((SEATS_BEFORE - 1))" ] \
+            || { echo "FAIL seat not released ($SEATS_BEFORE -> $SEATS_AFTER)"; cat /tmp/dec.json; exit 1; }
+          echo '  OK decline releases the held seat'
+
+          kill $SERVER_PID

@@ -1,0 +1,1 @@
+Flutter Material + Riverpod (`flutter_riverpod`) for the auth screen's integration with `SessionController`; uses `SegmentedButton<_AuthIntent>` for mode switching and `PageView.builder` for onboarding slides.

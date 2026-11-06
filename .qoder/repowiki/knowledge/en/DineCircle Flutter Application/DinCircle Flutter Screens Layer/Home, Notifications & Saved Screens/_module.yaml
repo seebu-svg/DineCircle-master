@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: screens/notifications_saved
+title: Home, Notifications & Saved Screens
+scope:
+    - lib/screens/notifications/
+    - lib/screens/saved/
+    - lib/screens/home/
+source_files: []
+depends_on: []
+related_to: []

@@ -1,0 +1,6 @@
+- Screens consume data through Riverpod providers (`ref.watch(...)`) and render via the shared `DataView<List<T>>` wrapper, passing `isEmpty`, `emptyWidget`/`emptyMessage`, and an `onRetry` that calls `ref.invalidate(...)`.
+- Theming is centralized: colors come from `AppColors`, spacing from `AppSpacing`, and typography from `AppTextStyles` rather than inline literals.
+- User avatars are rendered through the shared `AvatarWidget` using both `avatarPath` and `initials` fields, never raw `Image.asset` or text initials directly.
+- Long-running mutations guard against double-tap with a local `_busy`/`_sending` boolean that disables buttons and is cleared in a `finally` block after checking `mounted`.
+- Optimistic UI updates flip local state before awaiting the server call and revert on catch, relying on provider invalidation to re-sync with the server.
+- Action menus (report, block) are surfaced through `showModalBottomSheet` with rounded top corners and `SafeArea`, delegating side effects to shared helpers like `ReportSheet.show` and `confirmAndBlock`.
