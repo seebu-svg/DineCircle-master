@@ -65,7 +65,7 @@ class RestaurantDto {
   /// Venue facilities (WiFi, parking, terrace, …).
   final List<String> amenities;
 
-  /// Contact fields the server surfaces on the venue payload. All optional —
+  /// Contact fields the server surfaces on the venue payload. All optional,
   /// partners may publish only a subset (e.g. just a phone number).
   final String? phoneNumber;
   final String? website;

@@ -6,7 +6,7 @@ import { ApiError, notFound } from '../context.js';
 import { requireVenueRole, isVerifiedVenue } from '../access.js';
 import { list, parsePagination, optionalDate } from '../api.js';
 
-// Phase 2a: 0% commission — DineCircle takes no cut. The constant is inlined
+// Phase 2a: 0% commission: DineCircle takes no cut. The constant is inlined
 // so the pricing module can be deleted.
 const PLATFORM_COMMISSION_RATE = 0;
 
@@ -18,7 +18,7 @@ const router = Router();
  * one-call dashboard.
  *
  * Mounted at `/api/partner/restaurants`, so every path here is
- * `/:restaurantId/...` and every handler opens with `requireVenueRole` — a
+ * `/:restaurantId/...` and every handler opens with `requireVenueRole`, a
  * partner can never read another venue's numbers by guessing an id.
  */
 
@@ -50,7 +50,7 @@ router.get('/:restaurantId/dashboard', async (req, res) => {
   if (!venue) throw notFound('Restaurant');
   const timeZone = venue.timezone ?? 'UTC';
 
-  // Today in the *venue's* timezone — a Karachi desk at 01:00 must not be shown
+  // Today in the *venue's* timezone, a Karachi desk at 01:00 must not be shown
   // yesterday's service just because the server clock is UTC.
   const [today] = await query<{ date: string }>(
     'SELECT (now() AT TIME ZONE $1)::date::text AS date',
@@ -141,6 +141,40 @@ router.get('/:restaurantId/dashboard', async (req, res) => {
   const monthRefunds = Number(month?.refunds ?? 0);
   const monthCommission = round2((monthGross - monthRefunds) * PLATFORM_COMMISSION_RATE);
 
+  // Hourly reservation trend for today (venue timezone), so the home screen
+  // can draw a mini bar chart of how the service day is progressing.
+  const trendRows = await query<{ hour: number; count: number }>(
+    `SELECT extract(hour FROM start_at AT TIME ZONE $2)::int AS hour,
+            count(*)::int AS count
+       FROM table_reservations
+      WHERE restaurant_id = $1::UUID
+        AND (start_at AT TIME ZONE $2)::date = $3::date
+      GROUP BY hour ORDER BY hour`,
+    [restaurantId, timeZone, serviceDate],
+  );
+  const trend = trendRows.map((r) => ({ hour: r.hour, count: r.count }));
+
+  // Yesterday's covers: the comparison the desk cares about first thing in
+  // the morning is "how are we doing vs the same day last week".
+  const [yesterday] = await query<{ covers: number }>(
+    `SELECT COALESCE(SUM(party_size), 0)::int AS covers
+       FROM table_reservations
+      WHERE restaurant_id = $1::UUID
+        AND (start_at AT TIME ZONE $2)::date = ($3::date - 1)`,
+    [restaurantId, timeZone, serviceDate],
+  );
+
+  // Next upcoming confirmed/pending reservation, so the home screen can show
+  // "Next booking in 45 min" when it is within the next two hours.
+  const [nextBooking] = await query<{ start_at: Date }>(
+    `SELECT start_at FROM table_reservations
+      WHERE restaurant_id = $1::UUID
+        AND status IN ('pending','confirmed')
+        AND start_at > now()
+      ORDER BY start_at LIMIT 1`,
+    [restaurantId],
+  );
+
   res.json({
     data: {
       restaurant: {
@@ -169,6 +203,9 @@ router.get('/:restaurantId/dashboard', async (req, res) => {
         occupancy: totalSeats > 0
           ? Math.min(1, (todayRows?.covers ?? 0) / totalSeats)
           : 0,
+        trend,
+        yesterdayCovers: yesterday?.covers ?? 0,
+        nextBookingAt: nextBooking?.start_at ?? null,
       },
       events: {
         upcoming: events?.upcoming ?? 0,

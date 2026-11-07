@@ -126,7 +126,7 @@ function profileCompletion(v: VenueRow): number {
 
 // ── Venue list / registration ────────────────────────────────────────────────
 
-// GET /api/partner/restaurants — venues this account may operate.
+// GET /api/partner/restaurants, venues this account may operate.
 //
 // Registration stays open to any signed-in account (see POST below), so the
 // gate is per-route rather than router-wide: without it a plain diner would get
@@ -184,7 +184,7 @@ const registerVenueSchema = z.object({
 });
 
 /**
- * POST /api/partner/restaurants — self-service venue registration.
+ * POST /api/partner/restaurants, self-service venue registration.
  *
  * Creates the venue in `pending_review`, links the caller as its owner, gives
  * it a primary branch (so reservations/menus have a home), and opens a
@@ -233,7 +233,7 @@ router.post('/', async (req, res) => {
        VALUES ($1::UUID,$2,$3,$4,$5,$6,$7,$8,true,$9)`,
       [
         venue.id,
-        `${input.name} — Main`,
+        `${input.name}: Main`,
         input.address,
         input.area,
         input.city,
@@ -329,7 +329,7 @@ const patchVenueSchema = z.object({
   requiresHostApproval: z.boolean().optional(),
 });
 
-/** Column map keeps the whitelist explicit — no dynamic column names. */
+/** Column map keeps the whitelist explicit, no dynamic column names. */
 const PATCHABLE: Record<string, string> = {
   name: 'name',
   tagline: 'tagline',
@@ -357,7 +357,7 @@ const PATCHABLE: Record<string, string> = {
   requiresHostApproval: 'requires_host_approval',
 };
 
-// PATCH /api/partner/restaurants/:restaurantId — profile management.
+// PATCH /api/partner/restaurants/:restaurantId, profile management.
 router.patch('/:restaurantId', async (req, res) => {
   const role = await requireVenueRole(req, req.params.restaurantId, 'manager');
   const input = patchVenueSchema.parse(req.body ?? {});
@@ -401,7 +401,7 @@ router.patch('/:restaurantId', async (req, res) => {
 // ── Verification ─────────────────────────────────────────────────────────────
 
 /**
- * GET /api/partner/verification/requests — the queue. super_admin sees every
+ * GET /api/partner/verification/requests, the queue. super_admin sees every
  * pending request; a partner sees only their own venues' history.
  */
 verificationRouter.get('/requests', async (req, res) => {
@@ -466,7 +466,7 @@ verificationRouter.get('/requests', async (req, res) => {
   );
 });
 
-// POST /api/partner/restaurants/:restaurantId/verification — (re)submit.
+// POST /api/partner/restaurants/:restaurantId/verification: (re)submit.
 router.post('/:restaurantId/verification', async (req, res) => {
   await requireVenueRole(req, req.params.restaurantId, 'owner');
   const [venue] = await query<{ id: string; partnership_status: string }>(
@@ -509,7 +509,7 @@ const reviewSchema = z.object({
 });
 
 /**
- * POST /api/partner/verification/requests/:requestId/review — platform admin
+ * POST /api/partner/verification/requests/:requestId/review, platform admin
  * decision. Approval is what flips the venue into `verified` + `is_partner`,
  * the two flags every downstream gate (host publishing, deals, payouts) reads.
  */
@@ -612,7 +612,7 @@ const inviteStaffSchema = z.object({
 });
 
 /**
- * POST /api/partner/restaurants/:restaurantId/staff — invite an existing
+ * POST /api/partner/restaurants/:restaurantId/staff, invite an existing
  * account into the venue. Requires an already-registered user: the Partner App
  * cannot mint accounts, which keeps account creation on the single auth path.
  */
@@ -656,7 +656,7 @@ router.post('/:restaurantId/staff', async (req, res) => {
   });
 });
 
-// POST /api/partner/restaurants/:restaurantId/staff/accept — invitee accepts.
+// POST /api/partner/restaurants/:restaurantId/staff/accept, invitee accepts.
 // Registered on the venue prefix like every other staff action; the invite is
 // identified by the caller's own membership row, not by a token in the path.
 router.post('/:restaurantId/staff/accept', async (req, res) => {
@@ -735,7 +735,7 @@ router.patch('/:restaurantId/staff/:userId', async (req, res) => {
   });
 });
 
-// DELETE /api/partner/restaurants/:restaurantId/staff/:userId — revoke access.
+// DELETE /api/partner/restaurants/:restaurantId/staff/:userId, revoke access.
 router.delete('/:restaurantId/staff/:userId', async (req, res) => {
   await requireVenueRole(req, req.params.restaurantId, 'owner');
   if (req.params.userId === req.userId) {
@@ -906,7 +906,7 @@ router.delete('/:restaurantId/branches/:branchId', async (req, res) => {
 });
 
 /**
- * PUT /api/partner/restaurants/:restaurantId/branches/:branchId/hours — the
+ * PUT /api/partner/restaurants/:restaurantId/branches/:branchId/hours, the
  * weekly service map. When the branch is primary its hours are mirrored onto
  * `restaurants.opening_hours`, which is the column the Customer App already
  * renders, so both apps show the same schedule with no extra client work.
@@ -951,7 +951,7 @@ router.get('/:restaurantId/branches/:branchId/hours', async (req, res) => {
 // ── Subscription ─────────────────────────────────────────────────────────────
 
 /**
- * Server-side plan prices. The client NEVER sends a price — the PATCH handler
+ * Server-side plan prices. The client NEVER sends a price, the PATCH handler
  * looks it up here so a tampered request cannot undercharge.
  */
 const PLAN_PRICES: Record<string, number> = {
@@ -1022,11 +1022,11 @@ router.get('/:restaurantId/subscription', async (req, res) => {
 const patchSubscriptionSchema = z.object({
   plan: z.enum(['monthly', 'yearly']).optional(),
   autoRenew: z.boolean().optional(),
-  // Phase 3b: partners cannot set status themselves — only admin can activate.
+  // Phase 3b: partners cannot set status themselves, only admin can activate.
 });
 
 /**
- * PATCH /api/partner/restaurants/:restaurantId/subscription — owner only.
+ * PATCH /api/partner/restaurants/:restaurantId/subscription, owner only.
  *
  * Phase 3b: Partners may change plan and autoRenew, but NOT status.
  * Status transitions are admin-only via POST /api/admin/restaurants/:id/subscription/activate.
@@ -1058,7 +1058,7 @@ router.patch('/:restaurantId/subscription', async (req, res) => {
         : new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
     }
 
-    // Phase 3b: status cannot be changed by partners — preserve current.
+    // Phase 3b: status cannot be changed by partners, preserve current.
     const newStatus = current?.status ?? 'none';
     const newAutoRenew = input.autoRenew ?? current?.auto_renew ?? true;
 

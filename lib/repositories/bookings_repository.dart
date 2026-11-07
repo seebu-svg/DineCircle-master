@@ -13,7 +13,7 @@ abstract class BookingsRepository {
   Future<List<Booking>> getMine(UserProfile currentUser);
 
   /// Joins an event (`POST /events/:id/bookings`). The server recomputes the
-  /// total (and any promo discount) — the returned [Booking] carries that
+  /// total (and any promo discount), the returned [Booking] carries that
   /// authoritative amount. [paymentLabel] records how the guest intends to
   /// settle; DineCircle takes no payment in-app, so it defaults to paying the
   /// venue on arrival.
@@ -29,7 +29,7 @@ abstract class BookingsRepository {
   Future<void> cancelBooking(String bookingId);
 
   /// Re-issues the PaymentSheet client secret for the caller's own still
-  /// `pending_payment` booking — the `Complete payment` retry path after an
+  /// `pending_payment` booking, the `Complete payment` retry path after an
   /// abandoned checkout. Throws [ApiException] (409) once settled/swept.
   Future<String> refreshPaymentSecret(String bookingId);
 
@@ -40,11 +40,11 @@ abstract class BookingsRepository {
   Future<List<Booking>> guestsFor(String eventId, UserProfile currentUser);
 
   /// The event host approves a pending seat request (`POST /bookings/:id/approve`)
-  /// — the booking is confirmed and the hold is captured.
+  ///, the booking is confirmed and the hold is captured.
   Future<Booking> approveRequest(String bookingId, UserProfile currentUser);
 
   /// The event host declines a pending seat request (`POST /bookings/:id/decline`)
-  /// — it is cancelled/refunded and the held seat is released.
+  ///, it is cancelled/refunded and the held seat is released.
   Future<Booking> declineRequest(String bookingId, UserProfile currentUser);
 }
 

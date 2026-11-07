@@ -3,7 +3,7 @@ import { query } from './db.js';
 import { ApiError, forbidden, notFound } from './context.js';
 import type { UserRole } from './context.js';
 
-/** 402 Payment Required — subscription entitlement missing. */
+/** 402 Payment Required, subscription entitlement missing. */
 export function paymentRequired(plan: string = 'monthly'): ApiError {
   return new ApiError(402, JSON.stringify({ error: 'plan_required', plan }));
 }
@@ -11,7 +11,7 @@ export function paymentRequired(plan: string = 'monthly'): ApiError {
 /**
  * Venue-scoped authorization for the Partner App.
  *
- * Two clients share this API, so "is this token a partner?" is never enough —
+ * Two clients share this API, so "is this token a partner?" is never enough,
  * every venue read/write must also be scoped to the venues the caller belongs
  * to. `restaurant_staff` is the single source of that membership; a venue's
  * `owner_id` counts as an implicit `owner` row so older partner accounts (which
@@ -45,7 +45,7 @@ export function isPartnerRole(role: UserRole | undefined): boolean {
  * this rejects plain diners and hosts with a 403 instead of leaking venue data.
  *
  * A partner-role token is accepted outright *and* so is any account holding a
- * live venue membership — a host who registers a venue keeps the host role
+ * live venue membership, a host who registers a venue keeps the host role
  * (and its publishing rights) instead of being downgraded to `restaurant_owner`.
  */
 export const requirePartner: RequestHandler = async (req, _res, next) => {
@@ -77,7 +77,7 @@ export function seesAllVenues(role: UserRole): boolean {
 
 /**
  * Effective role for one venue, or null when the caller has no relationship to
- * it. Never throws — callers decide between 403 and 404.
+ * it. Never throws, callers decide between 403 and 404.
  */
 export async function effectivePartnerRole(
   userId: string,

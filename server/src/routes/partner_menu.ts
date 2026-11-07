@@ -51,7 +51,7 @@ function serializeSection(s: SectionRow, items: ItemRow[]) {
   };
 }
 
-// GET /api/partner/restaurants/:restaurantId/menu — full menu, ordered.
+// GET /api/partner/restaurants/:restaurantId/menu, full menu, ordered.
 router.get('/:restaurantId/menu', async (req, res) => {
   await requireVenueRole(req, req.params.restaurantId, 'staff');
 
@@ -295,7 +295,7 @@ router.post('/:restaurantId/menu/availability', async (req, res) => {
 // ── Customer-visible menu (read surface) ─────────────────────────────────────
 
 /**
- * GET /api/restaurants/:restaurantId/menu — public menu for the Customer App.
+ * GET /api/restaurants/:restaurantId/menu, public menu for the Customer App.
  *
  * Mounted separately (see server.ts) because it is a diner-facing read: only
  * verified, active venues expose a menu, and only available dishes come back.

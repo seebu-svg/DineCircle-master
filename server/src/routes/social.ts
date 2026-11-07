@@ -26,7 +26,7 @@ const ACTIVITY_SELECT = `
   FROM activity a
   LEFT JOIN users u ON u.id = a.actor_id`;
 
-// GET /api/activity — the signed-in user's feed, newest first.
+// GET /api/activity, the signed-in user's feed, newest first.
 router.get('/activity', async (req, res) => {
   const rows = await query<ActivityRow>(
     `${ACTIVITY_SELECT}
@@ -57,7 +57,7 @@ router.get('/activity', async (req, res) => {
   });
 });
 
-// POST /api/activity/read — marks every item as read.
+// POST /api/activity/read, marks every item as read.
 router.post('/activity/read', async (req, res) => {
   await query(
     'UPDATE activity SET is_unread = false WHERE actor_id = $1',
@@ -66,7 +66,7 @@ router.post('/activity/read', async (req, res) => {
   res.json({ read: true });
 });
 
-// GET /api/users/me/notifications — unified alerts surface.
+// GET /api/users/me/notifications, unified alerts surface.
 //
 // Computed on read (no cron, no new table). Unions three sources:
 //   1. Activity rows for the user (existing feed)
@@ -156,7 +156,7 @@ type SavedEventRow = {
   host_name: string | null;
 };
 
-// GET /api/me/saved — events the user bookmarked.
+// GET /api/me/saved, events the user bookmarked.
 router.get('/me/saved', async (req, res) => {
   const rows = await query<SavedEventRow>(
     `SELECT e.id, e.title, e.tagline, e.start_at, e.cover_image,
@@ -187,7 +187,7 @@ router.get('/me/saved', async (req, res) => {
   });
 });
 
-// GET /api/me/followed-restaurants — venues the user saved from a restaurant
+// GET /api/me/followed-restaurants, venues the user saved from a restaurant
 // profile or the Explore feed. Serialized with the same helper the venue feeds
 // use, so a saved card renders identically wherever it appears.
 router.get('/me/followed-restaurants', async (req, res) => {
@@ -202,7 +202,7 @@ router.get('/me/followed-restaurants', async (req, res) => {
   res.json({ restaurants: rows.map(serializeRestaurant), count: rows.length });
 });
 
-// POST /api/events/:id/save — bookmark an event.
+// POST /api/events/:id/save, bookmark an event.
 router.post('/events/:id/save', async (req, res) => {
   const [event] = await query<{ id: string }>(
     'SELECT id FROM dinner_events WHERE id = $1::UUID',
@@ -218,7 +218,7 @@ router.post('/events/:id/save', async (req, res) => {
   res.status(201).json({ saved: true, eventId: req.params.id });
 });
 
-// DELETE /api/events/:id/save — unbookmark.
+// DELETE /api/events/:id/save, unbookmark.
 router.delete('/events/:id/save', async (req, res) => {
   await query(
     'DELETE FROM saved_events WHERE user_id = $1 AND event_id = $2',
@@ -229,11 +229,11 @@ router.delete('/events/:id/save', async (req, res) => {
 
 // -- Blocking (P2-1) ----------------------------------------------------------
 
-// POST /api/users/:id/block — block a user and sever the follow graph.
+// POST /api/users/:id/block, block a user and sever the follow graph.
 // Idempotent by design: the composite PK means a duplicate block changes
 // nothing (still 200), and the whole operation runs in ONE transaction so a
 // half-applied block can never leave a follower counting against a blocked
-// host. Unblocking later does NOT restore these follows — that is deliberate.
+// host. Unblocking later does NOT restore these follows, that is deliberate.
 router.post('/users/:id/block', async (req, res) => {
   const [target] = await query<{ id: string; name: string }>(
     'SELECT id, name FROM users WHERE id = $1::UUID AND is_deleted = false',
@@ -277,7 +277,7 @@ router.post('/users/:id/block', async (req, res) => {
   res.json({ blocked: true, userId: target.id, removedFollows });
 });
 
-// DELETE /api/users/:id/block — unblock. Deliberately does NOT restore the
+// DELETE /api/users/:id/block, unblock. Deliberately does NOT restore the
 // follows removed at block time (re-following must be a fresh, mutual choice),
 // and existing chat threads/bookings stay exactly as they are.
 router.delete('/users/:id/block', async (req, res) => {
@@ -288,7 +288,7 @@ router.delete('/users/:id/block', async (req, res) => {
   res.json({ blocked: false, userId: req.params.id });
 });
 
-// GET /api/users/me/blocked — the caller's own block list (Settings → Privacy
+// GET /api/users/me/blocked, the caller's own block list (Settings → Privacy
 // → Blocked Users). Only ever the acting user's list; there is no endpoint
 // that reveals who a third party has blocked.
 router.get('/users/me/blocked', async (req, res) => {

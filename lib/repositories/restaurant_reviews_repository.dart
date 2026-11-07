@@ -2,7 +2,7 @@ import '../models/restaurant_review.dart';
 import '../api/api_client.dart';
 import '../api/json.dart';
 
-/// Restaurant reviews — read and write.
+/// Restaurant reviews, read and write.
 abstract class RestaurantReviewsRepository {
   /// Fetch reviews for a restaurant (public, paginated).
   Future<RestaurantReviewFeed> fetch(String restaurantId, {int limit = 20, int offset = 0});

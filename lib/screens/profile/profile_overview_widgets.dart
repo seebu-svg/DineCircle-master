@@ -11,7 +11,7 @@ import '../../widgets/buttons.dart';
 ///
 /// Shows the photo (with the camera badge that opens the avatar picker), the
 /// name/verification mark, `@handle`, the `city · homeArea` line, a
-/// "Member since" capsule and — when they exist — the bio and the Instagram
+/// "Member since" capsule and,when they exist,the bio and the Instagram
 /// link. Empty fields are omitted rather than rendered as empty boxes.
 class ProfileIdentityCard extends StatelessWidget {
   const ProfileIdentityCard({

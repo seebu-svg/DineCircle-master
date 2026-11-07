@@ -43,7 +43,7 @@ class AppConfig {
   ///   flutter run --dart-define=STRIPE_PUBLISHABLE_KEY=pk_test_…
   /// Public by design (Stripe's client-side key). When it is empty the whole
   /// PaymentSheet path stays dormant and checkout keeps the historical
-  /// simulated confirmation — so keyless dev builds/CI are unaffected.
+  /// simulated confirmation, so keyless dev builds/CI are unaffected.
   static const String stripePublishableKey = String.fromEnvironment(
     'STRIPE_PUBLISHABLE_KEY',
   );

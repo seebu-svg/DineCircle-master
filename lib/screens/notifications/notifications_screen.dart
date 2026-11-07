@@ -9,7 +9,7 @@ import '../../providers/social_provider.dart';
 import '../../widgets/avatar_widget.dart';
 import '../../widgets/data_view.dart';
 
-/// Notifications screen — unified alerts surface combining activity feed,
+/// Notifications screen, unified alerts surface combining activity feed,
 /// upcoming-booking reminders and followed-venue offers.
 ///
 /// Backed by `GET /users/me/notifications` (computed on read, no cron).
@@ -118,7 +118,7 @@ class NotificationsScreen extends ConsumerWidget {
   }
 
   IconData _getNotificationIcon(NotificationItem n) {
-    // Per-kind leading icon — overrides the legacy type-based mapping.
+    // Per-kind leading icon, overrides the legacy type-based mapping.
     switch (n.itemKind) {
       case NotificationItemKind.reminder:
         return Icons.calendar_today_rounded;

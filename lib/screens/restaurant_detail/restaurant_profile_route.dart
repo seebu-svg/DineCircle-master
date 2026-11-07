@@ -10,7 +10,7 @@ import 'restaurant_detail_screen.dart';
 ///
 /// Pass [seed] when the caller already has a slim `Restaurant` (instant paint
 /// while `/restaurants/:id` hydrates). Pass [id] when the caller only knows
-/// the venue id (QR scan, deep link, manual code entry) — the profile will
+/// the venue id (QR scan, deep link, manual code entry), the profile will
 /// show a skeleton until the fetch resolves.
 ///
 /// [onDinnerTap] overrides how an experience row opens; it defaults to pushing

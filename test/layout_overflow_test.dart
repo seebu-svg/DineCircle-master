@@ -25,7 +25,7 @@ import 'package:dine_circle/screens/host/host_dashboard_screen.dart';
 
 import 'fake_repositories.dart';
 
-/// Overflow detection harness — catches RenderFlex overflow at multiple
+/// Overflow detection harness, catches RenderFlex overflow at multiple
 /// device widths and text scales.
 ///
 /// This test renders each screen at widths [320, 360, 390, 430, 600] ×
@@ -105,7 +105,7 @@ void main() {
   const widths = [320.0, 360.0, 390.0, 430.0, 600.0];
   const textScales = [1.0, 1.3, 2.0];
 
-  group('Overflow detection — HomeScreen', () {
+  group('Overflow detection: HomeScreen', () {
     for (final width in widths) {
       for (final textScale in textScales) {
         testWidgets('renders at ${width.toInt()}px width, ${textScale}x text', (
@@ -135,7 +135,7 @@ void main() {
     }
   });
 
-  group('Overflow detection — BookingsScreen', () {
+  group('Overflow detection: BookingsScreen', () {
     for (final width in widths) {
       for (final textScale in textScales) {
         testWidgets('renders at ${width.toInt()}px width, ${textScale}x text', (
@@ -171,7 +171,7 @@ void main() {
     }
   });
 
-  group('Overflow detection — DinnerDetailScreen', () {
+  group('Overflow detection: DinnerDetailScreen', () {
     for (final width in widths) {
       for (final textScale in textScales) {
         testWidgets('renders at ${width.toInt()}px width, ${textScale}x text', (
@@ -214,7 +214,7 @@ void main() {
     }
   });
 
-  group('Overflow detection — CreateDinnerScreen', () {
+  group('Overflow detection: CreateDinnerScreen', () {
     for (final width in widths) {
       for (final textScale in textScales) {
         testWidgets('renders at ${width.toInt()}px width, ${textScale}x text', (
@@ -247,7 +247,7 @@ void main() {
     }
   });
 
-  group('Overflow detection — ExploreScreen', () {
+  group('Overflow detection: ExploreScreen', () {
     for (final width in widths) {
       for (final textScale in textScales) {
         testWidgets('renders at ${width.toInt()}px width, ${textScale}x text', (
@@ -278,7 +278,7 @@ void main() {
     }
   });
 
-  group('Overflow detection — ProfileScreen', () {
+  group('Overflow detection: ProfileScreen', () {
     for (final width in widths) {
       for (final textScale in textScales) {
         testWidgets('renders at ${width.toInt()}px width, ${textScale}x text', (
@@ -323,7 +323,7 @@ void main() {
     }
   });
 
-  group('Overflow detection — SavedScreen', () {
+  group('Overflow detection: SavedScreen', () {
     for (final width in widths) {
       for (final textScale in textScales) {
         testWidgets('renders at ${width.toInt()}px width, ${textScale}x text', (
@@ -355,7 +355,7 @@ void main() {
     }
   });
 
-  group('Overflow detection — NotificationsScreen', () {
+  group('Overflow detection: NotificationsScreen', () {
     for (final width in widths) {
       for (final textScale in textScales) {
         testWidgets('renders at ${width.toInt()}px width, ${textScale}x text', (
@@ -385,7 +385,7 @@ void main() {
     }
   });
 
-  group('Overflow detection — HostDashboardScreen', () {
+  group('Overflow detection: HostDashboardScreen', () {
     for (final width in widths) {
       for (final textScale in textScales) {
         testWidgets('renders at ${width.toInt()}px width, ${textScale}x text', (

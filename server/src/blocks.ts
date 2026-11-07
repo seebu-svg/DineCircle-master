@@ -1,7 +1,7 @@
 import { query } from './db.js';
 
 /**
- * P2-1 blocking — shared server-side enforcement primitives.
+ * P2-1 blocking, shared server-side enforcement primitives.
  *
  * A block is stored as ONE directed row (blocker → blocked) in `user_blocks`,
  * but every safety rule is symmetric: once either user has blocked the other,

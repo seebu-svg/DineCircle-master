@@ -15,7 +15,7 @@ class TierDto {
   /// `diner` | `host` | `influencer` | `partner`.
   final String tier;
 
-  /// True only for a host whose metrics meet every influencer threshold —
+  /// True only for a host whose metrics meet every influencer threshold,
   /// drives the "Claim influencer status" button on the Profile tier card.
   final bool eligible;
 

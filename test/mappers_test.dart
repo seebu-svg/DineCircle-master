@@ -39,7 +39,7 @@ Map<String, dynamic> slimEventJson() => {
 };
 
 void main() {
-  group('dinnerFromEvent — partial-safe list payload', () {
+  group('dinnerFromEvent, partial-safe list payload', () {
     final dinner = Mappers.dinnerFromEvent(EventDto.fromJson(slimEventJson()));
 
     test('maps core scalar fields', () {
@@ -86,7 +86,7 @@ void main() {
     });
   });
 
-  test('dinnerFromEvent — detail payload maps venue, menu and attendees', () {
+  test('dinnerFromEvent, detail payload maps venue, menu and attendees', () {
     final dto = EventDto.fromJson({
       ...slimEventJson(),
       'venue': {
@@ -136,7 +136,7 @@ void main() {
 
   // P0-2: the server exposes a lifecycle `status`; the Host Studio drafts
   // section keys off the mapped hostStatus.
-  group('dinnerFromEvent — status → hostStatus', () {
+  group('dinnerFromEvent, status → hostStatus', () {
     Dinner dinnerWithStatus(String status) => Mappers.dinnerFromEvent(
       EventDto.fromJson({...slimEventJson(), 'status': status}),
     );
@@ -174,7 +174,7 @@ void main() {
     });
   });
 
-  group('userFromDto — derived flags from role', () {
+  group('userFromDto, derived flags from role', () {
     test('partner_admin maps to isRestaurantPartner', () {
       final user = Mappers.userFromDto(
         UserDto.fromJson({'id': 'u1', 'name': 'Pat', 'role': 'partner_admin'}),
@@ -335,7 +335,7 @@ void main() {
 
   // Discovery categories: JSON → Offer/PromoCode mapping plus the UI-only
   // DiscoveryCategory parser used to round-trip route/param strings.
-  group('offerFeedFromDto — /offers envelope', () {
+  group('offerFeedFromDto: /offers envelope', () {
     final feed = Mappers.offerFeedFromDto(
       OfferFeedDto.fromJson({
         'offers': [

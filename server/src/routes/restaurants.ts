@@ -69,7 +69,7 @@ export function serializeRestaurant(r: RestaurantRow) {
 // Local alias so the existing handlers keep reading like before.
 const serialize = serializeRestaurant;
 
-// GET /api/restaurants — partner venues, filterable (P0-4: live search axes).
+// GET /api/restaurants, partner venues, filterable (P0-4: live search axes).
 router.get('/', async (req, res) => {
   const { partner, q, city, tag, priceMax, limit = '50', offset = '0' } = req.query;
   const conditions: string[] = ['accepting_bookings'];
@@ -143,7 +143,7 @@ router.get('/', async (req, res) => {
   });
 });
 
-// GET /api/restaurants/nearby — venues within `radiusKm` of a live GPS fix,
+// GET /api/restaurants/nearby, venues within `radiusKm` of a live GPS fix,
 // distance-ordered (WS-A map/location). Equirectangular ball-park on a bbox
 // first so the index-friendly comparison happens before the exact km calc.
 router.get('/nearby', async (req, res) => {
@@ -179,7 +179,7 @@ router.get('/nearby', async (req, res) => {
   });
 });
 
-// GET /api/restaurants/:id — venue profile plus upcoming events.
+// GET /api/restaurants/:id, venue profile plus upcoming events.
 router.get('/:id', async (req, res) => {
   const [venue] = await query<RestaurantRow>(
     `SELECT restaurants.*, EXISTS (
@@ -222,7 +222,7 @@ router.get('/:id', async (req, res) => {
   });
 });
 
-// POST /api/restaurants/:id/follow — the viewer follows the venue (idempotent).
+// POST /api/restaurants/:id/follow, the viewer follows the venue (idempotent).
 router.post('/:id/follow', async (req, res) => {
   const [venue] = await query<{ id: string }>(
     'SELECT id FROM restaurants WHERE id = $1::UUID', [req.params.id],
@@ -236,7 +236,7 @@ router.post('/:id/follow', async (req, res) => {
   res.json({ ok: true, isFollowing: true });
 });
 
-// DELETE /api/restaurants/:id/follow — the viewer unfollows the venue.
+// DELETE /api/restaurants/:id/follow, the viewer unfollows the venue.
 router.delete('/:id/follow', async (req, res) => {
   const [venue] = await query<{ id: string }>(
     'SELECT id FROM restaurants WHERE id = $1::UUID', [req.params.id],

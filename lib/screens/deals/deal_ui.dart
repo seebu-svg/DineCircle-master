@@ -28,7 +28,7 @@ class DealUi {
     'Dec',
   ];
 
-  /// `Rs 500` / `Rs 1,250` — PKR with thousands separators, no decimals
+  /// `Rs 500` / `Rs 1,250`: PKR with thousands separators, no decimals
   /// unless the server value genuinely carries cents.
   static String money(num value) {
     final fractionDigits = value == value.roundToDouble() ? 0 : 2;
@@ -41,7 +41,7 @@ class DealUi {
     return 'Rs $grouped${parts.length > 1 ? '.${parts[1]}' : ''}';
   }
 
-  /// `20%` — trims trailing zeros so `20.00` from the numeric column reads
+  /// `20%`, trims trailing zeros so `20.00` from the numeric column reads
   /// as a clean discount percentage.
   static String percent(num value) =>
       value.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
@@ -54,7 +54,7 @@ class DealUi {
   static int daysLeft(Deal deal) =>
       deal.endsAt.difference(DateTime.now()).inDays;
 
-  /// Whether the deal expires within a week — drives the urgency badge and
+  /// Whether the deal expires within a week, drives the urgency badge and
   /// the Limited-Time Offers section.
   static bool isExpiringSoon(Deal deal) => daysLeft(deal) <= 7;
 

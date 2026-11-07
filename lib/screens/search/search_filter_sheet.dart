@@ -59,7 +59,7 @@ Future<SearchFilters?> showSearchFilterSheet(
 }
 
 /// Location, cuisine, venue type, deal category, experience date and
-/// availability — every filter the API accepts, edited as a local draft so the
+/// availability, every filter the API accepts, edited as a local draft so the
 /// list behind the sheet never re-queries mid-selection.
 class SearchFilterSheet extends ConsumerStatefulWidget {
   const SearchFilterSheet({super.key, required this.initial});

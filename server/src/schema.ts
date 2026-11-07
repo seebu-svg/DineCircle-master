@@ -1,4 +1,4 @@
-/** Applies schema.sql — idempotent, safe to run repeatedly. */
+/** Applies schema.sql, idempotent, safe to run repeatedly. */
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';

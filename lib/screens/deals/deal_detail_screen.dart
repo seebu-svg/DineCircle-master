@@ -32,12 +32,12 @@ void openDealDetail(
   );
 }
 
-/// Deal Details — a premium, single-deal view.
+/// Deal Details, a premium, single-deal view.
 ///
 /// Shows the offer, its cover art, the restaurant behind it, validity,
 /// conditions and redemption instructions, all straight from the
 /// `GET /api/deals` payload. Package deals carry a real rupee price in
-/// `value`; percentage/fixed deals carry a discount — the original bill
+/// `value`; percentage/fixed deals carry a discount, the original bill
 /// depends on what the guest orders, so no prices are ever invented here.
 /// Redemption happens at the restaurant: no checkout, no payment.
 class DealDetailScreen extends ConsumerWidget {
@@ -257,7 +257,7 @@ class DealDetailScreen extends ConsumerWidget {
                   const SizedBox(height: AppSpacing.md),
                   Text(deal.description, style: AppTextStyles.bodyMedium),
                 ],
-                // Redemption capacity — only surfaced when the partner set it.
+                // Redemption capacity, only surfaced when the partner set it.
                 if (deal.maxRedemptions != null && deal.maxRedemptions! > 0) ...[
                   const SizedBox(height: AppSpacing.md),
                   Row(
@@ -362,7 +362,7 @@ class DealDetailScreen extends ConsumerWidget {
                 ),
                 _RedeemStep(
                   index: 3,
-                  text: 'The restaurant applies the deal to your bill — you '
+                  text: 'The restaurant applies the deal to your bill. You '
                       'pay the venue directly. DineCircle never charges you.',
                 ),
                 if (redemption != null) ...[
@@ -521,7 +521,7 @@ class DealDetailScreen extends ConsumerWidget {
             ),
             child: Text(
               'Redeem this offer at the restaurant. DineCircle deals are '
-              'settled at the venue — there is no in-app payment.',
+              'settled at the venue. There is no in-app payment.',
               textAlign: TextAlign.center,
               style: AppTextStyles.caption.copyWith(
                 color: AppColors.textTertiary,

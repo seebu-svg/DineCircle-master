@@ -23,14 +23,14 @@ final isSavedProvider = Provider.family<bool, String>((ref, eventId) {
 });
 
 /// The activity (notifications) feed, newest first.
-/// Kept for backward compatibility — new code should use [notificationsProvider].
+/// Kept for backward compatibility, new code should use [notificationsProvider].
 final activityProvider = FutureProvider<List<NotificationItem>>((ref) async {
   if (!ref.watch(authReadyProvider)) return const [];
   final result = await ref.watch(socialRepositoryProvider).activity();
   return result.items.map(Mappers.notificationFromActivityRow).toList();
 });
 
-/// Unified notifications feed — unions activity, reminders and offers
+/// Unified notifications feed, unions activity, reminders and offers
 /// (`GET /users/me/notifications`).
 final notificationsProvider = FutureProvider<List<NotificationItem>>((ref) async {
   if (!ref.watch(authReadyProvider)) return const [];
@@ -38,7 +38,7 @@ final notificationsProvider = FutureProvider<List<NotificationItem>>((ref) async
   return result.items.map(Mappers.notificationFromUnifiedRow).toList();
 });
 
-/// Count of unread activity items — drives the Home bell badge.
+/// Count of unread activity items, drives the Home bell badge.
 final unreadActivityCountProvider = FutureProvider<int>((ref) async {
   if (!ref.watch(authReadyProvider)) return 0;
   final result = await ref.watch(socialRepositoryProvider).activity();
@@ -47,7 +47,7 @@ final unreadActivityCountProvider = FutureProvider<int>((ref) async {
 
 /// Mutation surface for saves and marking activity read. Each call
 /// hits the server then invalidates the affected read providers so the UI
-/// re-renders from the authoritative response — no optimistic fakes.
+/// re-renders from the authoritative response, no optimistic fakes.
 class SocialController {
   SocialController(this._ref);
 

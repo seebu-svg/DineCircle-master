@@ -5,7 +5,7 @@ import '../theme/app_colors.dart';
 /// The five primary discovery categories surfaced on the homepage and driving
 /// the category-aware Explore view.
 ///
-/// This is a UI-facing taxonomy only — each value maps onto existing server
+/// This is a UI-facing taxonomy only, each value maps onto existing server
 /// query axes in [ExploreScreen]; it carries no server coupling of its own.
 enum DiscoveryCategory {
   /// Reserve tables for individuals, couples, families, or friends.

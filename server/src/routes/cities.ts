@@ -14,7 +14,7 @@ type CityRow = {
 };
 
 /**
- * GET /api/cities — all DineCircle-supported cities with their areas.
+ * GET /api/cities, all DineCircle-supported cities with their areas.
  *
  * The Flutter location picker loads this on open; a network failure falls back
  * to a hard-coded list, so the endpoint must never throw for missing data.

@@ -23,7 +23,7 @@ class ServiceCity {
   );
 }
 
-/// Location data access — supported cities and the user's saved locations.
+/// Location data access, supported cities and the user's saved locations.
 abstract class LocationRepository {
   /// Supported DineCircle cities with their neighbourhoods.
   Future<List<ServiceCity>> supportedCities();

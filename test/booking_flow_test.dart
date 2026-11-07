@@ -33,7 +33,7 @@ void main() {
   }
 
   // The review step's recap rows trip RenderFlex overflow warnings in the
-  // fixed headless viewport — layout warnings, not failures.
+  // fixed headless viewport, layout warnings, not failures.
   void tolerateOverflow() {
     final original = FlutterError.onError;
     FlutterError.onError = (details) {
@@ -47,9 +47,9 @@ void main() {
 
   // Walks Seats → Guest Info → Review, then taps "Confirm Booking".
   Future<void> reachPayAndSubmit(WidgetTester tester) async {
-    await tester.tap(find.text('Continue — Guest Info'));
+    await tester.tap(find.text('Continue: Guest Info'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Continue — Review'));
+    await tester.tap(find.text('Continue: Review'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Confirm Booking'));
   }
@@ -112,7 +112,7 @@ void main() {
     await tester.pumpWidget(checkout(bookings, (_) {}));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Continue — Guest Info'));
+    await tester.tap(find.text('Continue: Guest Info'));
     await tester.pumpAndSettle();
 
     // Apply a valid promo, then continue to review & pay.
@@ -124,10 +124,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('discount applied!'), findsOneWidget);
 
-    await tester.tap(find.text('Continue — Review'));
+    await tester.tap(find.text('Continue: Review'));
     await tester.pumpAndSettle();
 
-    // Phase 2a: Stripe removed — no payment step; confirm directly.
+    // Phase 2a: Stripe removed, no payment step; confirm directly.
     await tester.tap(find.text('Confirm Booking'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));

@@ -1,10 +1,10 @@
 /// Pure parser for QR-code payloads that point at a restaurant's public menu.
 ///
 /// Four shapes are accepted:
-///   1. `dinecircle://menu/<uuid>` — deep-link scheme
-///   2. `https://<any host>/menu/<uuid>` — universal link (new canonical)
-///   3. `https://<any host>/venues/<uuid>` — legacy universal link
-///   4. A bare `<uuid>` — printed directly on the QR
+///   1. `dinecircle://menu/<uuid>`, deep-link scheme
+///   2. `https://<any host>/menu/<uuid>`, universal link (new canonical)
+///   3. `https://<any host>/venues/<uuid>`, legacy universal link
+///   4. A bare `<uuid>`, printed directly on the QR
 ///
 /// Anything else returns `null` so the caller can show a friendly error.
 /// Kept as a top-level pure function for unit-testability without a camera.

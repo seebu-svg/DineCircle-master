@@ -68,7 +68,7 @@ class UserProfile {
   final String role;
 
   /// Customer account mode: `personal` (private, default) or `professional`
-  /// (public host profile + Host Studio). This — not [role] — decides whether
+  /// (public host profile + Host Studio). This,not [role],decides whether
   /// Host Studio is available, so switching back to Personal never destroys a
   /// host's role, badges or history.
   final String accountType;
@@ -135,7 +135,7 @@ class UserProfile {
   });
 
   /// Whether this account holds a publishing role (host/influencer/admin).
-  /// Necessary but no longer sufficient for Host Studio — see [isProfessional].
+  /// Necessary but no longer sufficient for Host Studio, see [isProfessional].
   bool get hasHostingRole => role != 'user';
 
   /// Whether the account is in its public, Host-Studio-enabled mode.

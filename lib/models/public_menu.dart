@@ -1,4 +1,4 @@
-/// Public venue menu — the unauthenticated payload served to diners who scan
+/// Public venue menu, the unauthenticated payload served to diners who scan
 /// a QR code on a restaurant table. Mirrors `GET /api/public/menu/:restaurantId`.
 library;
 
@@ -22,7 +22,7 @@ class PublicMenuItem {
   final List<String> dietaryTags;
   final String? photoUrl;
 
-  /// `Rs 2,450` — menu prices are PKR and always shown with the symbol.
+  /// `Rs 2,450`, menu prices are PKR and always shown with the symbol.
   String get formattedPrice => formatPkr(price);
 
   /// Tags are authored freely by partners, so comparison and display both use

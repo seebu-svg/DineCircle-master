@@ -24,7 +24,7 @@ double asDouble(Object? value, [double fallback = 0]) {
   return fallback;
 }
 
-/// Parses a nullable numeric field (coordinates, distances) — absent or
+/// Parses a nullable numeric field (coordinates, distances), absent or
 /// unparseable values stay null rather than collapsing to 0.
 double? asDoubleOrNull(Object? value) {
   if (value is num) return value.toDouble();

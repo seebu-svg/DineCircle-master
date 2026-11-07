@@ -16,7 +16,7 @@ import '../restaurant_detail/restaurant_profile_route.dart';
 ///   - bare `<uuid>`
 ///
 /// On a successful scan the user is pushed to the shared Restaurant Profile
-/// screen via [openRestaurantProfile] — the same entry point used by list
+/// screen via [openRestaurantProfile], the same entry point used by list
 /// taps, search results and deep links. A torch toggle and close button
 /// overlay the camera preview. Permission-denied state shows an explanatory
 /// card with a manual code-entry fallback. Invalid payloads keep the scanner

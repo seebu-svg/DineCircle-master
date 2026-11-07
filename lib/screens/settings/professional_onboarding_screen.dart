@@ -175,7 +175,7 @@ class _Header extends StatelessWidget {
         const SizedBox(height: AppSpacing.xs),
         Text(
           'A Professional account is the same DineCircle account you already '
-          'use — it just adds a public host profile and Host Studio.',
+          'use. It just adds a public host profile and Host Studio.',
           style: AppTextStyles.bodySmall.copyWith(
             color: AppColors.textSecondary,
           ),

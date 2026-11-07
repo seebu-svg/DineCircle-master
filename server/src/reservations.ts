@@ -13,7 +13,7 @@ import { ApiError, notFound } from './context.js';
  * Concurrency contract: every write happens inside `withTransaction` and takes
  * a `FOR UPDATE` lock on the *venue* row first. That serialises reservation
  * writes per venue, which is what makes "two guests, one last table" resolve
- * deterministically — the second request re-reads the held covers while the
+ * deterministically, the second request re-reads the held covers while the
  * first is still uncommitted, so it sees them instead of racing past.
  */
 
@@ -79,8 +79,8 @@ type DayHours = { closed?: boolean; windows?: HoursWindow[] };
 function windowsFor(hours: unknown, weekday: number): HoursWindow[] {
   if (hours === null || typeof hours !== 'object') return DEFAULT_WINDOWS;
   const map = hours as Record<string, DayHours>;
-  // A venue that has published no weekday map at all — `{}`, or the legacy
-  // `{"Mon-Sun": "17:00-24:00"}` shape — is *unconfigured*, not closed. This
+  // A venue that has published no weekday map at all: `{}`, or the legacy
+  // `{"Mon-Sun": "17:00-24:00"}` shape, is *unconfigured*, not closed. This
   // mirrors the seat-capacity fallback further down: an empty field must never
   // strand a guest with zero bookable slots.
   const configured = WEEKDAY_KEYS.some((k) => map[k] !== undefined);
@@ -335,7 +335,7 @@ export async function createReservation(
     }
 
     // Cover check across the whole venue (tables are not the only capacity
-    // model — a venue may not publish table inventory at all).
+    // model, a venue may not publish table inventory at all).
     const { rows: inventoryRows } = await client.query<{ capacity: string | null }>(
       `SELECT SUM(seats)::text AS capacity FROM restaurant_tables
         WHERE restaurant_id = $1::UUID AND is_active`,

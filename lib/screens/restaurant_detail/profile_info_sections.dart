@@ -252,7 +252,7 @@ class _DayRow extends StatelessWidget {
   }
 }
 
-/// Compact facility chips — icon plus label, wrapping instead of scrolling so a
+/// Compact facility chips, icon plus label, wrapping instead of scrolling so a
 /// large system font never clips them.
 class FacilitiesWrap extends StatelessWidget {
   const FacilitiesWrap({super.key, required this.amenities});

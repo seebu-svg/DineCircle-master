@@ -10,8 +10,8 @@ import 'menu_dish_card.dart';
 /// Opens the read-only dish details sheet.
 ///
 /// DineCircle does not take orders or payments here: the sheet exists so a
-/// guest can read everything the restaurant published about a dish — photo,
-/// portion description, dietary tags, price — before ordering with a server.
+/// guest can read everything the restaurant published about a dish, photo,
+/// portion description, dietary tags, price, before ordering with a server.
 Future<void> showDishDetail(
   BuildContext context, {
   required PublicMenuItem item,
@@ -193,7 +193,7 @@ class _DishDetailSheet extends StatelessWidget {
                       Expanded(
                         child: Text(
                           'Served at the restaurant. Ask your server for today\'s '
-                          'availability — DineCircle does not process orders or payments.',
+                          'availability. DineCircle does not process orders or payments.',
                           style: AppTextStyles.bodySmall.copyWith(
                             color: AppColors.textTertiary,
                             height: 1.4,

@@ -9,7 +9,7 @@ class SavedLocation {
   final String id;
   final SavedLocationKind kind;
 
-  /// Display name — "Home", "Work", "Clifton", …
+  /// Display name: "Home", "Work", "Clifton", …
   final String name;
 
   /// Resolved city ("Karachi").
@@ -37,7 +37,7 @@ class SavedLocation {
 
   bool get hasCoordinates => latitude != null && longitude != null;
 
-  /// Short subtitle for list tiles — "DHA, Karachi" or just "Karachi".
+  /// Short subtitle for list tiles: "DHA, Karachi" or just "Karachi".
   String get subtitle {
     final parts = <String>[
       if (area.isNotEmpty) area,

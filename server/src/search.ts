@@ -121,7 +121,7 @@ function isoTimestamp(raw: unknown): string | null {
 export type SearchParams = {
   /** Trimmed free text. Empty when the caller sent nothing usable. */
   query: string;
-  /** False when `q` is missing or outside 1..[SEARCH_QUERY_MAX] — the route 400s. */
+  /** False when `q` is missing or outside 1..[SEARCH_QUERY_MAX], the route 400s. */
   valid: boolean;
   categories: SearchCategory[];
   city: string | null;

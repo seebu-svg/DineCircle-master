@@ -30,13 +30,13 @@ import '../tables/my_tables_screen.dart';
 import '../qr_menu/qr_scan_screen.dart';
 import 'profile_overview_widgets.dart';
 
-/// Profile screen — a premium dining identity and account hub.
+/// Profile screen, a premium dining identity and account hub.
 ///
 /// Organised into five vertical zones:
 ///   1. Identity card (photo, name, @handle, city, member-since, bio, links)
 ///   2. Diner stats (experiences attended, tables booked, saved places)
 ///   3. Activity grid (reservations, joined dinners, hosting, saved venues)
-///   4. Dining preferences (cuisines, dietary, allergies — editable)
+///   4. Dining preferences (cuisines, dietary, allergies, editable)
 ///   5. Grouped navigation menu (My Dining · Hosting · Account & Support)
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -116,7 +116,7 @@ class ProfileScreen extends ConsumerWidget {
       );
     }
 
-    // Real counts from backend providers — no fabricated data.
+    // Real counts from backend providers, no fabricated data.
     final savedCount = ref.watch(savedEventsProvider).valueOrNull?.length ?? 0;
     final bookingsCount =
         ref.watch(myBookingsProvider).valueOrNull?.length ?? 0;
@@ -345,7 +345,7 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  /// Dining preferences summary — shows tags for cuisines, dietary and
+  /// Dining preferences summary, shows tags for cuisines, dietary and
   /// allergies from the user model, or a prompt to set them up.
   Widget _buildDiningPreferences(BuildContext context, UserProfile user) {
     final hasInterests = user.interests.isNotEmpty;

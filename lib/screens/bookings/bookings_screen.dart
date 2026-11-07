@@ -139,7 +139,7 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen>
 
           return Column(
             children: [
-              // Status filter chips — only for Upcoming and Past tabs.
+              // Status filter chips, only for Upcoming and Past tabs.
               // The Tables tab uses MyTablesScreen (its own layout).
               if (_currentTab < 2)
                 Container(
@@ -423,7 +423,7 @@ class _UpcomingBookingCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '${booking.promoCode} — ${booking.formattedDiscount}',
+                    '${booking.promoCode}: ${booking.formattedDiscount}',
                     style: AppTextStyles.caption.copyWith(
                       color: AppColors.success,
                     ),
@@ -634,7 +634,7 @@ class _DetailChip extends StatelessWidget {
 // Directions
 // ---------------------------------------------------------------------------
 
-/// Dark map style JSON — matches DineCircle's dark theme with orange accents.
+/// Dark map style JSON, matches DineCircle's dark theme with orange accents.
 const String _kDarkMapStyle =
     '[\n'
     '  {"elementType":"geometry","stylers":[{"color":"#0a090c"}]},\n'
@@ -701,7 +701,7 @@ class _DirectionsSheetState extends State<_DirectionsSheet> {
       );
     }
 
-    // Null-safe address helpers — restaurant.city is String?.
+    // Null-safe address helpers, restaurant.city is String?.
     final city = restaurant.city;
     final fullAddress = city != null && city.isNotEmpty
         ? '${restaurant.address}, $city'
@@ -853,7 +853,7 @@ class _DirectionsSheetState extends State<_DirectionsSheet> {
               ),
             ),
             const SizedBox(height: AppSpacing.md),
-            // Transport options — Wrap allows 3+2 layout on narrow screens.
+            // Transport options: Wrap allows 3+2 layout on narrow screens.
             Wrap(
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,
@@ -1103,7 +1103,7 @@ class _PastBookingCard extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
-                          'Payment failed — the hold was released and no charge was made.',
+                          'Payment failed. The hold was released and no charge was made.',
                           style: AppTextStyles.caption.copyWith(
                             color: AppColors.danger,
                           ),

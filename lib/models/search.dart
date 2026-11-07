@@ -184,7 +184,7 @@ class MenuItemHit {
   final String restaurantCity;
   final String? restaurantCoverImage;
 
-  /// `Section · Venue` — what the diner needs to place the dish.
+  /// `Section · Venue`, what the diner needs to place the dish.
   String get subtitle => [
     sectionName,
     restaurantName,

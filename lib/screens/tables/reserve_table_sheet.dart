@@ -277,7 +277,7 @@ class _ReserveTableSheetState extends ConsumerState<ReserveTableSheet> {
       Navigator.pop(context, reservation);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Table requested — reference ${reservation.reference}'),
+          content: Text('Table requested. Reference ${reservation.reference}'),
           backgroundColor: AppColors.success,
         ),
       );

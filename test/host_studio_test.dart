@@ -47,7 +47,7 @@ void main() {
   }
 
   // The analytics screen's dense rows trip RenderFlex overflow warnings in the
-  // fixed headless viewport — layout warnings, not failures.
+  // fixed headless viewport, layout warnings, not failures.
   void tolerateOverflow() {
     final original = FlutterError.onError;
     FlutterError.onError = (details) {
@@ -263,7 +263,7 @@ void main() {
     });
   });
 
-  // Phase 5: Collaboration proposal lifecycle — send, cancel, complete.
+  // Phase 5: Collaboration proposal lifecycle, send, cancel, complete.
   group('CollaborationsController', () {
     test('sendProposal hits the repository and returns a new invite', () async {
       final hosts = FakeHostsRepository();

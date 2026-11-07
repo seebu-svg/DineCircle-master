@@ -59,7 +59,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
   /// Method label sent with the booking.
   ///
-  /// This screen offers exactly one method — pay at the venue — and collects no
+  /// This screen offers exactly one method,pay at the venue,and collects no
   /// card data, so the label must name that method rather than a card the guest
   /// never presented. [Booking.kDefaultPaymentMethod] carries it.
   String get _paymentLabel => Booking.kDefaultPaymentMethod;
@@ -521,13 +521,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           ),
           const SizedBox(height: AppSpacing.lg),
 
-          // Payment method — pay at the venue (no card collected in-app).
+          // Payment method, pay at the venue (no card collected in-app).
           Text('Payment Method', style: AppTextStyles.headlineSmall),
           const SizedBox(height: AppSpacing.md),
           _PaymentMethodTile(
             icon: Icons.payments_rounded,
             title: 'Pay at venue',
-            subtitle: 'No card required — settle when you arrive',
+            subtitle: 'No card required. Settle when you arrive',
             isSelected: true,
           ),
           const SizedBox(height: AppSpacing.xxl),
@@ -602,11 +602,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       child: SafeArea(
         child: switch (_currentStep) {
           0 => PrimaryButton(
-            text: 'Continue — Guest Info',
+            text: 'Continue to Guest Info',
             onPressed: () => setState(() => _currentStep = 1),
           ),
           1 => PrimaryButton(
-            text: 'Continue — Review',
+            text: 'Continue to Review',
             onPressed: () => setState(() => _currentStep = 2),
           ),
           _ => PrimaryButton(

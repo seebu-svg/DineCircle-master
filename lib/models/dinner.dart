@@ -72,7 +72,7 @@ class Dinner {
   int get availableSeats => totalSeats - bookedSeats;
   bool get isFull => availableSeats <= 0;
 
-  /// Whether [userId] is this dinner's host. Use the live session id — the old
+  /// Whether [userId] is this dinner's host. Use the live session id, the old
   /// `isHostedByCurrentUser` getter was a hardcoded stub with no session access.
   bool hostedBy(String? userId) =>
       userId != null && userId.isNotEmpty && host.id == userId;

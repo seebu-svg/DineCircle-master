@@ -1,7 +1,7 @@
 import 'user_profile.dart';
 import 'dinner.dart';
 
-/// The source kind of a notification — drives the leading icon.
+/// The source kind of a notification, drives the leading icon.
 enum NotificationItemKind { activity, reminder, offer }
 
 /// Notification type

@@ -27,7 +27,7 @@ class ApiPublicMenuRepository implements PublicMenuRepository {
     try {
       await _client.postJson('/public/menu/$restaurantId/scan', body: {});
     } catch (_) {
-      // Fire-and-forget — scan recording is best-effort for analytics.
+      // Fire-and-forget, scan recording is best-effort for analytics.
     }
   }
 

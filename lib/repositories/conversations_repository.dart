@@ -1,7 +1,7 @@
 import '../api/api_client.dart';
 import '../api/json.dart';
 
-/// Conversations API — covers the full messaging surface: listing, DM creation,
+/// Conversations API, covers the full messaging surface: listing, DM creation,
 /// message history, send, read receipts, typing indicators, edit, delete.
 abstract class ConversationsRepository {
   /// List the signed-in user's conversations (newest activity first).

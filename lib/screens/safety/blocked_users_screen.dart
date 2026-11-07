@@ -13,7 +13,7 @@ import '../../widgets/data_view.dart';
 
 /// Settings → Privacy → Blocked Users.
 ///
-/// Backed by `GET /users/me/blocked`. Unblocking only lifts the restriction —
+/// Backed by `GET /users/me/blocked`. Unblocking only lifts the restriction,
 /// the server deliberately does not restore follows or conversations, which
 /// the explainer text here mirrors.
 class BlockedUsersScreen extends ConsumerWidget {

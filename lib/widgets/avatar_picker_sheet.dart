@@ -26,7 +26,7 @@ final avatarImagePickerProvider = Provider<AvatarImagePicker>((ref) {
   final picker = ImagePicker();
   return (source) async {
     // 512px is twice the largest avatar the app renders; quality 85 keeps a
-    // typical JPEG around 50–120 KB — well under the server's 512 KB cap.
+    // typical JPEG around 50–120 KB, well under the server's 512 KB cap.
     final file = await picker.pickImage(
       source: source == AvatarSource.camera
           ? ImageSource.camera
@@ -93,7 +93,7 @@ class _AvatarPickerSheetState extends ConsumerState<AvatarPickerSheet> {
     }
     if (bytes.length > kMaxAvatarBytes) {
       setState(
-        () => _error = 'That photo is too large — keep it under 512 KB.',
+        () => _error = 'That photo is too large. Keep it under 512 KB.',
       );
       return;
     }

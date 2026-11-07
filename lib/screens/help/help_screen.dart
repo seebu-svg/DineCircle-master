@@ -18,7 +18,7 @@ import '../support/feedback_form_screen.dart';
 /// feedback goes through `POST /feedback`, ticket history through
 /// `GET /users/me/feedback`, and the safety shortcuts land on the live
 /// report/block screens. The former static mock of this screen (dead search,
-/// dead contact buttons, dead legal tiles) is gone — nothing on this screen
+/// dead contact buttons, dead legal tiles) is gone, nothing on this screen
 /// is a no-op.
 class HelpScreen extends ConsumerStatefulWidget {
   const HelpScreen({super.key});
@@ -36,7 +36,7 @@ class _HelpScreenState extends ConsumerState<HelpScreen> {
       'How do I book a dinner?',
       'Browse events on the Home or Explore screen, tap a dinner you like, '
           'then tap "Join Dinner". Pick your seats, choose a payment method and '
-          'confirm — your ticket appears under My Bookings.',
+          'confirm. Your ticket appears under My Bookings.',
     ),
     _Faq(
       'How do I create a dining event?',
@@ -52,7 +52,7 @@ class _HelpScreenState extends ConsumerState<HelpScreen> {
     ),
     _Faq(
       'What is the cancellation policy?',
-      'Cancellation policies vary by event — check the event details before '
+      'Cancellation policies vary by event. Check the event details before '
           'booking. Generally full refunds are available up to 24 hours before '
           'the event starts.',
     ),
@@ -65,7 +65,7 @@ class _HelpScreenState extends ConsumerState<HelpScreen> {
     _Faq(
       'What happens after I submit a report?',
       'You get an RP reference immediately. Our team reviews the report and '
-          'updates its status — pending, under review, resolved or dismissed. '
+          'updates its status: pending, under review, resolved or dismissed. '
           'The reported account is never told who reported it.',
     ),
     _Faq(

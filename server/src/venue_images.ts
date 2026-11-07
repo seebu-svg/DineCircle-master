@@ -7,7 +7,7 @@ import { sniffImageType } from './avatars.js';
  * (`GET /public/venue-images/:imageId`).
  *
  * Deliberately the same envelope, ceiling and magic-byte sniffing as
- * `avatars.ts` — the codebase keeps ONE upload convention rather than growing
+ * `avatars.ts`, the codebase keeps ONE upload convention rather than growing
  * a second. The 512 KiB cap keeps the base64 body (~700 KB) under the global
  * 1 MB `express.json` limit, and the client downsizes before upload, so the
  * ceiling is generous for a 1280px dish photo.
@@ -44,7 +44,7 @@ const BASE64_BODY = /^[A-Za-z0-9+/]+={0,2}$/;
 /**
  * Decodes the upload payload: plain base64 or a `data:image/...;base64,` URL.
  * `Buffer.from(…, 'base64')` silently skips invalid characters, so the
- * alphabet is checked first — a corrupt upload is a 400, not a broken photo.
+ * alphabet is checked first, a corrupt upload is a 400, not a broken photo.
  *
  * Like the avatar route, the declared content type is discarded: whatever we
  * store is served back with the type sniffed from the bytes themselves, which
@@ -63,7 +63,7 @@ export function decodeVenueImagePayload(raw: string): {
     throw new ApiError(400, 'The photo could not be read. Try another image.');
   }
   if (bytes.length > MAX_VENUE_IMAGE_BYTES) {
-    throw new ApiError(413, 'That photo is too large — keep it under 512 KB.');
+    throw new ApiError(413, 'That photo is too large. Keep it under 512 KB.');
   }
   const contentType = sniffImageType(bytes);
   if (!contentType) {
@@ -77,7 +77,7 @@ export function decodeVenueImagePayload(raw: string): {
  * survives a host change (the app resolves it against `API_BASE_URL`).
  *
  * The id is unique per upload and a row is never rewritten, so this URL never
- * changes meaning — which is what lets the public route mark it immutable and
+ * changes meaning, which is what lets the public route mark it immutable and
  * skip cache-busting entirely.
  */
 export function uploadedVenueImagePath(imageId: string): string {

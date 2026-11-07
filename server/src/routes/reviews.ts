@@ -18,7 +18,7 @@ type ReviewRow = {
   author_avatar: string | null;
 };
 
-// GET /api/reviews — filterable by host, event or author, newest first.
+// GET /api/reviews, filterable by host, event or author, newest first.
 router.get('/reviews', async (req, res) => {
   const { hostId, eventId, authorId, limit = '50' } = req.query;
 
@@ -78,7 +78,7 @@ const createReviewSchema = z.object({
   text: z.string().trim().min(10).max(1000),
 });
 
-// POST /api/events/:id/reviews — a guest reviews an event they attended.
+// POST /api/events/:id/reviews, a guest reviews an event they attended.
 router.post('/events/:id/reviews', async (req, res) => {
   const { rating, text } = createReviewSchema.parse(req.body ?? {});
   const eventId = req.params.id;
@@ -110,7 +110,7 @@ router.post('/events/:id/reviews', async (req, res) => {
   }
 
   // The review insert, the host's aggregate rating/review_count recompute,
-  // and the activity feed row must all succeed or fail together — otherwise
+  // and the activity feed row must all succeed or fail together, otherwise
   // a crash between the two UPDATEs would leave the host's denormalised
   // rating permanently out of sync with the reviews table.
   await withTransaction(async (client) => {
@@ -150,7 +150,7 @@ router.post('/events/:id/reviews', async (req, res) => {
       [
         event.host_id,
         `New review for ${event.title}`,
-        `"${text.length > 80 ? `${text.slice(0, 77)}...` : text}" — ${author?.name ?? 'A guest'}`,
+        `"${text.length > 80 ? `${text.slice(0, 77)}...` : text}": ${author?.name ?? 'A guest'}`,
         eventId,
       ],
     );

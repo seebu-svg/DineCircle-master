@@ -86,7 +86,7 @@ void main() {
     });
   });
 
-  /// Restores a session of [user], then pushes [home] — the way these screens
+  /// Restores a session of [user], then pushes [home], the way these screens
   /// are reached in the app, so `initState` sees the signed-in profile.
   Future<(ProviderContainer, FakeSessionRepository, FakeUsersRepository)>
   pumpSignedIn(

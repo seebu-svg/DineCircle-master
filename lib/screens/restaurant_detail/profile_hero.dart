@@ -253,7 +253,7 @@ class OpeningStatusPill extends StatelessWidget {
   }
 }
 
-/// Directions / Call / Save / Share — the four things a guest does before
+/// Directions / Call / Save / Share, the four things a guest does before
 /// deciding to go. Unavailable actions stay visible but dimmed and inert so the
 /// row never silently changes shape between venues.
 class QuickActionsBar extends StatelessWidget {

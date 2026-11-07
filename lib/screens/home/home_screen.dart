@@ -21,7 +21,7 @@ import '../../providers/session_provider.dart';
 import '../../providers/users_provider.dart';
 import '../qr_menu/qr_scan_screen.dart';
 
-/// Home screen — "Today" per spec.
+/// Home screen: "Today" per spec.
 ///
 /// A vertically scrolling editorial concierge with nine sections ordered by
 /// guest priority:
@@ -29,14 +29,14 @@ import '../qr_menu/qr_scan_screen.dart';
 ///   1. Personalized header + location
 ///   2. Search
 ///   3. Quick actions
-///   4. Your Next Table (conditional — only when a confirmed booking exists)
+///   4. Your Next Table (conditional, only when a confirmed booking exists)
 ///   5. Featured Experiences (cinematic, date-filtered)
 ///   6. Gather Around a Table (category banners)
 ///   7. Tables Worth Booking (restaurants)
 ///   8. This Week on DineCircle (upcoming dinners list)
 ///   9. Find Your Kind of Evening (occasion moods)
 ///
-/// Empty sections are hidden. All data comes from Riverpod providers — no
+/// Empty sections are hidden. All data comes from Riverpod providers, no
 /// mock data.
 class HomeScreen extends ConsumerStatefulWidget {
   final void Function(Dinner dinner) onDinnerTap;
@@ -376,7 +376,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // ─── Section builders ────────────────────────────────────────────────────
 
-  /// Trending Now — server-sorted by fill ratio (most popular first).
+  /// Trending Now, server-sorted by fill ratio (most popular first).
   Widget _buildTrendingExperiences(AsyncValue<List<Dinner>> async) {
     return SliverToBoxAdapter(
       child: async.when(
@@ -423,7 +423,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  /// Recommended for You — server-sorted by cuisine overlap with user's tastes.
+  /// Recommended for You, server-sorted by cuisine overlap with user's tastes.
   Widget _buildRecommendedForYou(AsyncValue<List<Dinner>> async) {
     return SliverToBoxAdapter(
       child: async.when(
@@ -470,7 +470,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  /// Gather Around a Table — photographic category banners.
+  /// Gather Around a Table, photographic category banners.
   Widget _buildSocialCategories() {
     const categories = [
       _SocialCategory(
@@ -548,7 +548,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  /// Tables Worth Booking — nearby restaurant cards.
+  /// Tables Worth Booking, nearby restaurant cards.
   Widget _buildRestaurants(AsyncValue<List<Restaurant>> async) {
     return SliverToBoxAdapter(
       child: async.when(
@@ -597,7 +597,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  /// This Week on DineCircle — upcoming dinners in a vertical list.
+  /// This Week on DineCircle, upcoming dinners in a vertical list.
   ///
   /// Excludes dinners already shown in Featured Experiences (tonight/special/
   /// creator) to avoid repetitive placement.
@@ -634,7 +634,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               .toList();
 
           // If all dinners are already featured, show the full list instead of
-          // hiding the section — the guest still needs something to browse.
+          // hiding the section, the guest still needs something to browse.
           final list = upcoming.isEmpty && dinners.isNotEmpty
               ? dinners.where((d) => d.dateTime.isAfter(now)).take(5).toList()
               : upcoming;
@@ -669,7 +669,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  /// Find Your Kind of Evening — occasion mood cards.
+  /// Find Your Kind of Evening, occasion mood cards.
   Widget _buildEveningMoods() {
     const occasions = [
       _Occasion(
@@ -745,7 +745,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  /// Your Next Table — next confirmed upcoming booking near the top.
+  /// Your Next Table, next confirmed upcoming booking near the top.
   ///
   /// Shows venue, date, time, party size, and a status badge. Hidden when
   /// there are no upcoming confirmed bookings.
@@ -795,7 +795,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  /// Host a Table — invitation for guests who haven't become hosts yet.
+  /// Host a Table, invitation for guests who haven't become hosts yet.
   Widget _buildHostInvitation() {
     return SliverToBoxAdapter(
       child: Padding(

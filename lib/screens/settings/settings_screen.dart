@@ -18,7 +18,7 @@ import 'change_email_sheet.dart';
 import 'change_password_sheet.dart';
 import 'privacy_settings_screen.dart';
 
-/// Settings — the P1 account surface, kept clean and minimal: every row here
+/// Settings, the P1 account surface, kept clean and minimal: every row here
 /// is wired to a real Express endpoint. Phone/OTP changes exist server-side
 /// but are intentionally not exposed in this release.
 class SettingsScreen extends ConsumerWidget {
@@ -171,7 +171,7 @@ class SettingsScreen extends ConsumerWidget {
             tileKey: 'settingsBlockedUsers',
             icon: Icons.block_rounded,
             title: 'Blocked Users',
-            subtitle: 'Who you have blocked — unblock any time',
+            subtitle: 'Who you have blocked. Unblock any time',
             onTap: () => _push(context, const BlockedUsersScreen()),
           ),
           const SizedBox(height: AppSpacing.lg),

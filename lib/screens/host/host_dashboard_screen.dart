@@ -20,7 +20,7 @@ import '../create/create_dinner_screen.dart';
 import 'analytics_screen.dart';
 import 'event_manage_screen.dart';
 
-/// Host Studio — premium creator dashboard.
+/// Host Studio, premium creator dashboard.
 ///
 /// Hosts and influencers are the same users who create dinners, so both
 /// spec sections (11 Host Dashboard + 12 Influencer Features) live here:
@@ -41,7 +41,7 @@ class _HostDashboardScreenState extends ConsumerState<HostDashboardScreen>
   late final TabController _tabController;
   String _eventFilter = 'All';
 
-  /// Cosmetic payout-method labels — money is a simulated ledger, so no real
+  /// Cosmetic payout-method labels, money is a simulated ledger, so no real
   /// account details are shown or used.
   static const _bankMethod = 'Bank transfer';
 
@@ -171,7 +171,7 @@ class _HostDashboardScreenState extends ConsumerState<HostDashboardScreen>
     }
   }
 
-  /// Deletes a draft — reuses the host-cancel endpoint (`DELETE /events/:id`).
+  /// Deletes a draft, reuses the host-cancel endpoint (`DELETE /events/:id`).
   Future<void> _deleteDraft(Dinner draft) async {
     final confirmed = await showDialog<bool>(
       context: context,

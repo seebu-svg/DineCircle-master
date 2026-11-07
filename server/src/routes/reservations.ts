@@ -52,7 +52,7 @@ const createSchema = z.object({
 });
 
 /**
- * POST /api/restaurants/:restaurantId/reservations — diner books a table.
+ * POST /api/restaurants/:restaurantId/reservations, diner books a table.
  * Always created `pending`; the venue confirms from the Partner App, and the
  * customer's app reflects the new status on its next read of /users/me/reservations.
  */
@@ -106,7 +106,7 @@ router.post('/restaurants/:restaurantId/reservations', async (req, res) => {
   });
 });
 
-// GET /api/users/me/reservations — the diner's table bookings.
+// GET /api/users/me/reservations, the diner's table bookings.
 router.get('/users/me/reservations', async (req, res) => {
   const page = parsePagination(req.query as Record<string, unknown>, { defaultLimit: 50 });
   const status = optionalString(req.query.status);
@@ -159,7 +159,7 @@ router.get('/users/me/reservations', async (req, res) => {
   );
 });
 
-// POST /api/reservations/:reservationId/cancel — the diner cancels.
+// POST /api/reservations/:reservationId/cancel, the diner cancels.
 router.post('/reservations/:reservationId/cancel', async (req, res) => {
   const cancelled = await cancelOwnReservation(req.params.reservationId, req.userId);
 

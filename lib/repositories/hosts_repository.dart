@@ -9,7 +9,7 @@ import '../models/host_models.dart';
 /// The server authorizes these per host: only the host themselves (or a
 /// partner/super admin) can read another host's numbers, so a 403 here means a
 /// viewer asked for someone else's dashboard. Money is a server-side simulated
-/// ledger — a withdrawal is a recorded row that reduces [Wallet.available].
+/// ledger, a withdrawal is a recorded row that reduces [Wallet.available].
 abstract class HostsRepository {
   Future<HostSummary> summary(String hostId);
   Future<List<HostPayout>> payouts(String hostId);

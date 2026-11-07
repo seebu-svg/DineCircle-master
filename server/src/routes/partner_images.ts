@@ -19,7 +19,7 @@ const router = Router();
  * The endpoint only STORES a photo and hands back a URL; it deliberately does
  * not know whether the result becomes a logo, a gallery tile, a dish photo or
  * a deal banner. Repointing the column is the caller's next request, through
- * the existing PATCH endpoints — which keeps this route free of per-module
+ * the existing PATCH endpoints, which keeps this route free of per-module
  * rules and means "upload" never becomes a second way to edit a venue.
  *
  * Bytes live in `venue_images` (see schema.sql) rather than an object store,
@@ -32,7 +32,7 @@ const uploadSchema = z.object({
     .min(1, 'Choose a photo to upload')
     .max(
       MAX_VENUE_IMAGE_BASE64_CHARS,
-      'That photo is too large — keep it under 512 KB.',
+      'That photo is too large. Keep it under 512 KB.',
     ),
   kind: z.enum(VENUE_IMAGE_KINDS).default('general'),
 });
@@ -75,7 +75,7 @@ router.post('/:restaurantId/images', async (req, res) => {
  *
  * Retires one upload. Scoped by `restaurant_id` as well as id, so a manager of
  * venue A can never delete a photo belonging to venue B by guessing a UUID.
- * The referencing column is the caller's to clear — this only frees the bytes.
+ * The referencing column is the caller's to clear, this only frees the bytes.
  */
 router.delete('/:restaurantId/images/:imageId', async (req, res) => {
   await requireVenueRole(req, req.params.restaurantId, 'manager');

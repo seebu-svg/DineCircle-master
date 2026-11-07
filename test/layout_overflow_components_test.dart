@@ -84,7 +84,7 @@ void main() {
   }
 
   void runWidgetMatrix(String label, Widget Function() build) {
-    group('Widget — $label', () {
+    group('Widget: $label', () {
       for (final width in kAuditWidths) {
         for (final scale in kAuditTextScales) {
           testWidgets('${width.toInt()}px × ${scale}x', (tester) async {
@@ -286,7 +286,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  group('AppShell — five-tab navigation', () {
+  group('AppShell, five-tab navigation', () {
     for (final width in kAuditWidths) {
       for (final scale in kAuditTextScales) {
         testWidgets('${width.toInt()}px × ${scale}x', (tester) async {

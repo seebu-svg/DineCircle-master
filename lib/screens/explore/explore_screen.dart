@@ -97,7 +97,7 @@ const List<OccasionItem> _occasions = [
   ),
 ];
 
-/// Discover screen — premium dining discovery interface.
+/// Discover screen, premium dining discovery interface.
 ///
 /// Four tabs (All / Places / Offers / Experiences) replace the old triple-chip
 /// navigation. Occasion cards, curated experience lists, and dedicated deal
@@ -238,7 +238,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
-                  'Location is off — showing $city venues.',
+                  'Location is off. Showing $city venues.',
                   style: AppTextStyles.bodySmall.copyWith(
                     color: AppColors.warning,
                   ),
@@ -407,7 +407,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     final hostsAsync = ref.watch(discoverHostsProvider);
     final topPad = MediaQuery.of(context).padding.top;
     // Title and tab rows grow with the user's font-size setting, so their
-    // heights must scale too — fixed pixels overflow on devices set above 1.0.
+    // heights must scale too, fixed pixels overflow on devices set above 1.0.
     final textScaler = MediaQuery.textScalerOf(context);
     final headerHeight =
         topPad +
@@ -1618,7 +1618,7 @@ extension _ExploreTabContent on _ExploreScreenState {
 // Private helper widgets
 // ────────────────────────────────────────────────────────────────────────────
 
-/// Venue row for the Places tab — cover, name, cuisine, distance, tags, save.
+/// Venue row for the Places tab, cover, name, cuisine, distance, tags, save.
 class _VenueRow extends StatelessWidget {
   const _VenueRow({
     required this.restaurant,
@@ -1884,7 +1884,7 @@ class _HostChip extends StatelessWidget {
   }
 }
 
-/// Host row for the Hosts tab — avatar, name, handle, stats.
+/// Host row for the Hosts tab, avatar, name, handle, stats.
 class _HostRow extends StatelessWidget {
   const _HostRow({required this.user, this.onTap});
 

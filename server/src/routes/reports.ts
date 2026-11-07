@@ -8,17 +8,17 @@ import { reportRateLimiter } from '../security.js';
 const router = Router();
 
 /**
- * P2-2 Reports — users may flag profiles, events, reviews and chat messages.
+ * P2-2 Reports, users may flag profiles, events, reviews and chat messages.
  *
  * Privacy model: a report is readable ONLY by its reporter (through
  * `/users/me/reports`) and by platform admins (`super_admin`, through the
- * `/reports` queue). Nothing in this file ever exposes a report — let alone
- * the reporter's identity — to the account that was reported.
+ * `/reports` queue). Nothing in this file ever exposes a report, let alone
+ * the reporter's identity, to the account that was reported.
  *
  * The DB is the enforcement layer for abuse: a partial unique index allows
  * exactly one OPEN ('pending' | 'reviewing') report per (reporter, target),
  * so re-submitting the same flag is a 409, not queue pollution. Reports never
- * auto-ban anyone — only the admin status transitions move a case.
+ * auto-ban anyone, only the admin status transitions move a case.
  */
 
 const TARGET_TYPES = ['user', 'event', 'review', 'message'] as const;
@@ -69,7 +69,7 @@ async function resolveTarget(
       if (!row) return null;
       return {
         label: 'User',
-        evidence: `profile @${row.handle} — ${row.name}`,
+        evidence: `profile @${row.handle}: ${row.name}`,
         ownerId: id,
       };
     }
@@ -147,7 +147,7 @@ function serializeReport(r: {
 
 type ReportRow = Parameters<typeof serializeReport>[0];
 
-// POST /api/reports — submit a report. Rate limited (reportRateLimiter) and
+// POST /api/reports, submit a report. Rate limited (reportRateLimiter) and
 // duplicate-guarded (one open report per reporter+target).
 router.post('/reports', reportRateLimiter, async (req, res) => {
   const { targetType, targetId, reason, description } = reportSchema.parse(
@@ -163,7 +163,7 @@ router.post('/reports', reportRateLimiter, async (req, res) => {
       message: 'Message',
     };
     throw notFound(
-      `${noun[targetType]} not found — it may have been removed already`,
+      `${noun[targetType]} not found. It may have been removed already`,
     );
   }
 
@@ -197,7 +197,7 @@ router.post('/reports', reportRateLimiter, async (req, res) => {
   res.status(201).json({ report: serializeReport(created) });
 });
 
-// GET /api/users/me/reports — the caller's own submissions with live status.
+// GET /api/users/me/reports, the caller's own submissions with live status.
 // Ownership is enforced by `reporter_id = req.userId`; there is no way to read
 // anyone else's reports (the admin queue below is super_admin-only).
 router.get('/users/me/reports', async (req, res) => {
@@ -214,10 +214,10 @@ router.get('/users/me/reports', async (req, res) => {
 
 // ── Admin moderation (super_admin only) ──────────────────────────────────────
 // These are the ONLY endpoints where a reporter identity is visible, and they
-// require the platform-admin role. Reports never ban anyone automatically —
+// require the platform-admin role. Reports never ban anyone automatically,
 // a human moves the status; enforcement lives in a later release.
 
-// GET /api/reports?status=pending — the moderator queue (reporter included).
+// GET /api/reports?status=pending, the moderator queue (reporter included).
 router.get(
   '/reports',
   requireRole('super_admin'),
@@ -260,7 +260,7 @@ router.get(
 
 const statusSchema = z.object({ status: z.enum(REPORT_STATUSES) });
 
-// PATCH /api/reports/:id — a moderator advances the case. No user content is
+// PATCH /api/reports/:id, a moderator advances the case. No user content is
 // deleted or hidden here; this phase only tracks review state.
 router.patch(
   '/reports/:id',

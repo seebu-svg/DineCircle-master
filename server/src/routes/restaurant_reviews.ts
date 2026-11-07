@@ -7,7 +7,7 @@ import { parsePagination } from '../api.js';
 const router = Router();
 
 /**
- * Restaurant reviews — public read, authenticated write.
+ * Restaurant reviews, public read, authenticated write.
  *
  * Customers can review restaurants (not just dinner events). Requires a
  * completed table reservation to post. Partners can reply to reviews.
@@ -42,7 +42,7 @@ function serializeReview(r: ReviewRow) {
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// GET /api/restaurants/:id/reviews — public, paginated.
+// GET /api/restaurants/:id/reviews, public, paginated.
 router.get('/:restaurantId/reviews', async (req, res) => {
   const { restaurantId } = req.params;
   if (!UUID_PATTERN.test(restaurantId)) {
@@ -86,7 +86,7 @@ router.get('/:restaurantId/reviews', async (req, res) => {
   });
 });
 
-// POST /api/restaurants/:id/reviews — authenticated, requires completed reservation.
+// POST /api/restaurants/:id/reviews, authenticated, requires completed reservation.
 const postReviewSchema = z.object({
   rating: z.number().min(0).max(5),
   text: z.string().min(1).max(2000),

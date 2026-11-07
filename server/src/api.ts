@@ -99,7 +99,7 @@ export function flag(value: unknown): boolean {
 
 /**
  * The acting user id, asserted present. Every partner route is mounted behind
- * `requireAuth`, so a missing id means a wiring mistake — fail closed with 401
+ * `requireAuth`, so a missing id means a wiring mistake, fail closed with 401
  * rather than issuing a query with `undefined`.
  */
 export function actorId(req: Request): string {

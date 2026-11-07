@@ -77,7 +77,7 @@ class SavedLocationsNotifier extends StateNotifier<List<SavedLocation>> {
       state = remote;
       await _writeLocal(remote);
     } catch (_) {
-      // Network unavailable — keep local cache.
+      // Network unavailable, keep local cache.
     }
   }
 
@@ -110,7 +110,7 @@ class SavedLocationsNotifier extends StateNotifier<List<SavedLocation>> {
     await _writeLocal(updated);
   }
 
-  /// Look up a specific kind (Home, Work) — null when not set.
+  /// Look up a specific kind (Home, Work), null when not set.
   SavedLocation? ofKind(SavedLocationKind kind) {
     for (final loc in state) {
       if (loc.kind == kind) return loc;
@@ -138,7 +138,7 @@ class SavedLocationsNotifier extends StateNotifier<List<SavedLocation>> {
       final encoded = json.encode(locations.map((l) => l.toJson()).toList());
       await _storage.write(key: _savedLocationsKey, value: encoded);
     } catch (_) {
-      // Storage unavailable — state is already updated in memory.
+      // Storage unavailable, state is already updated in memory.
     }
   }
 }

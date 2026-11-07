@@ -13,10 +13,10 @@ import 'users_provider.dart';
 /// The app works entirely off these providers once a GPS fix exists: the map
 /// centers on the user, feeds switch to the distance-ordered `/nearby`
 /// endpoint, and the city badge follows the user as they move. Every provider
-/// degrades gracefully — permission denied or GPS off simply falls back to the
+/// degrades gracefully, permission denied or GPS off simply falls back to the
 /// profile city that was used before this layer existed.
 
-/// Karachi city centre — the neutral camera target when neither a GPS fix nor
+/// Karachi city centre, the neutral camera target when neither a GPS fix nor
 /// venue coordinates exist yet.
 const kKarachiCenterLat = 24.81;
 const kKarachiCenterLng = 67.03;
@@ -87,13 +87,13 @@ final userCityProvider = Provider<String>((ref) {
 });
 
 /// The user's selected area/neighbourhood within their city. Empty string
-/// means "all areas" — feeds that accept an area filter treat it as no filter.
+/// means "all areas", feeds that accept an area filter treat it as no filter.
 final userAreaProvider = Provider<String>((ref) {
   return ref.watch(lastSelectedAreaProvider);
 });
 
 /// Reverse-geocodes the current fix. Reloaded whenever the position changes;
-/// never throws — a failed lookup just means "keep the profile city".
+/// never throws, a failed lookup just means "keep the profile city".
 final liveCityProvider = FutureProvider.autoDispose<String?>((ref) async {
   final position = ref.watch(livePositionProvider).valueOrNull;
   if (position == null) return null;
@@ -112,7 +112,7 @@ final liveCityProvider = FutureProvider.autoDispose<String?>((ref) async {
   return null;
 });
 
-/// Haversine distance in km — used for "1.2 km away" labels when the feed is
+/// Haversine distance in km, used for "1.2 km away" labels when the feed is
 /// city-scoped (no server-computed distance available).
 double distanceKmBetween({
   required double fromLat,

@@ -17,8 +17,8 @@ enum CheckInStatus { notCheckedIn, checkedIn, expired }
 
 /// Normalised payment lifecycle for a booking.
 ///
-/// Derived from the server's [Booking.paymentStatus] first — that is the
-/// authoritative gateway signal — and only falls back to the booking
+/// Derived from the server's [Booking.paymentStatus] first, that is the
+/// authoritative gateway signal, and only falls back to the booking
 /// [Booking.status] for legacy rows written before deferred payments existed.
 /// Every money total in the app is computed from this one mapping so the
 /// Payments surfaces can never disagree with each other.
@@ -28,8 +28,8 @@ enum BookingPaymentState { paid, pending, failed, refunded, notCharged }
 class Booking {
   /// Fallback method label for a booking created without an explicit method.
   ///
-  /// DineCircle collects no payment in-app — the guest pays the venue directly
-  /// — so the only honest default names that arrangement rather than a card
+  /// DineCircle collects no payment in-app, the guest pays the venue directly
+  ///, so the only honest default names that arrangement rather than a card
   /// brand no one entered. A real method from the server still wins.
   static const String kDefaultPaymentMethod = 'Pay at venue';
 

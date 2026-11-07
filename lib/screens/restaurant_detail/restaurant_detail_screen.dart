@@ -34,7 +34,7 @@ import '../tables/reserve_table_sheet.dart';
 import 'profile_hero.dart';
 import 'profile_info_sections.dart';
 
-/// Restaurant profile — the single storefront screen shared by every entry
+/// Restaurant profile, the single storefront screen shared by every entry
 /// point: nearby/list taps, search results and QR scans.
 ///
 /// Either a [restaurant] seed (instant paint from a list row) or a
@@ -247,7 +247,7 @@ class _RestaurantDetailScreenState extends ConsumerState<RestaurantDetailScreen>
     });
   }
 
-  /// Centres the active pill inside the nav rail. Only the rail is scrolled —
+  /// Centres the active pill inside the nav rail. Only the rail is scrolled,
   /// `Scrollable.ensureVisible` would also nudge the page itself.
   void _ensureActivePillVisible() {
     if (_activeIndex < 0 || _activeIndex >= _visibleIds.length) return;

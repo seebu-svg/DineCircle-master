@@ -151,7 +151,7 @@ class BookingsController {
   /// After PaymentSheet reports success, the server's webhook is the only
   /// authority that may mark a booking `paid`. Poll `GET /bookings` with a
   /// capped backoff for up to 20s; returns true once settled, false when the
-  /// hold failed/was swept — and also false on timeout, which is the honest
+  /// hold failed/was swept, and also false on timeout, which is the honest
   /// "we'll notify you" state (the webhook still settles it server-side).
   Future<bool> waitForPaymentSettled(String bookingId, UserProfile user) async {
     final deadline = DateTime.now().add(const Duration(seconds: 20));

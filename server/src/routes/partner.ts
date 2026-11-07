@@ -16,7 +16,7 @@ const router = Router();
  * special menus, analytics and notifications.
  *
  * The gate is `requirePartner` rather than a bare role check so that a venue's
- * staff/manager/owner — and a host who registered a venue — all reach it, and
+ * staff/manager/owner,and a host who registered a venue,all reach it, and
  * every query is scoped through `scopedRestaurantIds` instead of `owner_id`,
  * which used to lock staff accounts out of their own venue.
  */
@@ -41,7 +41,7 @@ const createPartnerEventSchema = z.object({
   collaboratorIds: z.array(z.string().uuid()).default([]),
 });
 
-// POST /api/partner/events — create a new event for a partner restaurant.
+// POST /api/partner/events, create a new event for a partner restaurant.
 router.post('/events', async (req, res) => {
   const input = createPartnerEventSchema.parse(req.body);
 
@@ -60,7 +60,7 @@ router.post('/events', async (req, res) => {
     // `host_id` is NOT NULL and was never supplied here, so every venue-created
     // event failed with a 500: the draft→publish surface was dead code. The
     // acting operator is recorded as the host, and the event is published
-    // straight away — a venue approving its own listing is meaningless (the
+    // straight away, a venue approving its own listing is meaningless (the
     // `requires_host_approval` policy gates *host* submissions, not these).
     `INSERT INTO dinner_events (
        host_id, restaurant_id, title, tagline, description, start_at, end_at,
@@ -94,7 +94,7 @@ router.post('/events', async (req, res) => {
   });
 });
 
-// PUT /api/partner/events/:id — update an event (partner who owns the restaurant).
+// PUT /api/partner/events/:id, update an event (partner who owns the restaurant).
 router.put('/events/:id', async (req, res) => {
   const updateSchema = createPartnerEventSchema.extend({ status: z.enum(["draft","requested","confirmed","live","completed","declined","cancelled"]).optional() }).partial();
   const input = updateSchema.parse(req.body);
@@ -145,7 +145,7 @@ router.put('/events/:id', async (req, res) => {
   res.json({ data: { event: updated } });
 });
 
-// GET /api/partner/events — all events for the partner's restaurants.
+// GET /api/partner/events, all events for the partner's restaurants.
 router.get('/events', async (req, res) => {
   const { status, limit = '50' } = req.query;
   const scope = await scopedRestaurantIds(req.userId, req.userRole);
@@ -193,7 +193,7 @@ router.get('/events', async (req, res) => {
 
 // ── Bookings for partner events ──────────────────────────────────────────────
 
-// GET /api/partner/bookings — all bookings for the partner's events.
+// GET /api/partner/bookings, all bookings for the partner's events.
 router.get('/bookings', async (req, res) => {
   const { eventId, status, limit = '100' } = req.query;
   const scope = await scopedRestaurantIds(req.userId, req.userRole);
@@ -250,7 +250,7 @@ router.get('/bookings', async (req, res) => {
   res.json({ data: { bookings }, meta: { total: bookings.length } });
 });
 
-// POST /api/partner/bookings/:id/checkin — check in a guest.
+// POST /api/partner/bookings/:id/checkin, check in a guest.
 router.post('/bookings/:id/checkin', async (req, res) => {
   const bookingId = req.params.id;
 
@@ -310,7 +310,7 @@ const createMenuSchema = z.object({
   coverImage: z.string().default(''),
 });
 
-// POST /api/partner/menus — create a special menu.
+// POST /api/partner/menus, create a special menu.
 router.post('/menus', async (req, res) => {
   const input = createMenuSchema.parse(req.body);
 
@@ -341,7 +341,7 @@ router.post('/menus', async (req, res) => {
   });
 });
 
-// GET /api/partner/menus — special menus for the partner's restaurants.
+// GET /api/partner/menus, special menus for the partner's restaurants.
 router.get('/menus', async (req, res) => {
   const scope = await scopedRestaurantIds(req.userId, req.userRole);
   const params: unknown[] = [];
@@ -380,7 +380,7 @@ router.get('/menus', async (req, res) => {
 
 // ── Analytics ────────────────────────────────────────────────────────────────
 
-// GET /api/partner/analytics — business insights for the partner dashboard.
+// GET /api/partner/analytics, business insights for the partner dashboard.
 router.get('/analytics', async (req, res) => {
   const scope = await scopedRestaurantIds(req.userId, req.userRole);
 
@@ -473,7 +473,7 @@ router.get('/analytics', async (req, res) => {
 
 // ── Notifications ────────────────────────────────────────────────────────────
 
-// GET /api/partner/notifications — notifications for the partner's restaurants.
+// GET /api/partner/notifications, notifications for the partner's restaurants.
 router.get('/notifications', async (req, res) => {
   const { unreadOnly, limit = '50' } = req.query;
   const scope = await scopedRestaurantIds(req.userId, req.userRole);
@@ -514,7 +514,7 @@ router.get('/notifications', async (req, res) => {
     }));
 
   // The unread badge lives on the same call so the app never has to total the
-  // page it was given — `unreadOnly` would otherwise be the only way to know.
+  // page it was given: `unreadOnly` would otherwise be the only way to know.
   const unreadParams: unknown[] = [];
   const [unread] = await query<{ count: number }>(
     `SELECT count(*)::int AS count FROM notifications n
@@ -529,7 +529,7 @@ router.get('/notifications', async (req, res) => {
   });
 });
 
-// POST /api/partner/notifications/:notificationId/read — clear one badge.
+// POST /api/partner/notifications/:notificationId/read, clear one badge.
 //
 // Without this the dashboard's `notifications.unread` could only ever grow:
 // the Partner App had no way to acknowledge what it had shown.
@@ -550,7 +550,7 @@ router.post('/notifications/:notificationId/read', async (req, res) => {
   res.json({ data: { notification: { id: notification.id, read: true } } });
 });
 
-// POST /api/partner/notifications/read-all — acknowledge the whole inbox.
+// POST /api/partner/notifications/read-all, acknowledge the whole inbox.
 router.post('/notifications/read-all', async (req, res) => {
   const scope = await scopedRestaurantIds(req.userId, req.userRole);
   const params: unknown[] = [];

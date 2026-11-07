@@ -41,7 +41,7 @@ class BookingDto {
   /// 'authorized', 'refunded' or 'failed'.
   final String paymentStatus;
 
-  /// PaymentSheet client secret — only present on the deferred checkout
+  /// PaymentSheet client secret, only present on the deferred checkout
   /// response for a booking still awaiting the guest's card confirmation.
   final String? clientSecret;
   final String status;

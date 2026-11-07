@@ -12,7 +12,7 @@ import 'qr_code_view.dart';
 /// The lightweight check-in pass: a decorative QR plus the authoritative
 /// booking reference, and a real "Check me in" action.
 ///
-/// Replaces the old full-screen Digital Pass for the first launch — the QR is
+/// Replaces the old full-screen Digital Pass for the first launch, the QR is
 /// enough to show at the door, and check-in hits `POST /bookings/:id/checkin`.
 Future<void> showBookingCheckInSheet(BuildContext context, Booking booking) {
   return showModalBottomSheet<void>(
@@ -47,7 +47,7 @@ class _CheckInSheetState extends ConsumerState<_CheckInSheet> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Checked in — enjoy the event!'),
+          content: Text('Checked in. Enjoy the event!'),
           backgroundColor: AppColors.success,
         ),
       );

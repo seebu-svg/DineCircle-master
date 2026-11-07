@@ -88,7 +88,7 @@ class GuestEntry {
   }
 }
 
-/// A collaboration invitation — bidirectional (host ↔ restaurant).
+/// A collaboration invitation, bidirectional (host ↔ restaurant).
 class CollaborationInvite {
   final String id;
   final Restaurant restaurant;
@@ -287,7 +287,7 @@ class Withdrawal {
 }
 
 /// The host's wallet: a server-side simulated ledger. [available] is lifetime
-/// net earnings minus every withdrawal recorded to date — no external gateway.
+/// net earnings minus every withdrawal recorded to date, no external gateway.
 class Wallet {
   final double available;
   final double lifetimeNet;
@@ -353,7 +353,7 @@ class HostTrendPoint {
 }
 
 /// Unified analytics payload from `GET /hosts/:id/analytics?period=`.
-/// All values are server-computed — no hardcoded factors or mock data.
+/// All values are server-computed, no hardcoded factors or mock data.
 class HostAnalytics {
   final int totalEventsHosted;
   final int totalBookings;

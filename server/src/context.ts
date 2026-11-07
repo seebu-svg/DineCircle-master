@@ -18,7 +18,7 @@ export type UserRole =
 /**
  * The customer-facing account mode, orthogonal to [UserRole].
  *
- * One account has two modes: 'personal' (private diner — the default) and
+ * One account has two modes: 'personal' (private diner, the default) and
  * 'professional' (public host profile + Host Studio). `role` still decides
  * admin/partner privileges and the influencer badge; `account_type` alone
  * decides whether the customer Host Studio is open.
@@ -158,12 +158,12 @@ export async function loadUser(id: string) {
     rating: string; review_count: number; avatar_url: string | null;
     badges: string[]; tastes: string[]; accent_hex: string | null;
     joined_year: number; role: string; instagram: string | null;
-    // Account & Settings (P1) — the Settings screens read these straight off
+    // Account & Settings (P1), the Settings screens read these straight off
     // the session bootstrap, so they must be part of the `/auth/me` shape.
     home_area: string; dietary: string[]; allergies: string[];
     show_follow_list: boolean; show_activity: boolean;
     dm_from_followers_only: boolean; allow_tagging: boolean;
-    // Customer account mode — drives the Host Studio gate on both ends.
+    // Customer account mode, drives the Host Studio gate on both ends.
     account_type: string; professional_since: Date | null;
   }>('SELECT * FROM users WHERE id = $1', [id]);
   if (!user) throw notFound('User');

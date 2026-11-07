@@ -136,7 +136,7 @@ abstract class UsersRepository {
   Future<HandleAvailability> handleAvailability(String handle);
 
   /// Partial settings write to `PATCH /users/me` carrying only the keys the
-  /// caller owns — home area, dietary/allergy lists, privacy toggles. The
+  /// caller owns, home area, dietary/allergy lists, privacy toggles. The
   /// endpoint validates each field and leaves every other column untouched,
   /// so a Settings screen can never blank an unrelated field.
   Future<UserProfile> patchSettings(Map<String, dynamic> patch);
@@ -151,7 +151,7 @@ abstract class UsersRepository {
     void Function(double progress)? onProgress,
   });
 
-  /// Removes the profile photo (`DELETE /users/me/avatar`) — back to initials.
+  /// Removes the profile photo (`DELETE /users/me/avatar`), back to initials.
   Future<UserProfile> removeAvatar();
 
   /// Current account mode + the upcoming experiences that block a downgrade

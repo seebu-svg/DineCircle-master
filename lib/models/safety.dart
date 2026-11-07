@@ -1,7 +1,7 @@
 /// P2 Safety & Trust models: blocks, reports and feedback tickets.
 ///
 /// Everything here is parsed straight from the Express payloads (`json.dart`
-/// coercion), so a partially-unknown status never crashes a screen — unknown
+/// coercion), so a partially-unknown status never crashes a screen, unknown
 /// wire values fall back to the safest open state rather than throwing.
 library;
 

@@ -18,7 +18,7 @@ const TOKEN_TTL_DAYS = 30;
 const isProduction = process.env.NODE_ENV === 'production';
 
 // OTP is enabled in development and test unconditionally. In production it
-// is disabled by default because no SMS provider is wired up — an operator
+// is disabled by default because no SMS provider is wired up, an operator
 // must set OTP_ENABLED=1 after connecting a provider (Twilio, etc.). When
 // disabled, /otp/request returns 503 so the client can show an honest error
 // instead of silently swallowing the code.
@@ -29,7 +29,7 @@ const phoneSchema = z
   .trim()
   .regex(/^\+?[0-9][0-9\s-]{7,19}$/, 'Enter a valid phone number');
 
-// POST /api/auth/signin — simple MVP sign-in (non-production only).
+// POST /api/auth/signin, simple MVP sign-in (non-production only).
 router.post('/signin', async (req, res) => {
   if (isProduction) {
     throw new ApiError(
@@ -106,7 +106,7 @@ router.post('/otp/request', async (req, res) => {
   const normalized = phone.replace(/[\s-]/g, '');
   const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60_000);
   const code = generateOtp();
-  // Store only the digest — the plaintext code is returned to dev clients
+  // Store only the digest, the plaintext code is returned to dev clients
   // for convenience but never written to the database.
   const codeHash = hashToken(code);
 
@@ -267,7 +267,7 @@ async function uniqueHandle(email: string): Promise<string> {
 
 const ACCENT_COLORS = ['#4A5A7A', '#7A4A5A', '#4A7A5A', '#7A6A4A', '#5A4A7A'];
 
-// POST /api/auth/signup — create an email/password account and sign in.
+// POST /api/auth/signup, create an email/password account and sign in.
 router.post('/signup', async (req, res) => {
   const { name, email, password, city } = signupSchema.parse(req.body ?? {});
 
@@ -311,7 +311,7 @@ router.post('/signup', async (req, res) => {
     .json({ token, expiresAt, user: await loadUser(created.id) });
 });
 
-// POST /api/auth/login — email + password.
+// POST /api/auth/login, email + password.
 router.post('/login', async (req, res) => {
   const { email, password } = loginSchema.parse(req.body ?? {});
 
@@ -333,12 +333,12 @@ router.post('/login', async (req, res) => {
   res.json({ token, expiresAt, user: await loadUser(row.id) });
 });
 
-// GET /api/auth/me — the session's user (used on app start to restore state).
+// GET /api/auth/me, the session's user (used on app start to restore state).
 router.get('/me', requireAuth, async (req, res) => {
   res.json({ user: await loadUser(req.userId) });
 });
 
-// POST /api/auth/signout — deletes the token row.
+// POST /api/auth/signout, deletes the token row.
 router.post('/signout', requireAuth, async (req, res) => {
   const header = req.header('Authorization') ?? '';
   const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
@@ -369,7 +369,7 @@ async function revokeOtherSessions(userId: string, currentToken: string): Promis
 
 /**
  * Load the acting user's credential row for a password-confirmed change.
- * Soft-deleted accounts are treated as gone (404) — their PII is already
+ * Soft-deleted accounts are treated as gone (404), their PII is already
  * erased and their tokens revoked, so no credential mutation may run on them.
  */
 async function loadCredentialUser(userId: string) {
@@ -390,7 +390,7 @@ async function loadCredentialUser(userId: string) {
 /**
  * Password confirmation for email/phone/account changes. scrypt compare is
  * timing-safe; failures get a generic 401 so the route is not a password
- * oracle. Accounts without a password (legacy phone-only) cannot confirm —
+ * oracle. Accounts without a password (legacy phone-only) cannot confirm,
  * 409 states that instead of silently allowing an unverified change.
  */
 async function requirePasswordMatch(
@@ -400,7 +400,7 @@ async function requirePasswordMatch(
   if (!user.password_hash) {
     throw new ApiError(
       409,
-      'This account has no password yet — sign up with email first.',
+      'This account has no password yet. Sign up with email first.',
     );
   }
   if (!(await verifyPassword(password, user.password_hash))) {
@@ -416,7 +416,7 @@ const confirmSchema = z.object({ password: z.string().min(1).max(200) });
 const changeEmailSchema = confirmSchema.extend({ email: emailSchema });
 const changePhoneSchema = confirmSchema.extend({ phone: phoneSchema });
 
-// POST /api/auth/change-password — verify current, scrypt-rehash the new one,
+// POST /api/auth/change-password, verify current, scrypt-rehash the new one,
 // revoke other sessions. The current session survives so the app keeps
 // working; other devices fall back to the login screen on their next call.
 router.post('/change-password', requireAuth, async (req, res) => {
@@ -435,10 +435,10 @@ router.post('/change-password', requireAuth, async (req, res) => {
   res.json({ changed: true, user: await loadUser(user.id) });
 });
 
-// POST /api/auth/change-email — START of a verified email change (P1-2).
+// POST /api/auth/change-email: START of a verified email change (P1-2).
 // The address is never applied here: the password confirmation only mints a
 // 6-digit challenge code (stored hashed, 15-minute TTL, one live challenge
-// per user — a re-request replaces the old code). The new address becomes
+// per user, a re-request replaces the old code). The new address becomes
 // the login handle once /change-email/confirm validates the code. UNIQUE
 // collisions surface as 409 BEFORE the challenge so the driver never raises
 // a raw constraint error.
@@ -486,7 +486,7 @@ router.post('/change-email', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/auth/change-email/confirm — completes the verified change. Wrong
+// POST /api/auth/change-email/confirm, completes the verified change. Wrong
 // or expired codes 401 (and the challenge survives for a corrected retry);
 // the authRateLimiter caps guesses per minute. On success the challenge is
 // consumed, the address applied, and every OTHER session is revoked so only
@@ -543,11 +543,11 @@ router.post('/change-email/confirm', requireAuth, async (req, res) => {
   res.json({ email: challenge.new_email, user: await loadUser(user.id) });
 });
 
-// POST /api/auth/change-phone — same confirmation contract as change-email.
+// POST /api/auth/change-phone, same confirmation contract as change-email.
 // Numbers are normalised exactly like /signin does (strip spaces/dashes), so
 // the stored value always matches what a phone sign-in would look up.
 // No SMS delivery exists in this prototype, so the new number is recorded
-// unverified — documented rather than hidden.
+// unverified, documented rather than hidden.
 router.post('/change-phone', requireAuth, async (req, res) => {
   const { phone, password } = changePhoneSchema.parse(req.body ?? {});
   const normalized = phone.replace(/[\s-]/g, '');
@@ -569,10 +569,10 @@ router.post('/change-phone', requireAuth, async (req, res) => {
   res.json({ phone: normalized, user: await loadUser(user.id) });
 });
 
-// POST /api/auth/logout-all — revoke EVERY session for the account, including
+// POST /api/auth/logout-all, revoke EVERY session for the account, including
 // the caller's own token. The client clears its local token on success; any
 // other device's next authenticated call gets a 401 and lands on the login
-// screen — immediate here (row delete), not after a cache TTL.
+// screen, immediate here (row delete), not after a cache TTL.
 router.post('/logout-all', requireAuth, async (req, res) => {
   await query('DELETE FROM auth_tokens WHERE user_id = $1::UUID', [req.userId]);
   res.json({ signedOutEverywhere: true });

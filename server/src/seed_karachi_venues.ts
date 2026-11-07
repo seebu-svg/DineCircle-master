@@ -1,5 +1,5 @@
 /**
- * Karachi demo venue seed — recognisable Karachi restaurants and cafés, built
+ * Karachi demo venue seed, recognisable Karachi restaurants and cafés, built
  * as COMPLETE DineCircle storefronts for MVP testing.
  *
  * ⚠️  DESTRUCTIVE: running this DELETES every existing venue (and, by FK
@@ -18,7 +18,7 @@
  * address/area/coordinates, contact, per-weekday opening hours (Asia/Karachi
  * service windows), amenities, a printed kitchen menu in PKR with photos and
  * dietary tags, two demo deals with validity, terms and redemption steps, a
- * bookable table floor, and — where the venue has one — a curated demo
+ * bookable table floor, and,where the venue has one,a curated demo
  * experience led by one of the [HOSTS] accounts.
  *
  * Usage: npm run db:seed:karachi
@@ -94,12 +94,12 @@ type EventSeed = {
   durationMinutes: number;
   seats: number;
   booked: number;
-  /** Estimated restaurant dining cost per person — paid to the venue, not a
+  /** Estimated restaurant dining cost per person, paid to the venue, not a
    *  DineCircle fee. The RSVP itself is free. */
   pricePkr: number;
   type: 'dinner' | 'tasting' | 'supperClub' | 'brunch' | 'workshop' | 'festival';
   menuStyle: 'setMenu' | 'tastingMenu' | 'familyStyle' | 'sharing' | 'buffet';
-  /** Key into [HOSTS] — the demo host account that leads the experience. */
+  /** Key into [HOSTS], the demo host account that leads the experience. */
   hostKey: HostKey;
   included: string[];
   tags: string[];
@@ -150,7 +150,7 @@ const DEAL_STATUS = process.env.DEAL_STATUS === 'draft' ? 'draft' : 'active';
 
 /** Guest-facing copy stored in `restaurant_deals.description`. */
 function dealDescription(d: Deal): string {
-  return `${DEMO_DEAL_LABEL} — ${d.description}`;
+  return `${DEMO_DEAL_LABEL}: ${d.description}`;
 }
 
 /** Conditions plus redemption steps, stored in `restaurant_deals.terms`. */
@@ -193,7 +193,7 @@ const A = {
 };
 
 const VENUES: Venue[] = [
-  // ── 1. Kolachi Restaurant — Do Darya ────────────────────────────────────────
+  // ── 1. Kolachi Restaurant: Do Darya ────────────────────────────────────────
   {
     key: 'kolachi',
     name: 'Kolachi Restaurant',
@@ -283,7 +283,7 @@ const VENUES: Venue[] = [
     ],
   },
 
-  // ── 2. Kababjees — Do Darya ─────────────────────────────────────────────────
+  // ── 2. Kababjees: Do Darya ─────────────────────────────────────────────────
   {
     key: 'kababjees',
     name: 'Kababjees',
@@ -350,7 +350,7 @@ const VENUES: Venue[] = [
     events: [],
   },
 
-  // ── 3. Bar B Q Tonight — Clifton ────────────────────────────────────────────
+  // ── 3. Bar B Q Tonight: Clifton ────────────────────────────────────────────
   {
     key: 'bbq-tonight',
     name: 'Bar B Q Tonight',
@@ -417,7 +417,7 @@ const VENUES: Venue[] = [
     events: [],
   },
 
-  // ── 4. Cafe Aylanto — Clifton ───────────────────────────────────────────────
+  // ── 4. Cafe Aylanto: Clifton ───────────────────────────────────────────────
   {
     key: 'cafe-aylanto',
     name: 'Cafe Aylanto',
@@ -506,7 +506,7 @@ const VENUES: Venue[] = [
     ],
   },
 
-  // ── 5. Okra — DHA Phase 8 ───────────────────────────────────────────────────
+  // ── 5. Okra: DHA Phase 8 ───────────────────────────────────────────────────
   {
     key: 'okra',
     name: 'Okra',
@@ -581,7 +581,7 @@ const VENUES: Venue[] = [
     events: [],
   },
 
-  // ── 6. Xander's — Clifton ───────────────────────────────────────────────────
+  // ── 6. Xander's: Clifton ───────────────────────────────────────────────────
   {
     key: 'xanders',
     name: "Xander's",
@@ -664,7 +664,7 @@ const VENUES: Venue[] = [
     ],
   },
 
-  // ── 7. Espresso Shahbaz DHA — DHA Phase 6 ───────────────────────────────────
+  // ── 7. Espresso Shahbaz DHA: DHA Phase 6 ───────────────────────────────────
   {
     key: 'espresso-shahbaz',
     name: 'Espresso Shahbaz DHA',
@@ -747,7 +747,7 @@ const VENUES: Venue[] = [
     ],
   },
 
-  // ── 8. Cafe Flo — Clifton ───────────────────────────────────────────────────
+  // ── 8. Cafe Flo: Clifton ───────────────────────────────────────────────────
   {
     key: 'cafe-flo',
     name: 'Cafe Flo',
@@ -814,7 +814,7 @@ const VENUES: Venue[] = [
     events: [],
   },
 
-  // ── 9. Butlers Chocolate Café — Zamzama ─────────────────────────────────────
+  // ── 9. Butlers Chocolate Café: Zamzama ─────────────────────────────────────
   {
     key: 'butlers',
     name: 'Butlers Chocolate Café',
@@ -881,7 +881,7 @@ const VENUES: Venue[] = [
     events: [],
   },
 
-  // ── 10. Esquires Coffee — Zamzama ───────────────────────────────────────────
+  // ── 10. Esquires Coffee: Zamzama ───────────────────────────────────────────
   {
     key: 'esquires',
     name: 'Esquires Coffee',
@@ -949,7 +949,7 @@ const VENUES: Venue[] = [
     events: [],
   },
 
-  // ── 11. Café Zouk — Zamzama ─────────────────────────────────────────────────
+  // ── 11. Café Zouk: Zamzama ─────────────────────────────────────────────────
   // Added so the curated "Pizza & Friends Night" experience has the venue the
   // demo script names. Zamzama café profile: pizza, pasta, courtyard seating.
   {
@@ -1134,7 +1134,7 @@ async function main(): Promise<void> {
     const restaurantId = rows[0]!.id;
     venueCount += 1;
 
-    // Primary branch with Asia/Karachi service windows — the availability
+    // Primary branch with Asia/Karachi service windows, the availability
     // engine reads the branch hours first.
     await query(
       `INSERT INTO restaurant_branches
@@ -1143,7 +1143,7 @@ async function main(): Promise<void> {
        VALUES ($1::uuid, $2, $3, $4, 'Karachi', $5, $6, $7, true, true, $8::jsonb, 'Asia/Karachi')`,
       [
         restaurantId,
-        `${v.name} — ${v.area}`,
+        `${v.name}: ${v.area}`,
         v.address,
         v.area,
         `+9221000${String(venueCount).padStart(3, '0')}`,
@@ -1183,7 +1183,7 @@ async function main(): Promise<void> {
       }
     }
 
-    // Deals — two per venue, each carrying its own image, validity window,
+    // Deals, two per venue, each carrying its own image, validity window,
     // terms and redemption instructions.
     for (const deal of v.deals) {
       await query(

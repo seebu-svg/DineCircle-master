@@ -12,7 +12,7 @@ const router = Router();
 const venueRouter = Router();
 
 /**
- * Public deals surface — intentionally unauthenticated.
+ * Public deals surface, intentionally unauthenticated.
  *
  * Diners browse active deals from partner restaurants. The payload is the same
  * data the partner dashboard edits (active deals, not expired), minus any
@@ -62,7 +62,7 @@ export function serializeDeal(d: DealRow) {
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// GET /api/deals?city=&kind=&q= — unauthenticated diner-facing deals feed.
+// GET /api/deals?city=&kind=&q=, unauthenticated diner-facing deals feed.
 // `q` searches the whole active set server-side, so the Deals tab can stop
 // filtering the first page client-side (which silently hid later pages).
 router.get('/', async (req, res) => {
@@ -132,7 +132,7 @@ router.get('/', async (req, res) => {
   });
 });
 
-// GET /api/restaurants/:id/deals — unauthenticated deals for one venue.
+// GET /api/restaurants/:id/deals, unauthenticated deals for one venue.
 venueRouter.get('/:restaurantId/deals', async (req, res) => {
   const { restaurantId } = req.params;
   if (!UUID_PATTERN.test(restaurantId)) {

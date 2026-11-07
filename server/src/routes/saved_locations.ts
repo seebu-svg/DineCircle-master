@@ -43,7 +43,7 @@ const saveSchema = z.object({
 });
 
 /**
- * GET /api/users/me/saved-locations — all saved places for the auth'd user.
+ * GET /api/users/me/saved-locations, all saved places for the auth'd user.
  */
 router.get('/', async (req, res) => {
   const rows = await query<LocationRow>(
@@ -54,7 +54,7 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * POST /api/users/me/saved-locations — create or replace a saved location.
+ * POST /api/users/me/saved-locations, create or replace a saved location.
  *
  * For 'home' and 'work' kinds only one row is allowed per user; a second POST
  * with the same kind replaces the previous entry (upsert behaviour).
@@ -90,7 +90,7 @@ router.post('/', async (req, res) => {
 });
 
 /**
- * DELETE /api/users/me/saved-locations/:id — remove a saved location.
+ * DELETE /api/users/me/saved-locations/:id, remove a saved location.
  */
 router.delete('/:id', async (req, res) => {
   const result = await query<{ id: string }>(

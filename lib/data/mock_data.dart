@@ -13,7 +13,7 @@ class MockData {
   MockData._();
 
   // Single-source masked fixture strings (reused across booking / payment / host UIs).
-  /// Demo-only card label. Real bookings never use this — the gateway's
+  /// Demo-only card label. Real bookings never use this, the gateway's
   /// webhook writes the true brand/last4 once a charge settles.
   static const String cardMasked = 'Visa •••• 4242';
   static const String cardLast4 = '4242';
@@ -1210,7 +1210,7 @@ class MockData {
     Dinner(
       id: 'mine_4',
       title: 'Autumn Harvest Dinner',
-      description: 'A family-style harvest celebration at Le Petit Bistro — roasted vegetables, slow-braised mains and a cider toast.',
+      description: 'A family-style harvest celebration at Le Petit Bistro: roasted vegetables, slow-braised mains and a cider toast.',
       restaurant: restaurants[4],
       host: currentUser,
       dateTime: DateTime.now().subtract(const Duration(days: 12, hours: 5)),
@@ -1371,7 +1371,7 @@ class MockData {
             seats: 2,
             status: GuestRequestStatus.pending,
             requestedAt: now.subtract(const Duration(hours: 5)),
-            message: 'Celebrating our anniversary — would love to join!',
+            message: 'Celebrating our anniversary. Would love to join!',
           ),
           GuestEntry(
             id: 'ge_107',
@@ -1379,7 +1379,7 @@ class MockData {
             seats: 1,
             status: GuestRequestStatus.pending,
             requestedAt: now.subtract(const Duration(hours: 3)),
-            message: 'Vegetarian — is a veg menu possible?',
+            message: 'Vegetarian. Is a veg menu possible?',
           ),
           GuestEntry(
             id: 'ge_108',
@@ -1419,7 +1419,7 @@ class MockData {
             seats: 2,
             status: GuestRequestStatus.pending,
             requestedAt: now.subtract(const Duration(hours: 8)),
-            message: 'Two of us — first crawl, can\u2019t wait!',
+            message: 'Two of us. First crawl, can\u2019t wait!',
           ),
         ];
       case 'mine_3':
@@ -1568,7 +1568,7 @@ class MockData {
       id: 'inv_1',
       restaurant: restaurants[0],
       title: 'Omakase Collaboration Series',
-      message: 'Hi Alex, our head chef loved your last tasting night. We would like to invite you to co-host a 4-night omakase collaboration series at Nobu this season — chef\u2019s counter, full creative control on the menu.',
+      message: 'Hi Alex, our head chef loved your last tasting night. We would like to invite you to co-host a 4-night omakase collaboration series at Nobu this season: chef\u2019s counter, full creative control on the menu.',
       receivedAt: DateTime.now().subtract(const Duration(hours: 6)),
     ),
     CollaborationInvite(
@@ -1582,7 +1582,7 @@ class MockData {
       id: 'inv_3',
       restaurant: restaurants[5],
       title: 'Rooftop Sunset Series',
-      message: 'Welcome back! The rooftop sunset series is confirmed for monthly editions. Your September edition sold out in 48 hours — the October slot is yours whenever you are ready.',
+      message: 'Welcome back! The rooftop sunset series is confirmed for monthly editions. Your September edition sold out in 48 hours. The October slot is yours whenever you are ready.',
       receivedAt: DateTime.now().subtract(const Duration(days: 9)),
       isAccepted: true,
     ),

@@ -1,4 +1,4 @@
-/// Table reservation model — mirrors the server's `table_reservations` row
+/// Table reservation model, mirrors the server's `table_reservations` row
 /// plus the joined venue name / cover image from `restaurants`.
 ///
 /// Distinct from [Booking] (which is a dinner-event ticket with payment).
@@ -108,7 +108,7 @@ class TableReservation {
   int get hashCode => id.hashCode;
 }
 
-/// Reservation lifecycle statuses — mirrors the server's CHECK constraint.
+/// Reservation lifecycle statuses, mirrors the server's CHECK constraint.
 enum ReservationStatus {
   pending,
   confirmed,

@@ -5,7 +5,7 @@ import 'dotenv/config';
 import { query } from './db.js';
 
 /**
- * Bearer tokens are stored only as SHA-256 digests — a leaked auth_tokens
+ * Bearer tokens are stored only as SHA-256 digests, a leaked auth_tokens
  * table can never be replayed against the API. Clients keep presenting the
  * plaintext secret; we hash before every lookup.
  */
@@ -18,7 +18,7 @@ export function hashToken(token: string): string {
  * Applied globally to all /api/* routes. `API_RATE_LIMIT_MAX` overrides the
  * ceiling (positive integer) so integration runs can drive the money path
  * in bulk. Note: express-rate-limit treats `0` as "block everything", not
- * "disabled" — never set it to 0.
+ * "disabled", never set it to 0.
  */
 function envLimit(name: string, fallback: number): number {
   const raw = Number(process.env[name] ?? '');
@@ -30,7 +30,7 @@ export const apiRateLimiter = rateLimit({
   max: envLimit('API_RATE_LIMIT_MAX', 100),
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many requests — please try again later' },
+  message: { error: 'Too many requests. Please try again later.' },
 });
 
 /**
@@ -42,20 +42,20 @@ export const authRateLimiter = rateLimit({
   max: envLimit('AUTH_RATE_LIMIT_MAX', 10),
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many authentication attempts — please wait' },
+  message: { error: 'Too many authentication attempts. Please wait.' },
 });
 
 /**
  * P2-2 report spam bucket: on top of the one-open-report-per-target DB guard,
  * submissions get 15 per 15 minutes per IP (`REPORT_RATE_LIMIT_MAX` override,
- * same rules as the other limiters — never 0).
+ * same rules as the other limiters, never 0).
  */
 export const reportRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: envLimit('REPORT_RATE_LIMIT_MAX', 15),
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many reports — please slow down' },
+  message: { error: 'Too many reports. Please slow down.' },
 });
 
 /** P2-3 feedback spam bucket: 10 tickets per hour per IP. */
@@ -64,14 +64,14 @@ export const feedbackRateLimiter = rateLimit({
   max: envLimit('FEEDBACK_RATE_LIMIT_MAX', 10),
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many feedback submissions — please try again later' },
+  message: { error: 'Too many feedback submissions. Please try again later.' },
 });
 
 /**
  * Request-body keys that must never reach the audit trail. The predicate
  * matches any key containing a sensitive substring (password, token, secret,
  * code, otp), so `passwordResetToken`, `newPassword`, `otpCode`, etc. are
- * all caught — not just exact matches. Values are replaced with
+ * all caught, not just exact matches. Values are replaced with
  * `[redacted]`, never dropped, so the shape stays reviewable.
  */
 const SENSITIVE_KEY_PATTERN = /password|token|secret|code|otp|auth/i;

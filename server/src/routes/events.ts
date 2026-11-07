@@ -44,7 +44,7 @@ export type EventRow = {
   host_avatar: string | null;
   host_role: string | null;
   host_badges: string[] | null;
-  // Host food preferences (P1-5) — surfaced so the event's dietary card can
+  // Host food preferences (P1-5), surfaced so the event's dietary card can
   // show what the host eats, not just what the menu says.
   host_dietary: string[] | null;
   restaurant_name: string | null;
@@ -142,7 +142,7 @@ export const AUDIENCE_GATE = `(e.audience IN ('public','friends')
            WHERE b.event_id = e.id AND b.user_id = $VIEWER_UUID
              AND b.status <> 'cancelled'))`;
 
-// GET /api/events — filterable feed of events the viewer may see.
+// GET /api/events, filterable feed of events the viewer may see.
 router.get('/', async (req, res) => {
   // Fire-and-forget token cleanup: delete expired auth_tokens, otp_codes,
   // and email_change_challenges.
@@ -162,7 +162,7 @@ router.get('/', async (req, res) => {
     "(e.status NOT IN ('draft','requested','declined') OR e.host_id = $2)",
   );
   // P2-1: events hosted by anyone in a blocked pair with the viewer leave the
-  // personalized feed/search — in both directions (the blocked host stops
+  // personalized feed/search, in both directions (the blocked host stops
   // seeing the blocker's tables too). Existing tickets are unaffected; the
   // bookings surfaces read them straight from `bookings`.
   conditions.push(notBlockedBetween('$2', 'e.host_id'));
@@ -276,7 +276,7 @@ router.get('/', async (req, res) => {
   res.json({ events: rows.map(serialize), count: rows.length });
 });
 
-// GET /api/events/mine — the host's own events, drafts included, newest first.
+// GET /api/events/mine, the host's own events, drafts included, newest first.
 // Registered before `/:id` so the literal path wins.
 router.get('/mine', async (req, res) => {
   const rows = await query<EventRow>(
@@ -286,7 +286,7 @@ router.get('/mine', async (req, res) => {
   res.json({ events: rows.map(serialize), count: rows.length });
 });
 
-// GET /api/events/:id — one visible event with menu, host and venue.
+// GET /api/events/:id, one visible event with menu, host and venue.
 router.get('/:id', async (req, res) => {
   const [event] = await query<EventRow>(
     `${EVENT_SELECT}
@@ -392,7 +392,7 @@ const createEventSchema = z.object({
   menuStyle: z.enum(['setMenu', 'tastingMenu', 'familyStyle', 'sharing', 'buffet']).default('familyStyle'),
   included: z.array(z.string()).default([]),
   tags: z.array(z.string()).default([]),
-  // isFeatured is a platform-admin flag — hosts cannot set it. The column
+  // isFeatured is a platform-admin flag, hosts cannot set it. The column
   // defaults to false in the schema, and only super_admin routes may flip it.
   hostNote: z.string().trim().max(1000).default(''),
   requiresApproval: z.boolean().default(false),
@@ -414,7 +414,7 @@ const draftEventSchema = createEventSchema.extend({
   pricePerSeat: z.number().min(0).max(10000).default(0),
 });
 
-// POST /api/events — publish a new event (hosts and partner admins only).
+// POST /api/events, publish a new event (hosts and partner admins only).
 // `status: 'draft'` saves an unfinished draft instead of publishing.
 // `requireHostStudio` is the account-type gate: a Personal account cannot
 // publish even if it once earned the host role.
@@ -432,7 +432,7 @@ router.post('/', requireHostStudio, async (req, res) => {
   const input = isDraft
     ? draftEventSchema.parse(req.body)
     : createEventSchema.parse(req.body);
-  // Force hostId to the caller — prevent impersonation
+  // Force hostId to the caller, prevent impersonation
   const hostId = req.userId;
 
   const [venue] = await query<{
@@ -538,7 +538,7 @@ const patchEventSchema = createEventSchema.partial().extend({
   status: z.enum(['published']).optional(),
 });
 
-// PATCH /api/events/:id — the host edits their own draft, or publishes it.
+// PATCH /api/events/:id, the host edits their own draft, or publishes it.
 // Publishing re-validates the merged row against the full create schema.
 router.patch('/:id', requireHostStudio, async (req, res) => {
   const eventId = req.params.id;
@@ -634,7 +634,7 @@ router.patch('/:id', requireHostStudio, async (req, res) => {
   res.json({ event: serialize(full!) });
 });
 
-// DELETE /api/events/:id — the host cancels an event. Bookings vanish via
+// DELETE /api/events/:id, the host cancels an event. Bookings vanish via
 // cascade; every still-active guest gets an activity note about it.
 // Financial-history guard: once any payment has been captured (or earnings
 // accrued) the delete is refused, because the cascade would silently destroy

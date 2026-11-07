@@ -388,7 +388,7 @@ test('delete-account gates on the password, settles money, preserves records', a
   );
 
   // Guests were refunded and their ticket rows PRESERVED (cancelled, not
-  // deleted) — history keeps its foreign keys intact.
+  // deleted), history keeps its foreign keys intact.
   const booking = await mustOne<Json>(
     'SELECT status, payment_status, user_id FROM bookings WHERE id = $1::UUID',
     [bookingId],

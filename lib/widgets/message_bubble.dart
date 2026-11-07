@@ -345,7 +345,7 @@ class _ReadCheck extends StatelessWidget {
     final color = hasRead ? AppColors.info : Colors.white54;
 
     if (hasRead) {
-      // Double check — read
+      // Double check, read
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -355,7 +355,7 @@ class _ReadCheck extends StatelessWidget {
         ],
       );
     }
-    // Single check — sent/delivered
+    // Single check, sent/delivered
     return Icon(Icons.check_rounded, size: 12, color: color);
   }
 }

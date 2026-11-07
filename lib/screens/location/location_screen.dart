@@ -79,7 +79,7 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
       }
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        if (mounted) _snack('Permission denied — pick a city below.');
+        if (mounted) _snack('Permission denied. Pick a city below.');
         return;
       }
 
@@ -92,7 +92,7 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
           ),
         );
       } on Object {
-        if (mounted) _snack('Could not get a fix — try again outdoors.');
+        if (mounted) _snack('Could not get a fix. Try again outdoors.');
         return;
       }
 
@@ -118,7 +118,7 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
 
       if (!mounted) return;
       if (city.isEmpty) {
-        _snack("Couldn't determine your city — pick one below.");
+        _snack("Couldn't determine your city. Pick one below.");
         return;
       }
       setState(() {
@@ -681,7 +681,7 @@ class _CityAreaCard extends StatelessWidget {
           // Tagline
           const SizedBox(height: AppSpacing.md),
           Text(
-            '$selectedCity — Explore across the city',
+            '$selectedCity: explore across the city',
             style: AppTextStyles.bodySmall.copyWith(
               color: AppColors.textSecondary,
             ),

@@ -70,7 +70,7 @@ async function waitForDatabase(retries = 15, delayMs = 1500): Promise<void> {
       return;
     } catch {
       if (attempt === retries) throw new Error('Database never became ready');
-      console.log(`Database not ready (attempt ${attempt}/${retries}) — retrying in ${delayMs}ms`);
+      console.log(`Database not ready (attempt ${attempt}/${retries}). Retrying in ${delayMs}ms`);
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }
@@ -109,7 +109,7 @@ app.use(helmet());
 app.use(cors({
   origin: (origin, callback) => {
     // Requests with no Origin header (same-origin, curl, server-to-server)
-    // are always allowed — the check below is for cross-origin browser traffic.
+    // are always allowed, the check below is for cross-origin browser traffic.
     if (!origin) return callback(null, true);
     if (isAllowedOrigin(origin)) return callback(null, true);
     callback(new Error('CORS: origin not allowed'));
@@ -138,7 +138,7 @@ app.use('/api/public/menu', publicMenuRouter);
 
 // Public: diner-facing deals feed. Mounted before requireAuth so discovery
 // works without authentication. Only the venue-scoped router may sit on
-// /api/restaurants — the feed router's `GET /` would shadow the venue list.
+// /api/restaurants, the feed router's `GET /` would shadow the venue list.
 app.use('/api/deals', dealsRouter);
 app.use('/api/restaurants', venueDealsRouter);
 app.use('/api/restaurants', restaurantReviewsRouter);
@@ -148,7 +148,7 @@ app.use('/api/restaurants', restaurantReviewsRouter);
 app.use('/api/public/avatars', publicAvatarsRouter);
 
 // Public: uploaded venue photos (logo, gallery, dish, deal banner). Same reason
-// as avatars — every render site is an `Image.network` with no bearer token.
+// as avatars, every render site is an `Image.network` with no bearer token.
 app.use('/api/public/venue-images', publicVenueImagesRouter);
 
 app.get('/api/health', async (_req: Request, res: Response) => {
@@ -178,7 +178,7 @@ app.use('/api/offers', offersRouter);
 app.use('/api', reviewsRouter);
 app.use('/api', bookingsRouter);
 app.use('/api', socialRouter);
-// Saved locations (Home, Work, favourites) — CRUD under the auth'd user.
+// Saved locations (Home, Work, favourites): CRUD under the auth'd user.
 app.use('/api/users/me/saved-locations', savedLocationsRouter);
 // P2 Safety & Trust: reports (user/content flags + admin queue) and feedback
 // (support tickets). `/users/me/blocked` is served by socialRouter above.
@@ -255,13 +255,13 @@ const port = Number(process.env.PORT ?? 4000);
 try {
   await waitForDatabase();
 } catch (error) {
-  console.error('Could not connect to the database — exiting.');
+  console.error('Could not connect to the database. Exiting.');
   console.error(error);
   await pool.end().catch(() => undefined);
   process.exit(1);
 }
-// Phase 2a: initPayments removed — no payment gateway configured.
-// Phase 2b: Socket.IO removed — no real-time chat layer.
+// Phase 2a: initPayments removed, no payment gateway configured.
+// Phase 2b: Socket.IO removed, no real-time chat layer.
 const httpServer = app.listen(port, () => {
   console.log(`DineCircle API listening on http://localhost:${port}`);
 });
@@ -270,7 +270,7 @@ let shuttingDown = false;
 function shutdown(signal: string): void {
   if (shuttingDown) return;
   shuttingDown = true;
-  console.log(`\n${signal} received — shutting down`);
+  console.log(`\n${signal} received. Shutting down`);
   httpServer.close(async () => {
     await pool.end().catch(() => undefined);
     process.exit(0);

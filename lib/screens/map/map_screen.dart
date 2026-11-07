@@ -28,7 +28,7 @@ class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key, this.onDinnerTap, this.onRestaurantTap});
 
   /// Opens Google Maps (app when installed, web otherwise) navigating to the
-  /// venue. No API key required — this is the public Maps URL scheme.
+  /// venue. No API key required, this is the public Maps URL scheme.
   /// [travelMode] is one of `driving`, `transit`, `walking`, `bicycling`.
   static Future<void> openDirections({
     required double lat,
@@ -223,7 +223,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
             ),
           ),
-          // Filter chips — toggle marker layers.
+          // Filter chips, toggle marker layers.
           Positioned(
             top: 110,
             left: 0,
@@ -253,7 +253,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
             ),
           ),
-          // Re-center button — jumps to the live fix (or the venue cluster).
+          // Re-center button, jumps to the live fix (or the venue cluster).
           Positioned(
             bottom: 100,
             right: AppSpacing.paddingScreen,
@@ -316,7 +316,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
             ),
           ),
-          // City header badge — follows the live fix when available.
+          // City header badge, follows the live fix when available.
           if (city.isNotEmpty)
             Positioned(
               top: 66,

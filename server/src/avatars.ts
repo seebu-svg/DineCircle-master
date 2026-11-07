@@ -46,7 +46,7 @@ const BASE64_BODY = /^[A-Za-z0-9+/]+={0,2}$/;
 /**
  * Decodes the upload payload: plain base64 or a `data:image/...;base64,` URL.
  * `Buffer.from(…, 'base64')` silently skips invalid characters, so the
- * alphabet is checked first — a corrupt upload is a 400, not a broken photo.
+ * alphabet is checked first, a corrupt upload is a 400, not a broken photo.
  */
 export function decodeAvatarPayload(raw: string): {
   bytes: Buffer;
@@ -61,7 +61,7 @@ export function decodeAvatarPayload(raw: string): {
     throw new ApiError(400, 'The photo could not be read. Try another image.');
   }
   if (bytes.length > MAX_AVATAR_BYTES) {
-    throw new ApiError(413, 'That photo is too large — keep it under 512 KB.');
+    throw new ApiError(413, 'That photo is too large. Keep it under 512 KB.');
   }
   const contentType = sniffImageType(bytes);
   if (!contentType) {
@@ -82,7 +82,7 @@ export function uploadedAvatarPath(userId: string, updatedAt: Date): string {
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** True for a canonical UUID — lets routes 404 instead of a pg cast 500. */
+/** True for a canonical UUID, lets routes 404 instead of a pg cast 500. */
 export function isUuid(value: unknown): value is string {
   return typeof value === 'string' && UUID_PATTERN.test(value);
 }

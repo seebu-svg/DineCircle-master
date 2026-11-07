@@ -17,7 +17,7 @@ import '../../screens/detail/dinner_detail_screen.dart';
 import '../../widgets/buttons.dart';
 import '../../data/mock_data.dart';
 
-/// Create Dinner screen — 6-step wizard (spec section 10).
+/// Create Dinner screen: 6-step wizard (spec section 10).
 ///
 /// Steps: Experience Details → Restaurant & Venue → Date & Schedule
 ///        → Guests & Dining → Menu & Pricing → Review & Submit
@@ -39,7 +39,7 @@ class _CreateDinnerScreenState extends ConsumerState<CreateDinnerScreen> {
   // Inline validation errors keyed by field name.
   final Map<String, String> _errors = {};
 
-  // Step 1 — Experience Details
+  // Step 1: Experience Details
   final _nameCtrl = TextEditingController(text: 'Omakase Experience');
   final _descCtrl = TextEditingController(
     text:
@@ -49,10 +49,10 @@ class _CreateDinnerScreenState extends ConsumerState<CreateDinnerScreen> {
   String _coverImage = 'assets/images/hero_tasting.png';
   String _category = 'Food Experience';
 
-  // Step 2 — Restaurant & Venue
+  // Step 2: Restaurant & Venue
   Restaurant? _selectedRestaurant;
 
-  // Step 3 — Date & Schedule
+  // Step 3: Date & Schedule
   DateTime _eventDate = DateTime.now().add(const Duration(days: 7));
   TimeOfDay _startTime = const TimeOfDay(hour: 19, minute: 0);
   TimeOfDay _endTime = const TimeOfDay(hour: 22, minute: 0);
@@ -61,7 +61,7 @@ class _CreateDinnerScreenState extends ConsumerState<CreateDinnerScreen> {
   int _maxAttendees = 12;
   bool _isPublic = true;
 
-  // Step 4 — Guests & Dining
+  // Step 4: Guests & Dining
   String _guestAccess = 'Open to Everyone';
   bool _approvalRequired = false;
   int _guestLimit = 2;
@@ -74,7 +74,7 @@ class _CreateDinnerScreenState extends ConsumerState<CreateDinnerScreen> {
   final Set<String> _eventRules = {'Punctuality required'};
   bool _isSpecialMenu = true;
 
-  // Step 5 — Menu & Pricing
+  // Step 5: Menu & Pricing
   bool _isPaid = true;
   double _pricePerPerson = 185.0;
   double _hostContribution = 50.0;
@@ -798,7 +798,7 @@ class _MenuItemDraft {
 }
 
 // =============================================================================
-// Tappable progress bar — shows step dots with labels, allows backward taps
+// Tappable progress bar, shows step dots with labels, allows backward taps
 // =============================================================================
 
 class _TappableProgressBar extends StatelessWidget {
@@ -837,7 +837,7 @@ class _TappableProgressBar extends StatelessWidget {
 }
 
 // =============================================================================
-// Step 1 — Experience Details
+// Step 1: Experience Details
 // =============================================================================
 
 class _Step1ExperienceDetails extends StatelessWidget {
@@ -946,7 +946,7 @@ class _Step1ExperienceDetails extends StatelessWidget {
 }
 
 // =============================================================================
-// Step 2 — Restaurant & Venue
+// Step 2: Restaurant & Venue
 // =============================================================================
 
 class _Step2Restaurant extends ConsumerWidget {
@@ -1192,7 +1192,7 @@ class _VenueTile extends StatelessWidget {
 }
 
 // =============================================================================
-// Step 3 — Date & Schedule
+// Step 3: Date & Schedule
 // =============================================================================
 
 class _Step3DateSchedule extends StatelessWidget {
@@ -1380,7 +1380,7 @@ class _InlineError extends StatelessWidget {
 }
 
 // =============================================================================
-// Step 4 — Guests & Dining
+// Step 4: Guests & Dining
 // =============================================================================
 
 class _Step4GuestsDining extends StatelessWidget {
@@ -1595,7 +1595,7 @@ class _Step4GuestsDining extends StatelessWidget {
 }
 
 // =============================================================================
-// Step 5 — Menu & Pricing
+// Step 5: Menu & Pricing
 // =============================================================================
 
 class _Step5MenuPricing extends StatelessWidget {
@@ -1939,7 +1939,7 @@ class _Step5MenuPricing extends StatelessWidget {
 }
 
 // =============================================================================
-// Step 6 — Review & Submit
+// Step 6: Review & Submit
 // =============================================================================
 
 class _Step6Review extends StatelessWidget {

@@ -4,7 +4,7 @@ import '../models/safety.dart';
 
 /// P2 Safety & Trust: blocks, reports and support feedback.
 ///
-/// Every method hits a real endpoint from Phase 2 of the backend work —
+/// Every method hits a real endpoint from Phase 2 of the backend work,
 /// blocking rules, report duplicate guards and feedback tickets are all
 /// enforced server-side, so the client never has to fake or optimise state.
 abstract class SafetyRepository {

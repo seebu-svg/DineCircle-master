@@ -25,7 +25,7 @@ class InvitesController {
     final invite = await _ref
         .read(hostsRepositoryProvider)
         .respondToInvite(hostId, inviteId, accept);
-    // Invalidate the family provider itself — invalidating only the derived
+    // Invalidate the family provider itself, invalidating only the derived
     // [myHostInvitesProvider] would rebuild it against a still-cached family
     // value and never re-read the server.
     _ref.invalidate(hostInvitesProvider(hostId));

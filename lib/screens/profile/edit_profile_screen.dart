@@ -115,7 +115,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final handle = _normalizeHandle(raw);
     final changed = handle != widget.user.handle.toLowerCase();
     // Nothing to check while the field still holds the saved username or the
-    // typed value cannot be a username at all — the local error owns that.
+    // typed value cannot be a username at all, the local error owns that.
     if (!changed || handle.isEmpty || !_handlePattern.hasMatch(handle)) {
       if (_lookupHandle.isNotEmpty) setState(() => _lookupHandle = '');
       if (_handleError != null) setState(() => _handleError = null);
@@ -581,7 +581,7 @@ class _ProfileField extends StatelessWidget {
 }
 
 /// Advisory username check: spinner while asking, then available / taken /
-/// reserved. Purely informational — Save is never blocked by it.
+/// reserved. Purely informational: Save is never blocked by it.
 class _HandleAvailabilityRow extends StatelessWidget {
   const _HandleAvailabilityRow({super.key, required this.availability});
 

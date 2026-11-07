@@ -8,7 +8,7 @@ import '../../models/host_models.dart';
 import '../../providers/hosts_provider.dart';
 import '../../widgets/data_view.dart';
 
-/// Analytics & Insights for hosts — fully server-driven.
+/// Analytics & Insights for hosts, fully server-driven.
 ///
 /// Every metric comes from `GET /hosts/:id/analytics?period=`. No hardcoded
 /// values, no client-side factor multiplication. The period selector drives a
@@ -248,7 +248,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                 label: 'Avg Rating',
                 value: a.averageRating > 0
                     ? a.averageRating.toStringAsFixed(1)
-                    : '—',
+                    : '-',
                 icon: Icons.star_rounded,
                 color: AppColors.gold,
               ),
@@ -316,7 +316,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                 label: 'Avg Rating',
                 value: a.averageRating > 0
                     ? '${a.averageRating.toStringAsFixed(1)} ★'
-                    : '—',
+                    : '-',
                 icon: Icons.star_rounded,
                 color: AppColors.gold,
                 subtitle: 'From guest reviews',

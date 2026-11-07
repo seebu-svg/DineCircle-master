@@ -1,4 +1,4 @@
--- DineCircle API schema — SINGLE SOURCE OF TRUTH, re-runnable (idempotent).
+-- DineCircle API schema: SINGLE SOURCE OF TRUTH, re-runnable (idempotent).
 --
 -- This schema is derived from the actual route contract in src/routes/*.ts:
 --   * Every primary key is `uuid` with a server-side default (the INSERTs in
@@ -46,7 +46,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash text;
 
 -- Growth ladder on ONE account: diner ('user') → host → influencer. The
 -- influencer rung widens the role CHECK; re-running this schema on an existing
--- database swaps the constraint in place (no data migration — no rows use the
+-- database swaps the constraint in place (no data migration, no rows use the
 -- new value yet). partners/admins sit outside the ladder.
 -- Partner app: 'restaurant_owner' / 'restaurant_staff' are venue-side roles.
 -- They are NOT publish-capable (hasHostCapabilities leaves them out) and are
@@ -59,7 +59,7 @@ ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (
 -- Karachi test environment (seed.ts): creators carry their public Instagram
 -- handle for discovery testing and every seeded account is a test record
 -- (`is_demo`). The matching `is_demo`/`partnership_status` columns on
--- restaurants and dinner_events live in those tables' own sections below —
+-- restaurants and dinner_events live in those tables' own sections below,
 -- they MUST be added after the tables exist so a fresh database applies
 -- cleanly (an ALTER before its CREATE aborts the whole migration).
 ALTER TABLE users ADD COLUMN IF NOT EXISTS instagram     text NOT NULL DEFAULT '';
@@ -78,9 +78,9 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS home_area               text     NOT 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_deleted              boolean  NOT NULL DEFAULT false;
 
 -- Account types: ONE account, two modes (Instagram-style).
---   * 'personal'     — private diner. Default for every new signup; may
+--   * 'personal'    , private diner. Default for every new signup; may
 --                      discover, reserve and join, but has no Host Studio.
---   * 'professional' — public host profile + Host Studio (publish experiences).
+--   * 'professional', public host profile + Host Studio (publish experiences).
 --
 -- `role` keeps its own meaning (ladder rung + partner/admin privileges) and is
 -- still what the Partner App and RBAC read. `account_type` is the ONLY gate for
@@ -107,7 +107,7 @@ UPDATE users SET account_type = 'professional', professional_since = now()
 -- user_avatars ──────────────────────────────────────────────────────────────
 -- Profile photos are stored here rather than in an object store: the module
 -- ships complete without depending on S3/GCS credentials. `users.avatar_url`
--- keeps pointing at whatever the client renders — a bundled asset path, an
+-- keeps pointing at whatever the client renders, a bundled asset path, an
 -- external https URL, or the relative path `/public/avatars/<id>?v=<epoch>`
 -- this table's public route serves (relative to the API base, so the app can
 -- resolve it against API_BASE_URL).
@@ -168,7 +168,7 @@ ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS is_demo boolean NOT NULL DEFAUL
 ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS partnership_status text NOT NULL DEFAULT 'unverified';
 
 -- Map support (WS-A): real venue coordinates for markers and `nearby`
--- queries. Nullable — a venue without coords simply stays off the map.
+-- queries. Nullable, a venue without coords simply stays off the map.
 ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS latitude  double precision;
 ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS longitude double precision;
 
@@ -291,7 +291,7 @@ CREATE TABLE IF NOT EXISTS bookings (
 
 -- Stripe payments (Phase 4): the booking row now points at a real
 -- PaymentIntent when the Stripe gateway is active. `pending_payment` joins
--- the payment ladder — the seat is held while the guest confirms the card;
+-- the payment ladder, the seat is held while the guest confirms the card;
 -- the webhook flips it to `paid` (or releases it to `failed`). Re-running
 -- the schema swaps the CHECK in place for pre-Stripe databases (no rows use
 -- the new value yet, same pattern as users_role_check above).
@@ -306,7 +306,7 @@ ALTER TABLE bookings ADD CONSTRAINT bookings_payment_status_check CHECK (
 -- captured amount as `refunded`; host declines only reverse an uncaptured
 -- `authorized` hold, so they book $0 as `released` (nothing was ever charged).
 -- `gateway_status = 'simulated'` is the honest marker that no payment provider
--- has confirmed any of these movements — a real gateway integration must write
+-- has confirmed any of these movements, a real gateway integration must write
 -- `pending_gateway` here and only flip the row to `confirmed` on webhook.
 CREATE TABLE IF NOT EXISTS refunds (
   id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -478,7 +478,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 
 -- Messaging system: conversations, participants, read receipts ──────────────
 -- conversations: one row per chat context (event group, direct message, or
--- partner channel). event_id is nullable — direct messages are not tied to a
+-- partner channel). event_id is nullable, direct messages are not tied to a
 -- dinner event. The partial unique constraint ensures at most one conversation
 -- per event while allowing many event-less DM conversations.
 CREATE TABLE IF NOT EXISTS conversations (
@@ -667,7 +667,7 @@ CREATE INDEX IF NOT EXISTS idx_user_blocks_blocked ON user_blocks(blocked_id);
 -- reports (P2-2 safety: user/content reports) ────────────────────────────────
 -- Polymorphic target: `target_id` cannot carry a FK (four different tables),
 -- so reports.ts validates existence at submission time and snapshots a short
--- `evidence` excerpt — the moderation record survives even if the target is
+-- `evidence` excerpt, the moderation record survives even if the target is
 -- later deleted. Reporter identity is NEVER exposed through any non-admin
 -- endpoint. The partial unique index is the anti-spam guard: one OPEN report
 -- per (reporter, target); resolved/dismissed reports don't block a re-report.
@@ -771,7 +771,7 @@ CREATE INDEX IF NOT EXISTS idx_saved_locations_user ON saved_locations(user_id);
 -- PARTNER APP (shared venue operations surface)
 --
 -- One backend, one database, two clients: these tables are the write side of
--- the Partner App. Every one of them is additive — the Customer App keeps
+-- the Partner App. Every one of them is additive, the Customer App keeps
 -- reading restaurants/dinner_events/bookings/special_menus exactly as before.
 -- ═══════════════════════════════════════════════════════════════════════════
 
@@ -1011,7 +1011,7 @@ CREATE INDEX IF NOT EXISTS idx_menu_sections_rest     ON restaurant_menu_section
 CREATE INDEX IF NOT EXISTS idx_menu_items_rest        ON restaurant_menu_items(restaurant_id, position);
 CREATE INDEX IF NOT EXISTS idx_menu_items_section     ON restaurant_menu_items(section_id, position);
 CREATE INDEX IF NOT EXISTS idx_rest_tables_rest       ON restaurant_tables(restaurant_id, is_active);
--- Reservation reads are always "this venue, this window" — the composite index
+-- Reservation reads are always "this venue, this window", the composite index
 -- serves both the availability probe and the partner day list.
 CREATE INDEX IF NOT EXISTS idx_reservations_rest_time ON table_reservations(restaurant_id, start_at);
 CREATE INDEX IF NOT EXISTS idx_reservations_user      ON table_reservations(user_id, start_at DESC);
@@ -1027,7 +1027,7 @@ CREATE INDEX IF NOT EXISTS idx_events_approval        ON dinner_events(restauran
 -- One row per venue: records the plan the partner chose and its billing
 -- intent. The server sets the price from a constant (PLAN_PRICES in the route)
 -- so the client can never send a custom amount. No card, no wallet, no payment
--- gateway — this table captures *intent* only; actual billing is arranged
+-- gateway, this table captures *intent* only; actual billing is arranged
 -- offline with DineCircle.
 CREATE TABLE IF NOT EXISTS partner_subscriptions (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1048,7 +1048,7 @@ CREATE INDEX IF NOT EXISTS idx_partner_subs_restaurant ON partner_subscriptions(
 
 -- qr_scans ───────────────────────────────────────────────────────────────────
 -- Tracks QR code scans for analytics. Partners can see how many times their
--- QR codes were scanned (menu, profile). No PII is stored — only a device hash
+-- QR codes were scanned (menu, profile). No PII is stored, only a device hash
 -- for rate limiting.
 CREATE TABLE IF NOT EXISTS qr_scans (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),

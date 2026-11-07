@@ -5,7 +5,7 @@ import { isUuid } from '../avatars.js';
 const router = Router();
 
 /**
- * GET /api/public/avatars/:userId — the uploaded profile photo bytes.
+ * GET /api/public/avatars/:userId, the uploaded profile photo bytes.
  *
  * Mounted BEFORE requireAuth: `Image.network` cannot attach the bearer token
  * on every platform, and profile photos are public on every social surface

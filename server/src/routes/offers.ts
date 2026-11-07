@@ -39,7 +39,7 @@ function deriveKind(tags: string[], minGuests: number): 'couple' | 'group' | 'ta
   return 'tasting';
 }
 
-// GET /api/offers — active special menus + promo codes for the Deals feed.
+// GET /api/offers, active special menus + promo codes for the Deals feed.
 router.get('/', async (req, res) => {
   const { city, kind = 'all', limit = '50' } = req.query;
 

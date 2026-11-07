@@ -18,13 +18,13 @@ import '../search/universal_search_screen.dart';
 import 'deal_ui.dart';
 import 'deal_detail_screen.dart';
 
-/// Deals tab — premium "Discover Deals" experience.
+/// Deals tab, premium "Discover Deals" experience.
 ///
 /// Reads the live, city-scoped `GET /api/deals` feed (the server only ever
 /// returns active, published, non-expired deals) and layers on search, kind
 /// filters, a Featured carousel, a Limited-Time Offers rail and image-led deal
 /// cards. Every deal opens the Deal Details screen; the venue behind it opens
-/// the shared Restaurant Profile. No payments anywhere — offers are redeemed
+/// the shared Restaurant Profile. No payments anywhere, offers are redeemed
 /// directly at the restaurant.
 class DealsScreen extends ConsumerStatefulWidget {
   const DealsScreen({
@@ -88,7 +88,7 @@ class _DealsScreenState extends ConsumerState<DealsScreen> {
   }
 
   /// Server query kind ('' = unfiltered). `all` and `nearby` need no server
-  /// filter — Nearby narrows the already-resolved city feed client-side.
+  /// filter: Nearby narrows the already-resolved city feed client-side.
   String get _serverKind => (_kind == 'all' || _kind == 'nearby') ? '' : _kind;
 
   void _openDetail(Deal deal) {
@@ -146,7 +146,7 @@ class _DealsScreenState extends ConsumerState<DealsScreen> {
                           'clear the search.'
                     : city.trim().isEmpty
                     ? 'No active deals right now. Partner restaurants publish '
-                          'new offers all the time — check back soon.'
+                          'new offers all the time. Check back soon.'
                     : 'No active deals in $city right now. Try another city or '
                           'check back soon.',
                 onRetry: () => ref.invalidate(dealsFeedProvider(search)),
@@ -286,7 +286,7 @@ class _DealsScreenState extends ConsumerState<DealsScreen> {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Exclusive offers from your favourite restaurants — redeem '
+            'Exclusive offers from your favourite restaurants. Redeem '
             'directly at the venue.',
             style: AppTextStyles.bodySmall.copyWith(
               color: AppColors.textSecondary,
@@ -455,7 +455,7 @@ class _SearchField extends StatelessWidget {
   }
 }
 
-/// Horizontally scrollable kind chips — never wrap onto multiple rows.
+/// Horizontally scrollable kind chips, never wrap onto multiple rows.
 class _FilterChipRow extends StatelessWidget {
   const _FilterChipRow({
     required this.kinds,
@@ -507,7 +507,7 @@ class _FilteredEmptyState extends StatelessWidget {
       child: EmptyState(
         icon: Icons.search_off_rounded,
         title: 'No deals match your filters',
-        message: 'Try a different search term or filter — or reset to see '
+        message: 'Try a different search term or filter, or reset to see '
             'every active deal.',
         action: TextButton.icon(
           onPressed: onClear,

@@ -11,7 +11,7 @@ import '../../theme/app_text_styles.dart';
 import '../../widgets/buttons.dart';
 import '../../widgets/common_widgets.dart';
 
-/// P1-6 Location Settings — the account's city plus a preferred dining area
+/// P1-6 Location Settings, the account's city plus a preferred dining area
 /// (neighbourhood/district). Both persist through `PATCH /users/me`
 /// (`city`, `home_area`) and republish the session, so the map, the nearby
 /// feeds and the distance ranking pick the new locale up immediately.

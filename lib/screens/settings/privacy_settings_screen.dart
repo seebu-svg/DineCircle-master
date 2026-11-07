@@ -9,7 +9,7 @@ import '../../theme/app_spacing.dart';
 import '../../theme/app_text_styles.dart';
 import '../safety/blocked_users_screen.dart';
 
-/// P1-4 Privacy & Security — the four server-backed visibility toggles,
+/// P1-4 Privacy & Security, the four server-backed visibility toggles,
 /// each written immediately through `PATCH /users/me` (partial payload,
 /// only the flipped key). `showFollowList` and `showActivity` are enforced
 /// server-side on the roster/activity endpoints; a failed write rolls the
@@ -109,7 +109,7 @@ class _PrivacySettingsScreenState extends ConsumerState<PrivacySettingsScreen> {
             leading: const Icon(Icons.block_rounded, color: AppColors.danger),
             title: Text('Blocked Users', style: AppTextStyles.titleSmall),
             subtitle: Text(
-              'You have full control — review or undo any block.',
+              'You have full control. Review or undo any block.',
               style: AppTextStyles.bodySmall.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -121,7 +121,7 @@ class _PrivacySettingsScreenState extends ConsumerState<PrivacySettingsScreen> {
           ),
           const SizedBox(height: AppSpacing.lg),
           Text(
-            'These settings apply across devices — they are stored on your '
+            'These settings apply across devices. They are stored on your '
             'account, not on this phone.',
             style: AppTextStyles.bodySmall.copyWith(
               color: AppColors.textSecondary,

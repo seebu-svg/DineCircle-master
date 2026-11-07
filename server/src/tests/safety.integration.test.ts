@@ -238,7 +238,7 @@ test('blocked pairs vanish from each other and get 403 on direct profile reads',
     'the blocked account never sees the blocker',
   );
 
-  // Direct profile reads are refused both ways — no private-data leak.
+  // Direct profile reads are refused both ways, no private-data leak.
   const aSeesB = await api(a.token, 'GET', `/users/${b.userId}`);
   assert.equal(aSeesB.status, 403);
   const bSeesA = await api(b.token, 'GET', `/users/${a.userId}`);
@@ -367,7 +367,7 @@ test('blocked pairs cannot post new messages in the host\'s event chat; history 
     201,
   );
 
-  // History remains readable for the blocked guest — no evidence is destroyed.
+  // History remains readable for the blocked guest, no evidence is destroyed.
   const history = await api(guest.token, 'GET', `/events/${event.id}/messages`);
   assert.equal(history.status, 200);
   assert.ok(

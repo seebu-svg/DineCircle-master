@@ -11,7 +11,7 @@ import '../../theme/app_text_styles.dart';
 import '../../widgets/buttons.dart';
 import '../../widgets/common_widgets.dart';
 
-/// P1-5 Food Preferences — cuisines/interests, dietary preferences and
+/// P1-5 Food Preferences, cuisines/interests, dietary preferences and
 /// allergies, all persisted through `PATCH /users/me` (`tastes`, `dietary`,
 /// `allergies`). The server caps tastes at 8 and the label lists at 12, so
 /// the screen enforces the same ceilings instead of surfacing a 422.

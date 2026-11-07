@@ -30,7 +30,7 @@ class ConnectivityNotifier extends Notifier<bool> {
     try {
       state = _resolve(await connectivity.checkConnectivity());
     } catch (_) {
-      // Plugin unavailable (e.g. unsupported platform) — assume online.
+      // Plugin unavailable (e.g. unsupported platform), assume online.
       state = true;
     }
   }

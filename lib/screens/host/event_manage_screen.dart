@@ -121,7 +121,7 @@ class _EventManageScreenState extends ConsumerState<EventManageScreen> {
         SnackBar(
           content: Text(
             approve
-                ? '${guest.user.name} approved — ${guest.seats} seat(s) confirmed'
+                ? '${guest.user.name} approved: ${guest.seats} seat(s) confirmed'
                 : 'Request from ${guest.user.name} declined',
           ),
           backgroundColor: approve ? AppColors.success : AppColors.surfaceHigh,
@@ -328,7 +328,7 @@ class _EventManageScreenState extends ConsumerState<EventManageScreen> {
                   const SizedBox(height: AppSpacing.sm),
                   Center(
                     child: Text(
-                      'Total capacity — ${_dinner.bookedSeats} already sold',
+                      'Total capacity: ${_dinner.bookedSeats} already sold',
                       style: AppTextStyles.caption,
                     ),
                   ),
@@ -475,7 +475,7 @@ class _EventManageScreenState extends ConsumerState<EventManageScreen> {
                         ScaffoldMessenger.of(this.context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              'Announcement sent to $recipientCount guest(s) — $audience',
+                              'Announcement sent to $recipientCount guest(s): $audience',
                             ),
                             backgroundColor: AppColors.success,
                           ),
@@ -610,7 +610,7 @@ class _EventManageScreenState extends ConsumerState<EventManageScreen> {
                           ScaffoldMessenger.of(this.context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                'Attendance saved — $present of ${_confirmedGuests.length} present',
+                                'Attendance saved: $present of ${_confirmedGuests.length} present',
                               ),
                               backgroundColor: AppColors.success,
                             ),
@@ -680,7 +680,7 @@ class _EventManageScreenState extends ConsumerState<EventManageScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text(
-                      'Event cancelled — guests notified & refunds issued',
+                      'Event cancelled. Guests notified and refunds issued.',
                     ),
                     backgroundColor: AppColors.danger,
                   ),

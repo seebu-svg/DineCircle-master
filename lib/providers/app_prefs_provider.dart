@@ -48,7 +48,7 @@ class AppPrefsNotifier extends Notifier<AppPrefs> {
           preferencesComplete: values[_preferencesKey] == 'true',
         );
       } catch (_) {
-        // Storage unavailable (e.g. unsupported platform) — keep defaults.
+        // Storage unavailable (e.g. unsupported platform), keep defaults.
         return;
       }
       if (alive) state = loaded;

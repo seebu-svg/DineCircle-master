@@ -90,7 +90,7 @@ async function registerVenue(): Promise<{ venueId: string; ownerToken: string; o
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
-test('GET subscription — no row returns synthetic default', async () => {
+test('GET subscription, no row returns synthetic default', async () => {
   const { venueId, ownerToken } = await registerVenue();
   const { status, json } = await api(ownerToken, 'GET', `/partner/restaurants/${venueId}/subscription`);
   assert.equal(status, 200);
@@ -101,7 +101,7 @@ test('GET subscription — no row returns synthetic default', async () => {
   assert.equal(sub.autoRenew, false);
 });
 
-test('PATCH subscription — owner sets monthly plan, status stays none (partner cannot self-activate)', async () => {
+test('PATCH subscription, owner sets monthly plan, status stays none (partner cannot self-activate)', async () => {
   const { venueId, ownerToken } = await registerVenue();
   const { status, json } = await api(ownerToken, 'PATCH', `/partner/restaurants/${venueId}/subscription`, {
     plan: 'monthly',
@@ -122,7 +122,7 @@ test('PATCH subscription — owner sets monthly plan, status stays none (partner
   assert.ok(daysDiff >= 28 && daysDiff <= 31, `Expected ~30 days, got ${daysDiff}`);
 });
 
-test('PATCH subscription — owner switches to yearly', async () => {
+test('PATCH subscription, owner switches to yearly', async () => {
   const { venueId, ownerToken } = await registerVenue();
   // First set monthly.
   await api(ownerToken, 'PATCH', `/partner/restaurants/${venueId}/subscription`, {
@@ -143,9 +143,9 @@ test('PATCH subscription — owner switches to yearly', async () => {
   assert.ok(daysDiff >= 364 && daysDiff <= 366, `Expected ~365 days, got ${daysDiff}`);
 });
 
-test('PATCH subscription — status field is ignored (partner cannot self-activate)', async () => {
+test('PATCH subscription, status field is ignored (partner cannot self-activate)', async () => {
   const { venueId, ownerToken } = await registerVenue();
-  // Try to set status to active — should be ignored.
+  // Try to set status to active, should be ignored.
   const { status, json } = await api(ownerToken, 'PATCH', `/partner/restaurants/${venueId}/subscription`, {
     plan: 'monthly',
     status: 'active',
@@ -155,7 +155,7 @@ test('PATCH subscription — status field is ignored (partner cannot self-activa
   assert.equal(sub.status, 'none'); // Status change ignored
 });
 
-test('PATCH subscription — staff role gets 403', async () => {
+test('PATCH subscription, staff role gets 403', async () => {
   const { venueId, ownerToken } = await registerVenue();
   // Create a staff account and invite them.
   const staff = await signUpAccount('staff');
@@ -175,7 +175,7 @@ test('PATCH subscription — staff role gets 403', async () => {
   assert.equal(status, 403);
 });
 
-test('PATCH subscription — unknown plan gets 400', async () => {
+test('PATCH subscription, unknown plan gets 400', async () => {
   const { venueId, ownerToken } = await registerVenue();
   const { status } = await api(ownerToken, 'PATCH', `/partner/restaurants/${venueId}/subscription`, {
     plan: 'lifetime',
@@ -183,7 +183,7 @@ test('PATCH subscription — unknown plan gets 400', async () => {
   assert.equal(status, 400);
 });
 
-test('Admin POST activate — sets status to active', async () => {
+test('Admin POST activate, sets status to active', async () => {
   const adminToken = await mintAdminToken();
   const { venueId, ownerToken } = await registerVenue();
   // Owner selects a plan first.
@@ -200,7 +200,7 @@ test('Admin POST activate — sets status to active', async () => {
   assert.equal(sub.plan, 'monthly');
 });
 
-test('Admin POST activate — cancel sets cancelled_at', async () => {
+test('Admin POST activate, cancel sets cancelled_at', async () => {
   const adminToken = await mintAdminToken();
   const { venueId, ownerToken } = await registerVenue();
   await api(ownerToken, 'PATCH', `/partner/restaurants/${venueId}/subscription`, {
@@ -219,19 +219,19 @@ test('Admin POST activate — cancel sets cancelled_at', async () => {
   assert.ok(sub.cancelledAt);
 });
 
-test('Admin POST activate — non-admin gets 403', async () => {
+test('Admin POST activate, non-admin gets 403', async () => {
   const { venueId, ownerToken } = await registerVenue();
   await api(ownerToken, 'PATCH', `/partner/restaurants/${venueId}/subscription`, {
     plan: 'monthly',
   });
-  // Owner tries to activate — should fail.
+  // Owner tries to activate, should fail.
   const { status } = await api(ownerToken, 'POST', `/admin/restaurants/${venueId}/subscription/activate`, {
     status: 'active',
   });
   assert.equal(status, 403);
 });
 
-test('GET subscription — reads back what was set', async () => {
+test('GET subscription, reads back what was set', async () => {
   const adminToken = await mintAdminToken();
   const { venueId, ownerToken } = await registerVenue();
   // Set plan and activate via admin.

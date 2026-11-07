@@ -62,7 +62,7 @@ class SessionController extends AsyncNotifier<AppSession> {
       final me = await ref.read(sessionRepositoryProvider).me();
       return AppSession.fromProfile(Mappers.userFromDto(me));
     } catch (_) {
-      // Token rejected/expired — clear it and drop to signed-out.
+      // Token rejected/expired, clear it and drop to signed-out.
       await storage.delete(key: _tokenKey);
       client.token = null;
       return AppSession.signedOut();
@@ -125,7 +125,7 @@ class SessionController extends AsyncNotifier<AppSession> {
   /// gate (Host Studio, profile badge, host discovery) updates at once.
   ///
   /// Throws [ApiException] (409 with a human sentence) when upcoming hosted
-  /// experiences block a switch back to Personal — the caller surfaces it.
+  /// experiences block a switch back to Personal, the caller surfaces it.
   Future<void> switchAccountType(String accountType) async {
     final updated = await ref
         .read(usersRepositoryProvider)
@@ -165,7 +165,7 @@ class SessionController extends AsyncNotifier<AppSession> {
 
   // ── Account lifecycle (P1) ────────────────────────────────────────────────
 
-  /// Partial settings write (`PATCH /users/me`) for the Settings screens —
+  /// Partial settings write (`PATCH /users/me`) for the Settings screens,
   /// privacy toggles, food preferences, home locale. Republishes the session
   /// with the server's authoritative row so tiles reflect the saved state.
   /// Throws [ApiException] (validation) for the caller to surface/roll back.
@@ -235,8 +235,8 @@ class SessionController extends AsyncNotifier<AppSession> {
     state = AsyncData(AppSession.fromProfile(Mappers.userFromDto(updated)));
   }
 
-  /// `POST /auth/logout-all`, then clears the local token. Every device —
-  /// including this one — lands back on the sign-in screen.
+  /// `POST /auth/logout-all`, then clears the local token. Every device,
+  /// including this one, lands back on the sign-in screen.
   Future<void> logoutAllDevices() async {
     try {
       await ref.read(sessionRepositoryProvider).logoutAll();
@@ -361,9 +361,9 @@ final accountTypeStatusProvider = FutureProvider<AccountTypeStatus>((ref) {
   return ref.read(usersRepositoryProvider).accountTypeStatus();
 });
 
-/// Growth-ladder status for the Profile tier card. Only fetched for hosts —
+/// Growth-ladder status for the Profile tier card. Only fetched for hosts,
 /// diners see the Become-a-host prompt instead, and influencers/partners have
-/// nothing left to claim — so every other rung short-circuits to null.
+/// nothing left to claim, so every other rung short-circuits to null.
 final tierProvider = FutureProvider<TierDto?>((ref) async {
   if (!ref.watch(authReadyProvider)) return null;
   if (ref.watch(currentRoleProvider) != 'host') return null;

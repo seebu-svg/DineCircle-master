@@ -1,5 +1,5 @@
 /**
- * Seed script — the Karachi test world plus a small Lyon reference world.
+ * Seed script, the Karachi test world plus a small Lyon reference world.
  *
  * Karachi (everything a tester signs in to see): 20 candidate restaurant venues
  * across DHA, Clifton, Saddar, Gulshan, PECHS, Karsaz, Bahadurabad and Lyari,
@@ -115,7 +115,7 @@ async function insertAll(
 
 // ── Karachi venue & kitchen catalogue ───────────────────────────────────────
 // Suggested candidate venues (real, publicly listed Karachi restaurants). Only
-// public basics are real — name, area, cuisine, price band, coordinates. Every
+// public basics are real, name, area, cuisine, price band, coordinates. Every
 // event, ticket price, menu line, booking, review and earning below is
 // fictional test data and does not imply an agreed partnership or an actual
 // hosted event.
@@ -480,7 +480,7 @@ const K_RESTAURANTS: readonly KVenue[] = [
 // demo world.
 const K_UNVERIFIED_VENUES = new Set<string>(['Kanteen', 'Foods Inn', 'Al-Bismillah Hot Foods']);
 
-// Curated creator shortlist (public handles; fictional follower counts — this
+// Curated creator shortlist (public handles; fictional follower counts, this
 // is not a definitive ranking and none are signed DineCircle hosts).
 const K_CREATORS = [
   { name: 'Fatima Tariq', ig: 'fatima_tariqft', focus: 'Food & lifestyle', followers: 128400, area: 'DHA Phase 6' },
@@ -539,20 +539,20 @@ const K_LANGUAGES = ['English', 'Urdu', 'English, Urdu'] as const;
 const K_DIETARY = ['Halal', 'Vegetarian', 'Dairy-Free', 'Nut-Free', 'Gluten-Free'] as const;
 const K_ALLERGIES = ['Nuts', 'Dairy', 'Seafood', 'Wheat', 'Eggs'] as const;
 const K_REVIEW_TEXTS = [
-  'Long table, warm hosts, and the seekh kebab sold out early — already asking for a second edition.',
+  'Long table, warm hosts, and the seekh kebab sold out early. Already asking for a second edition.',
   'Smooth check-in at the door and the QR ticket worked first try.',
   'Great value for a demo ticket; portions were generous.',
   'The hosting flow was flawless, though the dessert service ran late.',
-  'Loved the crowd — half the table were followers, and everyone got along.',
+  'Loved the crowd: half the table were followers, and everyone got along.',
   'Mock payment cleared instantly and the payout report matched to the rupee.',
   'Seaside seating sold out fast; book earlier next time.',
   'The tasting course pacing was the best of the night.',
   'Family-friendly, high chairs available, booking took two taps.',
   'Heritage room was atmospheric; the photos practically took themselves.',
   'Brunch coffee refills kept coming. Solid meetup format.',
-  'Solid test run — a couple of plates arrived late, but the host comped round.',
+  'Solid test run. A couple of plates arrived late, but the host comped round.',
   'Karahi came piping hot and the naan never stopped arriving. Karachi standard.',
-  'Nihari at eleven in the morning with sheermal — the table talked for two hours.',
+  'Nihari at eleven in the morning with sheermal. The table talked for two hours.',
   'Biryani was properly mitha and the raita balanced it. Would book this again.',
   'Charcoal grill by the open kitchen, and the staff explained every cut.',
   'Quiet family section, good parking, and the chai limit was not enforced.',
@@ -638,7 +638,7 @@ async function seedKarachi(): Promise<void> {
       const verified = !K_UNVERIFIED_VENUES.has(r.name);
       return [
         item(restIds, i), opsId, r.name, r.tagline,
-        `Test listing: ${r.name} in ${r.area} is seeded as a DineCircle candidate venue. The venue has not agreed to any partnership — name, area, cuisine and price band are public; the menu, hours, events and earnings below are mock data.`,
+        `Test listing: ${r.name} in ${r.area} is seeded as a DineCircle candidate venue. The venue has not agreed to any partnership. Name, area, cuisine and price band are public; the menu, hours, events and earnings below are mock data.`,
         [...r.cuisines], r.area, `${r.name}, ${r.area}`, 'Karachi',
         `+92213${String(3500001 + i)}`, `rest${String(i + 1).padStart(2, '0')}.demo@example.test`, '', '',
         r.price, r.rating, r.reviews, item(seatsByVenue, i), item(tablesByVenue, i).length,
@@ -654,7 +654,7 @@ async function seedKarachi(): Promise<void> {
 
   // ── 18 creator host profiles (10 borrowed public handles, 8 personas) ────
   // The first two creators are crowned Food Influencers (verified badge) so
-  // demo data exercises the top of the ladder; the rest stay eligible hosts —
+  // demo data exercises the top of the ladder; the rest stay eligible hosts,
   // claimable live via POST /users/me/influencer.
   const hostIds = K_HOSTS.map((_, i) => kid('f', i + 1));
   await insertAll('users',
@@ -665,8 +665,8 @@ async function seedKarachi(): Promise<void> {
       item(hostIds, i), h.name, h.ig, `+92300${String(1000001 + i)}`, `${h.ig}.demo@example.test`,
       demoHash(), 'Karachi', h.area,
       i < K_CREATORS.length
-        ? `Karachi ${h.focus.toLowerCase()} creator. Seeded as a candidate host profile for discovery testing — not a signed DineCircle creator.`
-        : `Fictional Karachi test persona — ${h.focus.toLowerCase()}. Seeded for discovery testing; not a real account.`,
+        ? `Karachi ${h.focus.toLowerCase()} creator. Seeded as a candidate host profile for discovery testing, not a signed DineCircle creator.`
+        : `Fictional Karachi test persona: ${h.focus.toLowerCase()}. Seeded for discovery testing; not a real account.`,
       i <= 1 ? 'influencer' : 'host', `@${h.ig}`, h.followers, int(40, 300), int(3, 14), int(2, 9),
       (4 + rand()).toFixed(2), int(12, 60), item(K_AVATARS, i),
       i <= 1 ? ['verified'] : i % 4 === 0 ? ['Rising Host'] : [], [pick(K_TASTES), pick(K_TASTES)],
@@ -726,7 +726,7 @@ async function seedKarachi(): Promise<void> {
       // dinners start at seven, Karachi time.
       const hour = e.type === 'brunch' || e.type === 'workshop' ? 11 : 19;
       return [
-        e.id, e.title, `${r.tagline} — demo edition`,
+        e.id, e.title, `${r.tagline}: demo edition`,
         `Mock ${item(K_TYPE_LABELS, e.ei)} at ${r.name} (${r.area}). Ticket prices, menu and timings are fictional test data; no venue has confirmed an event.`,
         item(hostIds, e.hi), item(restIds, e.ri), r.cover, [r.cover, item(K_DISH_PHOTOS, e.ei)],
         at(e.past ? -(14 + e.ei) : 2 + e.ei, hour), at(e.past ? -(14 + e.ei) : 2 + e.ei, hour + 3),
@@ -748,14 +748,14 @@ async function seedKarachi(): Promise<void> {
       return Array.from({ length: 3 }, (_, c) => {
         const dish = item(dishes, e.ei * 3 + c);
         return [
-          e.id, c, dish.name, `${dish.section} — mock course line for the test edition`,
+          e.id, c, dish.name, `${dish.section}: mock course line for the test edition`,
           pick(K_PAIRINGS), c === 0,
         ];
       });
     }));
 
   // ── 300 bookings (5 per event; gate events hold pending seats; the mock
-  //    payment is a PKR wallet label — no real transaction ever happens) ────
+  //    payment is a PKR wallet label, no real transaction ever happens) ────
   const bookedSeats = new Map<string, number>();
   const attendees = new Map<string, string[]>();
   const reviewable: { event: KEvent; userId: string }[] = [];
@@ -831,8 +831,8 @@ async function seedKarachi(): Promise<void> {
       const home = item(K_AREAS, i);
       const venue = item(K_RESTAURANTS, i);
       return [
-        [d, 'home', `Home — ${home}`, 'Karachi', home, `Flat ${100 + i}, ${home}`, 24.80 + i * 0.002, 67.02 + i * 0.002],
-        [d, 'work', `Office — ${item(K_AREAS, i + 5)}`, 'Karachi', item(K_AREAS, i + 5),
+        [d, 'home', `Home: ${home}`, 'Karachi', home, `Flat ${100 + i}, ${home}`, 24.80 + i * 0.002, 67.02 + i * 0.002],
+        [d, 'work', `Office: ${item(K_AREAS, i + 5)}`, 'Karachi', item(K_AREAS, i + 5),
           `${item(K_AREAS, i + 5)}, Karachi`, 24.85 + i * 0.001, 67.05 + i * 0.001],
         [d, 'favourite', venue.name, 'Karachi', venue.area, `${venue.name}, ${venue.area}`,
           venue.lat, venue.lng],
@@ -859,7 +859,7 @@ async function seedKarachi(): Promise<void> {
   await insertAll('chat_messages', ['event_id', 'author_id', 'text', 'sent_at', 'is_system'],
     upcoming.slice(0, 8).flatMap((e, i) => [
       [e.id, null, 'Welcome to the event chat. This is a demo thread for a test listing.', at(1, 12), true],
-      [e.id, item(dinerIds, i * 3), 'Saved my seat for the meetup — see you there!', at(1, 13, 20 + i), false],
+      [e.id, item(dinerIds, i * 3), 'Saved my seat for the meetup. See you there!', at(1, 13, 20 + i), false],
       [e.id, item(hostIds, e.hi), 'Host here. The check-in QR goes out the morning of the event (mock).', at(1, 14, 5 + i), false],
       [e.id, item(dinerIds, i * 3 + 1), 'Is the karahi spicy enough for kids? Asking for the table.', at(1, 15, 10 + i), false],
     ]));
@@ -876,7 +876,7 @@ async function seedKarachi(): Promise<void> {
     ['id', 'restaurant_id', 'name', 'address', 'area', 'city', 'phone', 'latitude', 'longitude',
       'is_primary', 'accepting_reservations', 'opening_hours', 'timezone'],
     K_RESTAURANTS.map((r, i) => [
-      item(branchIds, i), item(restIds, i), `${r.name} — ${r.area}`,
+      item(branchIds, i), item(restIds, i), `${r.name}: ${r.area}`,
       `${r.name}, ${r.area}, Karachi`, r.area, 'Karachi', `+92213${String(3500001 + i)}`,
       r.lat, r.lng, true, !K_UNVERIFIED_VENUES.has(r.name), weekHours(r), 'Asia/Karachi',
     ]));
@@ -998,7 +998,7 @@ async function seedKarachi(): Promise<void> {
       'cover_image', 'status', 'views_this_week', 'bookings_count'],
     K_RESTAURANTS.map((r, i) => [
       item(restIds, i), `${r.event} Set Menu`,
-      `Mock ${item(r.cuisines, 0)} package for the ${r.area} test listing — three shared plates and chai, priced in PKR.`,
+      `Mock ${item(r.cuisines, 0)} package for the ${r.area} test listing: three shared plates and chai, priced in PKR.`,
       int(6, 30) * 500, i % 3 === 0 ? 4 : 2, [item(r.tags, 0), 'demo'], r.cover,
       i % 8 === 0 ? 'paused' : 'active', int(20, 180), int(1, 24),
     ]));
@@ -1006,7 +1006,7 @@ async function seedKarachi(): Promise<void> {
     ['restaurant_id', 'title', 'body', 'category', 'read', 'icon', 'tint', 'notification_time'], [
       [item(restIds, 0), 'New demo booking', '2 seats on Seaside BBQ Dinner (mock PKR payment).', 'booking', false, 'calendar', 'C26B4E', at(-1, 9, 30)],
       [item(restIds, 3), 'Grill night filling up', 'Charcoal seats for the Boat Basin test listing are 60% booked.', 'booking', false, 'flame', 'C26B4E', at(-1, 18)],
-      [item(restIds, 7), 'Candidate partnership', 'This listing is flagged unverified — awaiting venue contact.', 'partner', false, 'handshake', '4A7A5A', at(-2, 10)],
+      [item(restIds, 7), 'Candidate partnership', 'This listing is flagged unverified. Awaiting venue contact.', 'partner', false, 'handshake', '4A7A5A', at(-2, 10)],
       [item(restIds, 8), 'Family festival preview', 'Test event views are climbing for the SMCHS food festival.', 'general', true, 'eye', '4A5A7A', at(-3, 18)],
       [item(restIds, 10), 'Menu published', 'Karahi and tikka lines are live on the public QR menu.', 'menu', false, 'book-open', '8A5A2B', at(-2, 15)],
       [item(restIds, 12), 'Nihari breakfast table', 'Four covers confirmed for the Akbar Chowk edition.', 'reservation', false, 'utensils', 'C26B4E', at(-1, 8)],
@@ -1017,10 +1017,10 @@ async function seedKarachi(): Promise<void> {
     ]);
   await insertAll('collaboration_invites',
     ['id', 'host_id', 'restaurant_id', 'title', 'message', 'status', 'created_at'], [
-      [kid('9', 1), item(hostIds, 0), item(restIds, 0), 'Seaside BBQ — candidate collab',
+      [kid('9', 1), item(hostIds, 0), item(restIds, 0), 'Seaside BBQ: candidate collab',
         'Mock invite: we would love to test a Seaside BBQ Dinner with you once the venue confirms. Nothing is signed yet.', 'invited', at(-4, 10)],
       [kid('9', 2), item(hostIds, 6), item(restIds, 4), "Chef's Table pilot night",
-        'Mock invite for a counter-side tasting pilot. Pending venue verification — treat as a test record.', 'accepted', at(-9, 12)],
+        'Mock invite for a counter-side tasting pilot. Pending venue verification. Treat as a test record.', 'accepted', at(-9, 12)],
       [kid('9', 3), item(hostIds, 9), item(restIds, 7), 'Desi meetup co-host',
         'Mock invite to co-host the Tipu Sultan Desi Food Meetup test event.', 'invited', at(-2, 16)],
       [kid('9', 4), item(hostIds, 11), item(restIds, 10), 'Charcoal night co-host',
@@ -1135,7 +1135,7 @@ async function main(): Promise<void> {
        '${U.nora}','${R.rooftop}','assets/images/hero_tasting.png','{}',
        '${at(6, 18, 0)}','${at(6, 20, 30)}',150,10,1,45.00,'tasting','public','setMenu',
        ARRAY['5 courses'],ARRAY['tasting','seasonal'],false,
-       'I approve each seat personally — ping me if unsure.',
+       'I approve each seat personally. Ping me if unsure.',
        ARRAY['${U.ava}'],'confirmed',1120,true),
       ('${E.e3}','Cellar Supper','Candles and old vintages',
        'A completed supper club in the wine cellar.',
@@ -1182,15 +1182,15 @@ async function main(): Promise<void> {
   await q(`INSERT INTO collaboration_invites (id, host_id, restaurant_id, title, message, status, created_at)
     VALUES
       ('31313131-3131-3131-3131-313131313131','${U.nora}','${R.rooftop}','Rooftop Sunset Series',
-       'The sunset series is confirmed for monthly editions. Your September edition sold out in 48 hours — the October slot is yours whenever you are ready.','accepted','${at(-9, 10, 0)}'),
+       'The sunset series is confirmed for monthly editions. Your September edition sold out in 48 hours. The October slot is yours whenever you are ready.','accepted','${at(-9, 10, 0)}'),
       ('31313131-3131-3131-3131-313131313132','${U.nora}','${R.rooftop}','Omakase Collaboration Night',
-       'Our head chef loved your last tasting night. We would like to co-host a 4-night omakase series this season — chef\u2019s counter, full creative control on the menu.','invited','${at(-1, 8, 0)}'),
+       'Our head chef loved your last tasting night. We would like to co-host a 4-night omakase series this season: chef\u2019s counter, full creative control on the menu.','invited','${at(-1, 8, 0)}'),
       ('31313131-3131-3131-3131-313131313133','${U.nora}','${R.trattoria}','Brand-Sponsored Pasta Evening',
        'A wine brand partner wants to sponsor a steak & pasta tasting evening hosted by you. We cover the venue, product and a guaranteed honorarium. 20 seats, invite-only.','invited','${at(-3, 15, 0)}')`);
 
   // ── review (Alex reviewed the completed supper) ───────────────────────────
   await q(`INSERT INTO reviews (author_id, event_id, rating, text, created_at)
-    VALUES ('${U.alex}','${E.e3}',5.00,'Nora is a magician — best table I have sat at all year.','${at(-7, 15, 0)}')`);
+    VALUES ('${U.alex}','${E.e3}',5.00,'Nora is a magician: best table I have sat at all year.','${at(-7, 15, 0)}')`);
 
   // ── follows / saved / activity / chat ─────────────────────────────────────
   await q(`INSERT INTO follows (follower_id, followee_id) VALUES ('${U.alex}','${U.nora}')`);

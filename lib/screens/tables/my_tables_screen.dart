@@ -9,7 +9,7 @@ import '../../theme/app_spacing.dart';
 import '../../theme/app_text_styles.dart';
 import '../../widgets/data_view.dart';
 
-/// My Tables screen — the diner's table reservations.
+/// My Tables screen, the diner's table reservations.
 ///
 /// Backed by `GET /users/me/reservations` through [myReservationsProvider].
 /// Tapping a card opens a detail bottom sheet with a cancel action for

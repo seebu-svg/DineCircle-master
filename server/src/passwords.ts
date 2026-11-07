@@ -9,7 +9,7 @@ const scryptAsync = promisify(scrypt);
  * deletion). Lives apart from the HTTP middleware in `security.ts` so both
  * route modules can depend on it without importing each other.
  *
- * Stored format is `scrypt:<salt-hex>:<hash-hex>` — the scheme and salt travel
+ * Stored format is `scrypt:<salt-hex>:<hash-hex>`, the scheme and salt travel
  * with the digest, so parameters can be changed later without ambiguity.
  */
 export async function hashPassword(password: string): Promise<string> {

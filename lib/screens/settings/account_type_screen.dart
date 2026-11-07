@@ -10,7 +10,7 @@ import '../../theme/app_text_styles.dart';
 import '../../widgets/buttons.dart';
 import 'professional_onboarding_screen.dart';
 
-/// Account Type — the one place the mode of the account is explained and
+/// Account Type, the one place the mode of the account is explained and
 /// switched. Instagram-familiar: two cards, the active one ticked, the other
 /// offering the switch; nothing else to learn.
 class AccountTypeScreen extends ConsumerWidget {
@@ -134,7 +134,7 @@ class AccountTypeScreen extends ConsumerWidget {
               'Discover restaurants, deals and experiences',
               'Reserve tables and join dining experiences',
               'Edit your photo, name, username, bio and preferences',
-              'No Host Studio — your profile is not listed publicly',
+              'No Host Studio. Your profile is not listed publicly',
             ],
             footer: !isProfessional
                 ? null

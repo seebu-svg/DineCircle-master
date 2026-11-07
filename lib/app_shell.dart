@@ -34,7 +34,7 @@ import 'providers/saved_locations_provider.dart';
 /// Home · Explore · Scan QR (prominent centre action) · Deals · Profile.
 ///
 /// Tab indices: 0 Home, 1 Explore, 2 Deals, 3 Profile. Scan QR is not a
-/// persistent tab — it opens the camera full-screen (and keeps the hardware
+/// persistent tab, it opens the camera full-screen (and keeps the hardware
 /// camera alive only while the scanner route is on screen).
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
@@ -77,7 +77,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                               context,
                               (route) => route.isFirst,
                             );
-                            // Bookings left the bottom bar — open it as a page.
+                            // Bookings left the bottom bar, open it as a page.
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -103,7 +103,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   void _onCreateTap() => _handleCreate();
 
-  /// Centre navigation action — opens the branded QR scanner full-screen.
+  /// Centre navigation action, opens the branded QR scanner full-screen.
   void _onScanTap() {
     Navigator.push(
       context,
@@ -280,7 +280,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                     onTap: () => setState(() => _currentIndex = 1),
                   ),
                 ),
-                // Scan QR — prominent branded centre action.
+                // Scan QR, prominent branded centre action.
                 _ScanCenterAction(onTap: _onScanTap),
                 Expanded(
                   child: _NavItem(

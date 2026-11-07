@@ -192,7 +192,7 @@ void main() {
             .user!;
         expect(user.showFollowList, isFalse);
         expect(user.homeArea, 'Gulberg');
-        // /users/me payloads omit the email — the session must keep it.
+        // /users/me payloads omit the email, the session must keep it.
         expect(user.email, 'diner@example.com');
       },
     );

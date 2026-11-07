@@ -169,7 +169,7 @@ class _ReportSheetState extends ConsumerState<ReportSheet> {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Your identity stays private — the reported account is never told who filed this.',
+            'Your identity stays private. The reported account is never told who filed this.',
             style: AppTextStyles.bodySmall,
           ),
           const SizedBox(height: AppSpacing.md),

@@ -18,7 +18,7 @@ import '../../providers/events_provider.dart';
 import '../../screens/safety/report_sheet.dart';
 import '../../screens/safety/safety_actions.dart';
 
-/// Public host profile screen — experience-first design (spec section 13).
+/// Public host profile screen, experience-first design (spec section 13).
 ///
 /// Answers three questions:
 /// 1. Who is hosting?
@@ -483,7 +483,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             ),
             child: Center(
               child: Text(
-                user.rating > 0 ? user.rating.toStringAsFixed(1) : '—',
+                user.rating > 0 ? user.rating.toStringAsFixed(1) : '-',
                 style: AppTextStyles.titleMedium.copyWith(
                   color: AppColors.gold,
                   fontWeight: FontWeight.w700,
@@ -697,7 +697,7 @@ class _StarBar extends StatelessWidget {
   }
 }
 
-/// Hosted experience tile — shows image, title, venue, date, price, and CTA.
+/// Hosted experience tile, shows image, title, venue, date, price, and CTA.
 class _ExperienceTile extends StatelessWidget {
   final Dinner dinner;
   final VoidCallback? onTap;
@@ -839,7 +839,7 @@ class _JoinButton extends StatelessWidget {
   }
 }
 
-/// Muted past-experience tile — no join affordance, just title/date/venue.
+/// Muted past-experience tile, no join affordance, just title/date/venue.
 class _PastExperienceTile extends StatelessWidget {
   final Dinner dinner;
   final VoidCallback? onTap;

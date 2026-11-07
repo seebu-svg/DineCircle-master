@@ -75,7 +75,7 @@ abstract class SessionRepository {
 
   // ── Account lifecycle (P1) ────────────────────────────────────────────────
 
-  /// `POST /auth/change-password` — verifies the current password server-side
+  /// `POST /auth/change-password`, verifies the current password server-side
   /// and revokes every OTHER session; the caller's device stays signed in.
   /// Returns the refreshed user for the live session.
   Future<UserDto> changePassword({
@@ -83,7 +83,7 @@ abstract class SessionRepository {
     required String newPassword,
   });
 
-  /// `POST /auth/change-email` — password-confirmed START of a verified
+  /// `POST /auth/change-email`, password-confirmed START of a verified
   /// email change. Does not touch [Session] state; the change only applies
   /// once [confirmEmailChange] succeeds.
   Future<EmailChangeChallenge> requestEmailChange({
@@ -91,14 +91,14 @@ abstract class SessionRepository {
     required String password,
   });
 
-  /// `POST /auth/change-email/confirm` — validates the 6-digit code, applies
+  /// `POST /auth/change-email/confirm`, validates the 6-digit code, applies
   /// the new address and revokes other sessions. Returns the refreshed user.
   Future<UserDto> confirmEmailChange({required String code});
 
-  /// `POST /auth/logout-all` — revokes EVERY session, including this device.
+  /// `POST /auth/logout-all`, revokes EVERY session, including this device.
   Future<void> logoutAll();
 
-  /// `DELETE /users/me` — password-confirmed account deletion. The server
+  /// `DELETE /users/me`, password-confirmed account deletion. The server
   /// anonymises the account in place, settles money and revokes all tokens.
   Future<void> deleteAccount({required String password});
 }

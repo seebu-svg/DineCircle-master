@@ -16,11 +16,11 @@ import '../../widgets/media_image.dart';
 import '../detail/dinner_detail_screen.dart';
 import '../restaurant_detail/restaurant_profile_route.dart';
 
-/// Saved screen — everything the signed-in diner has bookmarked.
+/// Saved screen, everything the signed-in diner has bookmarked.
 ///
 /// Two server-backed tabs:
-///   * **Experiences** — `GET /me/saved` through [savedEventsProvider].
-///   * **Restaurants** — `GET /me/followed-restaurants` through
+///   * **Experiences**: `GET /me/saved` through [savedEventsProvider].
+///   * **Restaurants**: `GET /me/followed-restaurants` through
 ///     [followedVenuesProvider]; unfollowing from here removes the row.
 ///
 /// [initialTab] lets the Profile activity shortcuts deep-link straight into a

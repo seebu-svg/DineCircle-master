@@ -38,7 +38,7 @@ class _StubPrefs extends AppPrefsNotifier {
 }
 
 /// The whole app under a [ProviderScope], starting signed out with fresh
-/// (incomplete) first-run flags — i.e. the first-launch experience.
+/// (incomplete) first-run flags, i.e. the first-launch experience.
 Widget _bootApp() {
   return ProviderScope(
     overrides: [

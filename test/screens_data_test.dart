@@ -56,7 +56,7 @@ void main() {
   });
 
   // Keep the dense rails from tripping RenderFlex overflow assertions in the
-  // fixed headless viewport — layout warnings, not failures.
+  // fixed headless viewport, layout warnings, not failures.
   void usePhoneViewport(WidgetTester tester) {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3.0;
@@ -546,7 +546,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // The key elements must be findable — no overflow clipping.
+      // The key elements must be findable, no overflow clipping.
       expect(find.text('Nora Chen'), findsWidgets);
       expect(find.text('Share'), findsOneWidget);
       expect(find.text('Cellar Supper'), findsOneWidget);
@@ -780,7 +780,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Step 1 is Experience Details — advance to Step 2 (Restaurant & Venue).
+      // Step 1 is Experience Details, advance to Step 2 (Restaurant & Venue).
       await tester.tap(find.text('Next'));
       await tester.pumpAndSettle();
 
@@ -819,7 +819,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Step 1 is Experience Details — advance to Step 2 (Restaurant & Venue).
+      // Step 1 is Experience Details, advance to Step 2 (Restaurant & Venue).
       await tester.tap(find.text('Next'));
       await tester.pumpAndSettle();
 

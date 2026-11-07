@@ -39,7 +39,7 @@ import 'package:dine_circle/screens/user_profile/user_profile_screen.dart';
 
 import 'fake_repositories.dart';
 
-/// Extended overflow detection harness — covers the remaining screens not
+/// Extended overflow detection harness, covers the remaining screens not
 /// included in the original [layout_overflow_test.dart].
 ///
 /// Matrix: each screen × 5 widths × 3 text scales = 15 test cases per screen.
@@ -103,7 +103,7 @@ void main() {
 
   /// Runs the standard overflow matrix for [label] rendering [child].
   void runMatrix(String label, Widget child, List<Override> overrides) {
-    group('Overflow — $label', () {
+    group('Overflow: $label', () {
       for (final w in widths) {
         for (final s in textScales) {
           testWidgets('${w.toInt()}px × ${s}x', (tester) async {
@@ -145,7 +145,7 @@ void main() {
   );
 
   // With a confirmed booking the screen renders the pass card instead of the
-  // empty-state placeholder — the path a guest actually lands on after paying.
+  // empty-state placeholder, the path a guest actually lands on after paying.
   final passDinner = fixtureDinner();
   runMatrix(
     'BookingConfirmedScreen (pass card)',
@@ -222,7 +222,7 @@ void main() {
   // absent here: they are bottom sheets, not screens, and mounting them as
   // `MaterialApp.home` has no Material ancestor, so TextField/RadioListTile
   // throw "No Material widget found" instead of reporting a layout defect.
-  // They run the same 5 widths x 3 scales matrix — plus keyboard-insert cases —
+  // They run the same 5 widths x 3 scales matrix,plus keyboard-insert cases,
   // through their real `show*Sheet()` hosts in layout_overflow_sheets_test.dart.
 
   // ── Group 4: Complex screens ──────────────────────────────────────────

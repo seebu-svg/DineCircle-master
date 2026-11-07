@@ -23,7 +23,7 @@ final publicMenuProvider =
   return menu;
 });
 
-/// Full restaurant menu — the food-first surface a diner reaches from the venue
+/// Full restaurant menu, the food-first surface a diner reaches from the venue
 /// profile or by scanning the table QR code.
 ///
 /// Fetches `GET /api/public/menu/:restaurantId` (unauthenticated) and renders a

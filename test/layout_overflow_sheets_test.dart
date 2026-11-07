@@ -22,7 +22,7 @@ import 'support/overflow_harness.dart';
 ///
 /// Sheets are opened through the same `show*Sheet()` helpers the app calls, so
 /// they are laid out by a real modal route (Material ancestor, bottom-sheet
-/// constraints, `viewInsets` padding) instead of being rendered bare — a bare
+/// constraints, `viewInsets` padding) instead of being rendered bare, a bare
 /// `TextField`/`ListTile` would report a missing Material ancestor rather than
 /// a layout defect.
 void main() {
@@ -79,7 +79,7 @@ void main() {
   };
 
   sheets.forEach((label, open) {
-    group('Sheet — $label', () {
+    group('Sheet: $label', () {
       for (final width in kAuditWidths) {
         for (final scale in kAuditTextScales) {
           testWidgets('${width.toInt()}px × ${scale}x', (tester) async {
@@ -92,7 +92,7 @@ void main() {
             capture.restore();
             expectNoOverflow(
               capture,
-              'Sheet — $label at ${width.toInt()}px, ${scale}x text',
+              'Sheet: $label at ${width.toInt()}px, ${scale}x text',
             );
           });
         }
@@ -111,7 +111,7 @@ void main() {
   };
 
   formSheets.forEach((label, open) {
-    group('Sheet + keyboard — $label', () {
+    group('Sheet + keyboard: $label', () {
       for (final width in const [320.0, 390.0]) {
         for (final scale in const [1.0, 2.0]) {
           testWidgets('${width.toInt()}px × ${scale}x + keyboard', (
@@ -127,7 +127,7 @@ void main() {
             capture.restore();
             expectNoOverflow(
               capture,
-              'Sheet — $label with keyboard at ${width.toInt()}px, ${scale}x',
+              'Sheet: $label with keyboard at ${width.toInt()}px, ${scale}x',
             );
           });
         }

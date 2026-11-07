@@ -175,7 +175,7 @@ test('a partner only reaches the venues it belongs to', async () => {
   const foreign = await api(ops.token, 'GET', `/partner/restaurants/${ROOFTOP}`);
   assert.equal(foreign.status, 403);
 
-  // An id that does not exist is 404 — the two cases stay distinguishable.
+  // An id that does not exist is 404, the two cases stay distinguishable.
   const missing = await api(ops.token, 'GET', `/partner/restaurants/${randomUUID()}`);
   assert.equal(missing.status, 404);
 

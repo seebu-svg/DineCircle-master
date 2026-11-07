@@ -5,7 +5,7 @@ import { query, withTransaction } from '../db.js';
 import { ApiError, forbidden, notFound, requireHostStudio } from '../context.js';
 import type { UserRole } from '../context.js';
 
-// Phase 2a: 0% commission — inlined so pricing.ts can be deleted.
+// Phase 2a: 0% commission, inlined so pricing.ts can be deleted.
 const PLATFORM_COMMISSION_RATE = 0;
 
 const router = Router();
@@ -61,7 +61,7 @@ export function assertHostAccess(requesterId: string, requesterRole: UserRole, t
   throw forbidden('You can only view your own earnings');
 }
 
-// GET /api/hosts/:id/payouts — one earnings line per hosted event.
+// GET /api/hosts/:id/payouts, one earnings line per hosted event.
 router.get('/:id/payouts', async (req, res) => {
   const hostId = req.params.id;
   await requireHost(hostId);
@@ -94,7 +94,7 @@ type TablesRow = {
   fill_rate: number;
 };
 
-// GET /api/hosts/:id/summary — headline numbers for the earnings panel.
+// GET /api/hosts/:id/summary, headline numbers for the earnings panel.
 router.get('/:id/summary', async (req, res) => {
   const hostId = req.params.id;
   await requireHost(hostId);
@@ -159,7 +159,7 @@ type TrendRow = {
   revenue: number;
 };
 
-// GET /api/hosts/:id/trend — net revenue and seats per month.
+// GET /api/hosts/:id/trend, net revenue and seats per month.
 router.get('/:id/trend', async (req, res) => {
   const hostId = req.params.id;
   await requireHost(hostId);
@@ -249,7 +249,7 @@ type PerformanceRow = {
   checked_in: number;
 };
 
-// GET /api/hosts/:id/performance — views / bookings / attendance per event.
+// GET /api/hosts/:id/performance, views / bookings / attendance per event.
 router.get('/:id/performance', async (req, res) => {
   const hostId = req.params.id;
   await requireHost(hostId);
@@ -296,7 +296,7 @@ type PartnerRow = {
   events_together: number;
 };
 
-// GET /api/hosts/:id/partners — distinct venues the host has held tables at.
+// GET /api/hosts/:id/partners, distinct venues the host has held tables at.
 router.get('/:id/partners', async (req, res) => {
   const hostId = req.params.id;
   await requireHost(hostId);
@@ -326,7 +326,7 @@ router.get('/:id/partners', async (req, res) => {
 });
 
 // ── Collaboration invites ────────────────────────────────────────────────────
-// GET /api/hosts/:id/invites — partnership offers (incoming from restaurants).
+// GET /api/hosts/:id/invites, partnership offers (incoming from restaurants).
 router.get('/:id/invites', async (req, res) => {
   const hostId = req.params.id;
   await requireHost(hostId);
@@ -339,7 +339,7 @@ router.get('/:id/invites', async (req, res) => {
   res.json({ invites: rows.map(serializeInvite), count: rows.length });
 });
 
-// GET /api/hosts/:id/collabs — ALL collaborations (incoming + outgoing).
+// GET /api/hosts/:id/collabs: ALL collaborations (incoming + outgoing).
 router.get('/:id/collabs', async (req, res) => {
   const hostId = req.params.id;
   await requireHost(hostId);
@@ -352,7 +352,7 @@ router.get('/:id/collabs', async (req, res) => {
   res.json({ collaborations: rows.map(serializeInvite), count: rows.length });
 });
 
-// POST /api/hosts/:id/collabs/propose — host sends a collaboration proposal.
+// POST /api/hosts/:id/collabs/propose, host sends a collaboration proposal.
 const proposeSchema = z.object({
   restaurantId: z.string().uuid(),
   title: z.string().trim().min(3).max(120),
@@ -402,7 +402,7 @@ router.post('/:id/collabs/propose', async (req, res) => {
       [
         restaurant.owner_id,
         `New collaboration proposal from host`,
-        `"${input.title}" — ${input.message.slice(0, 80)}`,
+        `"${input.title}": ${input.message.slice(0, 80)}`,
       ],
     );
   }
@@ -412,7 +412,7 @@ router.post('/:id/collabs/propose', async (req, res) => {
   res.status(201).json({ collaboration: serializeInvite(full ?? created!) });
 });
 
-// POST /api/hosts/:id/collabs/:collabId/cancel — host cancels their own pending proposal.
+// POST /api/hosts/:id/collabs/:collabId/cancel, host cancels their own pending proposal.
 router.post('/:id/collabs/:collabId/cancel', async (req, res) => {
   const hostId = req.params.id;
   await requireHost(hostId);
@@ -437,7 +437,7 @@ router.post('/:id/collabs/:collabId/cancel', async (req, res) => {
   res.json({ collaboration: serializeInvite(updated!), status: 'cancelled' });
 });
 
-// POST /api/hosts/:id/collabs/:collabId/complete — mark collaboration completed.
+// POST /api/hosts/:id/collabs/:collabId/complete, mark collaboration completed.
 router.post('/:id/collabs/:collabId/complete', async (req, res) => {
   const hostId = req.params.id;
   await requireHost(hostId);
@@ -476,7 +476,7 @@ router.post('/:id/collabs/:collabId/complete', async (req, res) => {
   res.json({ collaboration: serializeInvite(updated!), status: 'completed' });
 });
 
-// POST /api/hosts/:id/invites/:inviteId/accept — flip an invite to accepted.
+// POST /api/hosts/:id/invites/:inviteId/accept, flip an invite to accepted.
 // Only the invite's own host may act on it: a foreign `:id` or caller reads as
 // a 404 (no existence leak) rather than a 403 that would confirm it exists.
 router.post('/:id/invites/:inviteId/accept', async (req, res) => {
@@ -511,7 +511,7 @@ router.post('/:id/invites/:inviteId/accept', async (req, res) => {
   res.json({ invite: serializeInvite(updated!), status: 'accepted' });
 });
 
-// POST /api/hosts/:id/invites/:inviteId/decline — flip an invite to declined.
+// POST /api/hosts/:id/invites/:inviteId/decline, flip an invite to declined.
 router.post('/:id/invites/:inviteId/decline', async (req, res) => {
   const [invite] = await query<InviteRow>(INVITE_BY_ID, [req.params.inviteId]);
   if (!invite || invite.host_id !== req.userId) throw notFound('Invite');
@@ -553,7 +553,7 @@ function periodInterval(period: string): string | null {
   return null;
 }
 
-// GET /api/hosts/:id/analytics — unified analytics payload with period filter.
+// GET /api/hosts/:id/analytics, unified analytics payload with period filter.
 router.get('/:id/analytics', async (req, res) => {
   const hostId = req.params.id;
   await requireHost(hostId);
@@ -708,7 +708,7 @@ router.get('/:id/analytics', async (req, res) => {
 
 // ── Partner discovery ─────────────────────────────────────────────────────────
 
-// GET /api/hosts/:id/discover-partners — verified partner restaurants available
+// GET /api/hosts/:id/discover-partners, verified partner restaurants available
 // for collaboration (excludes restaurants the host already has an active collab with).
 router.get('/:id/discover-partners', async (req, res) => {
   const hostId = req.params.id;
@@ -750,7 +750,7 @@ router.get('/:id/discover-partners', async (req, res) => {
 
 // ── Promotable events ─────────────────────────────────────────────────────────
 
-// GET /api/hosts/:id/promotable-events — published upcoming events for promotion.
+// GET /api/hosts/:id/promotable-events, published upcoming events for promotion.
 router.get('/:id/promotable-events', async (req, res) => {
   const hostId = req.params.id;
   await requireHost(hostId);
@@ -796,7 +796,7 @@ router.get('/:id/promotable-events', async (req, res) => {
   });
 });
 
-// POST /api/hosts/events/:eventId/promote — record a promotion action.
+// POST /api/hosts/events/:eventId/promote, record a promotion action.
 router.post('/events/:eventId/promote', async (req, res) => {
   const eventId = req.params.eventId;
   const hostId = req.userId;
@@ -858,7 +858,7 @@ function serializeWithdrawal(w: WithdrawalRow) {
  * Withdrawable balance for a host (the simulated ledger's one rule): lifetime
  * net earnings minus every withdrawal recorded to date. Because a withdrawal
  * row is the sole mechanism that moves money out of the wallet, its lifecycle
- * (`requested` → `completed`) never changes `available` — no double-counting.
+ * (`requested` → `completed`) never changes `available`, no double-counting.
  * `client` is optional: pass the transaction client when the read must be
  * locked and consistent with a write (withdrawal), otherwise the pool is used.
  */
@@ -867,7 +867,7 @@ async function availableBalance(
   client?: pg.PoolClient,
 ): Promise<number> {
   // Only count payouts with status = 'paid'. A 'scheduled' payout means the
-  // event has not happened yet — the host has not earned that money, so it
+  // event has not happened yet, the host has not earned that money, so it
   // must not be withdrawable. The settleDuePayouts janitor flips scheduled →
   // paid once the event's starts_at is in the past.
   const sql = `SELECT GREATEST(
@@ -884,13 +884,13 @@ async function availableBalance(
   return rows[0]?.available ?? 0;
 }
 
-// GET /api/hosts/:id/wallet — balances plus the withdrawal history.
+// GET /api/hosts/:id/wallet, balances plus the withdrawal history.
 router.get('/:id/wallet', async (req, res) => {
   const hostId = req.params.id;
   await requireHost(hostId);
   assertHostAccess(req.userId, req.userRole, hostId);
 
-  // Phase 2a: settleDuePayouts removed — payouts table deleted.
+  // Phase 2a: settleDuePayouts removed, payouts table deleted.
 
   const [summary] = await query<WalletSummaryRow>(
     `SELECT
@@ -935,9 +935,9 @@ const withdrawSchema = z.object({
   method: z.string().trim().min(1).max(60),
 });
 
-// POST /api/hosts/:id/withdrawals — record a (simulated) payout request.
+// POST /api/hosts/:id/withdrawals, record a (simulated) payout request.
 // Balance check and insert run in ONE transaction. Two locks make it safe:
-//  1. `FOR UPDATE` on the host's user row serialises concurrent withdrawals —
+//  1. `FOR UPDATE` on the host's user row serialises concurrent withdrawals,
 //     the second request blocks until the first commits, then re-reads the true
 //     balance (no double-spend).
 //  2. A transaction-scoped advisory lock on the host id (the SAME key syncPayout
@@ -949,7 +949,7 @@ const withdrawSchema = z.object({
 router.post('/:id/withdrawals', async (req, res) => {
   const hostId = req.params.id;
   await requireHost(hostId);
-  // Withdrawals are self-only — even a partner admin cannot move funds.
+  // Withdrawals are self-only, even a partner admin cannot move funds.
   if (req.userId !== hostId) throw forbidden('You can only withdraw your own earnings');
 
   const input = withdrawSchema.parse(req.body ?? {});
@@ -965,7 +965,7 @@ router.post('/:id/withdrawals', async (req, res) => {
     if (input.amount > available) {
       throw new ApiError(
         400,
-        `Amount exceeds available balance ($${available.toFixed(2)}) — this "wallet" only accrues `
+        `Amount exceeds available balance ($${available.toFixed(2)}). This "wallet" only accrues `
           + 'from simulated bookings; no real money is ever paid out.',
       );
     }

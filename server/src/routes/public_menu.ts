@@ -6,7 +6,7 @@ import { ApiError, notFound } from '../context.js';
 const router = Router();
 
 /**
- * Public venue-menu surface — intentionally unauthenticated.
+ * Public venue-menu surface, intentionally unauthenticated.
  *
  * A QR code printed on a restaurant table links here so a passer-by can scan
  * and read the menu without signing in. The payload is the same data the
@@ -61,7 +61,7 @@ function serializeSection(s: SectionRow, items: ItemRow[]) {
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// GET /api/public/menu/:restaurantId — unauthenticated diner-facing menu.
+// GET /api/public/menu/:restaurantId, unauthenticated diner-facing menu.
 router.get('/:restaurantId', async (req, res) => {
   const { restaurantId } = req.params;
   if (!UUID_PATTERN.test(restaurantId)) {
@@ -110,10 +110,10 @@ router.get('/:restaurantId', async (req, res) => {
 });
 
 /**
- * POST /api/public/menu/:restaurantId/scan — record a QR scan for analytics.
+ * POST /api/public/menu/:restaurantId/scan, record a QR scan for analytics.
  *
  * Fire-and-forget from the customer app. Rate-limited to 1 scan per device per
- * hour. No PII is stored — only a hash of the device identifier.
+ * hour. No PII is stored, only a hash of the device identifier.
  */
 router.post('/:restaurantId/scan', async (req, res) => {
   const { restaurantId } = req.params;
@@ -143,7 +143,7 @@ router.post('/:restaurantId/scan', async (req, res) => {
   );
 
   if (recentScan) {
-    // Already scanned within the last hour — silently accept but don't record.
+    // Already scanned within the last hour, silently accept but don't record.
     res.json({ recorded: false, reason: 'rate_limited' });
     return;
   }

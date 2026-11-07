@@ -1,6 +1,6 @@
 import '../json.dart';
 
-/// Envelope of `GET /api/search` — five categorised lists plus the unpaged
+/// Envelope of `GET /api/search`, five categorised lists plus the unpaged
 /// totals and the per-category "another page exists" flags.
 ///
 /// Parsing only: the DTO keeps the raw maps so the repository can map them with

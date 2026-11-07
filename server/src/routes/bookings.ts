@@ -69,7 +69,7 @@ function serialize(row: BookingRow) {
   };
 }
 
-// GET /api/bookings — one user's tickets (My Tables). Always the acting
+// GET /api/bookings, one user's tickets (My Tables). Always the acting
 // user; `?eventId=` returns a host's guest list for one event. (The former
 // `?userId=` override was a horizontal-authorization gap and is removed.)
 router.get('/bookings', async (req, res) => {
@@ -138,7 +138,7 @@ type EventLockRow = {
   status: string;
 };
 
-// POST /api/events/:id/bookings — join & pay. The event row is locked with
+// POST /api/events/:id/bookings, join & pay. The event row is locked with
 // FOR UPDATE inside a single transaction so two guests can never oversell
 // the last seat.
 router.post('/events/:id/bookings', async (req, res) => {
@@ -153,7 +153,7 @@ router.post('/events/:id/bookings', async (req, res) => {
   if (!guest) throw new ApiError(422, `Unknown guest ${userId}`);
 
   // P2-1: blocked pairs cannot join NEW tables hosted by the other side, in
-  // either direction. Bookings that already exist are never touched here —
+  // either direction. Bookings that already exist are never touched here,
   // they stay on record and follow the normal cancel/support path.
   const [hostRow] = await query<{ host_id: string }>(
     'SELECT host_id FROM dinner_events WHERE id = $1::UUID',
@@ -174,7 +174,7 @@ router.post('/events/:id/bookings', async (req, res) => {
     );
     const event = rows[0];
     // Drafts, venue-pending requests and venue-declined events are not bookable
-    // — treat them as unknown to guests so the venue's decision cannot be
+    //, treat them as unknown to guests so the venue's decision cannot be
     // bypassed by holding a stale event id.
     if (!event || ['draft', 'requested', 'declined'].includes(event.status)) {
       throw notFound('Event');
@@ -225,7 +225,7 @@ router.post('/events/:id/bookings', async (req, res) => {
 
     const totalAmount = input.seats * Number(event.price_per_seat);
 
-    // Promo codes are validated server-side — the client never decides
+    // Promo codes are validated server-side, the client never decides
     // whether a discount applies.
     let discount = 0;
     if (input.promoCode) {
@@ -362,7 +362,7 @@ type CancelRow = {
   payment_status: string;
 };
 
-// POST /api/bookings/:id/cancel — release the seats and mark the booking cancelled.
+// POST /api/bookings/:id/cancel, release the seats and mark the booking cancelled.
 router.post('/bookings/:id/cancel', async (req, res) => {
   const bookingId = req.params.id;
 
@@ -478,7 +478,7 @@ async function loadPendingRequest(
   return booking;
 }
 
-// POST /api/bookings/:id/approve — the host confirms a pending seat request.
+// POST /api/bookings/:id/approve, the host confirms a pending seat request.
 router.post('/bookings/:id/approve', async (req, res) => {
   const bookingId = req.params.id;
 
@@ -519,7 +519,7 @@ router.post('/bookings/:id/approve', async (req, res) => {
   res.json({ booking: serialize(full), eventId, guestUserId });
 });
 
-// POST /api/bookings/:id/decline — the host rejects a pending seat request,
+// POST /api/bookings/:id/decline, the host rejects a pending seat request,
 // releasing the held seat.
 router.post('/bookings/:id/decline', async (req, res) => {
   const bookingId = req.params.id;
@@ -578,7 +578,7 @@ router.post('/bookings/:id/decline', async (req, res) => {
   });
 });
 
-// POST /api/bookings/:id/checkin — mark a ticket used and settle attendance.
+// POST /api/bookings/:id/checkin, mark a ticket used and settle attendance.
 // A valid check-in finalises the booking: `confirmed`/`pending` → `completed`.
 // This unlocks the post-dinner review flow. Runs under a row lock so a
 // double-tap can never settle the same ticket twice.

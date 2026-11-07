@@ -7,9 +7,9 @@ import '../../providers/safety_provider.dart';
 
 /// Shared "Block user" confirmation flow (P2-1).
 ///
-/// Used from profiles and chat. The server decides everything real — mutual
+/// Used from profiles and chat. The server decides everything real, mutual
 /// follows are removed in one transaction and discovery/messaging restrictions
-/// apply immediately — so the client only confirms, calls
+/// apply immediately, so the client only confirms, calls
 /// `POST /users/:id/block`, refreshes the affected providers and [popOnSuccess]
 /// leaves whatever surface showed the blocked person. Returns the outcome so
 /// callers can react; never claims success on failure.

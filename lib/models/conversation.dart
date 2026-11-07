@@ -1,6 +1,6 @@
 import 'user_profile.dart';
 
-/// Conversation kind — maps to the server-side CHECK constraint.
+/// Conversation kind, maps to the server-side CHECK constraint.
 enum ConversationKind { eventGroup, direct, partner }
 
 ConversationKind _parseKind(String raw) {

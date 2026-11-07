@@ -5,7 +5,7 @@ import { isUuid } from '../avatars.js';
 const router = Router();
 
 /**
- * GET /api/public/venue-images/:imageId — uploaded venue photo bytes.
+ * GET /api/public/venue-images/:imageId, uploaded venue photo bytes.
  *
  * Mounted BEFORE requireAuth, for the same reason the avatar route is:
  * `Image.network` cannot attach the bearer token on every platform, and these
@@ -13,7 +13,7 @@ const router = Router();
  *
  * Unlike `/public/avatars/:userId`, the URL needs no `?v=` cache-buster. The id
  * belongs to one upload and its bytes are never rewritten, so a replaced photo
- * is simply a different URL — which is why this response can be cached hard.
+ * is simply a different URL, which is why this response can be cached hard.
  */
 router.get('/:imageId', async (req, res) => {
   const { imageId } = req.params;

@@ -13,7 +13,7 @@ import '../../theme/app_text_styles.dart';
 ///
 /// Client limits mirror the server's zod schema exactly (subject 3–120,
 /// description 10–2000, optional reference ≤40) so a submit only ever fails
-/// for real reasons — and the success state shows the `FB-…` ticket the
+/// for real reasons, and the success state shows the `FB-…` ticket the
 /// support team asks for.
 class FeedbackFormScreen extends ConsumerStatefulWidget {
   const FeedbackFormScreen({super.key, this.initialCategory});
@@ -83,7 +83,7 @@ class _FeedbackFormScreenState extends ConsumerState<FeedbackFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Success state replaces the form entirely — nothing left to tap twice.
+    // Success state replaces the form entirely, nothing left to tap twice.
     if (_ticket != null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Send Feedback')),
@@ -103,7 +103,7 @@ class _FeedbackFormScreenState extends ConsumerState<FeedbackFormScreen> {
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   'Your ticket number is $_ticket. Track its status from '
-                  'Help & Feedback — we keep every ticket under this reference.',
+                  'Help & Feedback, where we keep every ticket under this reference.',
                   textAlign: TextAlign.center,
                   style: AppTextStyles.bodyMedium,
                 ),
@@ -182,7 +182,7 @@ class _FeedbackFormScreenState extends ConsumerState<FeedbackFormScreen> {
                   return 'Please add a little more detail (10+ characters).';
                 }
                 if (text.length > 2000) {
-                  return 'Too long — keep it under 2000 characters.';
+                  return 'Too long. Keep it under 2000 characters.';
                 }
                 return null;
               },

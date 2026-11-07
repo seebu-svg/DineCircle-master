@@ -327,7 +327,7 @@ async function searchHosts(
   );
 }
 
-// GET /api/search — one ranked, categorised page per requested entity type.
+// GET /api/search, one ranked, categorised page per requested entity type.
 router.get('/', async (req, res) => {
   const params = parseSearchParams(req.query as Record<string, unknown>);
   if (!params.valid) {
@@ -370,7 +370,7 @@ router.get('/', async (req, res) => {
   });
 });
 
-// GET /api/search/suggest?q= — typeahead strings across every source.
+// GET /api/search/suggest?q=, typeahead strings across every source.
 router.get('/suggest', async (req, res) => {
   const raw = typeof req.query.q === 'string' ? req.query.q.trim() : '';
   if (raw.length < 2) {

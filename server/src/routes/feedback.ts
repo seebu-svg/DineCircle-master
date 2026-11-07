@@ -8,7 +8,7 @@ import { feedbackRateLimiter } from '../security.js';
 const router = Router();
 
 /**
- * P2-3 Help & Feedback — support tickets raised from the app.
+ * P2-3 Help & Feedback, support tickets raised from the app.
  *
  * Every ticket is owned by the signed-in user and readable only by that user
  * (`/users/me/feedback`) or a platform admin. The `ticket` reference (FB-XXXXXX)
@@ -68,7 +68,7 @@ const createSchema = z.object({
   relatedRef: z.string().trim().max(40).default(''),
 });
 
-// POST /api/feedback — file a ticket. Rate limited per IP (10/hour default).
+// POST /api/feedback, file a ticket. Rate limited per IP (10/hour default).
 router.post('/feedback', feedbackRateLimiter, async (req, res) => {
   const { category, subject, description, relatedRef } = createSchema.parse(
     req.body ?? {},
@@ -85,7 +85,7 @@ router.post('/feedback', feedbackRateLimiter, async (req, res) => {
   res.status(201).json({ feedback: serialize(created) });
 });
 
-// GET /api/users/me/feedback — own ticket history with live statuses.
+// GET /api/users/me/feedback, own ticket history with live statuses.
 router.get('/users/me/feedback', async (req, res) => {
   const rows = await query<FeedbackRow>(
     `SELECT id, category, subject, description, related_ref, status, ticket, created_at, updated_at
@@ -100,7 +100,7 @@ router.get('/users/me/feedback', async (req, res) => {
 
 // ── Admin support queue (super_admin only) ──────────────────────────────────
 
-// GET /api/feedback?status=open — admins triage the queue.
+// GET /api/feedback?status=open, admins triage the queue.
 router.get(
   '/feedback',
   requireRole('super_admin'),
@@ -129,7 +129,7 @@ router.get(
 
 const statusSchema = z.object({ status: z.enum(STATUSES) });
 
-// PATCH /api/feedback/:id — advance a ticket's status (support workflow only;
+// PATCH /api/feedback/:id, advance a ticket's status (support workflow only;
 // users never get to move their own ticket).
 router.patch(
   '/feedback/:id',

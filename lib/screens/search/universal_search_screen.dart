@@ -292,7 +292,7 @@ class _UniversalSearchScreenState extends ConsumerState<UniversalSearchScreen> {
           state.filters.hasFilters
               ? 'Some filters may be too narrow. Clear them or try a '
                     'different phrase.'
-              : 'Try a different spelling or a broader keyword — a cuisine, a '
+              : 'Try a different spelling or a broader keyword: a cuisine, a '
                     'neighbourhood or a venue name.',
           textAlign: TextAlign.center,
           style: AppTextStyles.bodySmall.copyWith(
@@ -766,7 +766,7 @@ class _IdleView extends ConsumerWidget {
             const SizedBox(width: AppSpacing.xs),
             Expanded(
               child: Text(
-                'Search a venue, a dish, a deal, an experience or a host — '
+                'Search a venue, a dish, a deal, an experience or a host. '
                 'one field covers them all.',
                 style: AppTextStyles.caption.copyWith(
                   color: AppColors.textTertiary,

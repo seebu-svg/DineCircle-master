@@ -22,7 +22,7 @@ import '../../providers/users_provider.dart';
 import '../../screens/safety/report_sheet.dart';
 import '../../api/api_exception.dart';
 
-/// Dinner detail screen — premium event details page.
+/// Dinner detail screen, premium event details page.
 ///
 /// Answers five questions:
 /// 1. What experience am I joining?
@@ -387,7 +387,7 @@ class _DinnerDetailScreenState extends ConsumerState<DinnerDetailScreen> {
                 title: const Text('Report Event'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  // Real `POST /reports` — the sheet shows the RP reference.
+                  // Real `POST /reports`, the sheet shows the RP reference.
                   ReportSheet.show(
                     context,
                     ReportTargetType.event,
@@ -585,7 +585,7 @@ class _DinnerDetailScreenState extends ConsumerState<DinnerDetailScreen> {
         value: dinner.cancellationPolicy,
       ),
     );
-    // RSVP rule — no rsvp_deadline column exists, so the honest rule:
+    // RSVP rule, no rsvp_deadline column exists, so the honest rule:
     items.add(
       _DetailRow(
         icon: Icons.event_available_rounded,

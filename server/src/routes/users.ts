@@ -37,7 +37,7 @@ export type UserRow = {
   email: string | null;
   phone: string | null;
   is_deleted: boolean;
-  // Account & Settings (P1) — privacy toggles, food preferences, home locale.
+  // Account & Settings (P1), privacy toggles, food preferences, home locale.
   home_area: string;
   dietary: string[];
   allergies: string[];
@@ -260,7 +260,7 @@ const settingsSchema = z
   })
   .partial();
 
-/** Column name per incoming key — the whitelist the PATCH builder may touch. */
+/** Column name per incoming key, the whitelist the PATCH builder may touch. */
 const SETTINGS_COLUMNS = {
   name: 'name',
   handle: 'handle',
@@ -277,7 +277,7 @@ const SETTINGS_COLUMNS = {
   allergies: 'allergies',
 } as const satisfies Record<keyof z.infer<typeof settingsSchema>, string>;
 
-// PATCH /api/users/me — edit the signed-in profile / settings.
+// PATCH /api/users/me, edit the signed-in profile / settings.
 router.patch('/me', async (req, res) => {
   const input = settingsSchema.parse(req.body ?? {});
 
@@ -329,10 +329,10 @@ const avatarUploadSchema = z.object({
   image: z
     .string()
     .min(1, 'Choose a photo to upload')
-    .max(MAX_AVATAR_BASE64_CHARS, 'That photo is too large — keep it under 512 KB.'),
+    .max(MAX_AVATAR_BASE64_CHARS, 'That photo is too large. Keep it under 512 KB.'),
 });
 
-// PUT /api/users/me/avatar — body `{ image: <base64 | data URL> }`.
+// PUT /api/users/me/avatar, body `{ image: <base64 | data URL> }`.
 router.put('/me/avatar', async (req, res) => {
   const { image } = avatarUploadSchema.parse(req.body ?? {});
   const { bytes, contentType } = decodeAvatarPayload(image);
@@ -365,7 +365,7 @@ router.put('/me/avatar', async (req, res) => {
   res.json({ user: serialize(user) });
 });
 
-// DELETE /api/users/me/avatar — back to the initials avatar. Idempotent.
+// DELETE /api/users/me/avatar, back to the initials avatar. Idempotent.
 router.delete('/me/avatar', async (req, res) => {
   const user = await withTransaction(async (client) => {
     const { rows } = await client.query<UserRow>(
@@ -385,7 +385,7 @@ router.delete('/me/avatar', async (req, res) => {
 
 // ── P1-7 Delete account ──────────────────────────────────────────────────────
 // Anonymise-in-place rather than deleting the users row. Rationale:
-//   * Records preserved — bookings, reviews and payouts keep their history and
+//   * Records preserved, bookings, reviews and payouts keep their history and
 //     their FKs stay valid, instead of `ON DELETE CASCADE` silently erasing the
 //     earnings ledger a host may still owe money against.
 //   * Login is destroyed: email/phone/password_hash are cleared and
@@ -393,7 +393,7 @@ router.delete('/me/avatar', async (req, res) => {
 //     the credential endpoints can no longer resolve the account.
 //   * Money is settled: guests holding live seats at this host's events are
 //     refunded, and the departing guest's own tickets release their seats and
-//     roll back the affected events' accrued payouts — all in one transaction.
+//     roll back the affected events' accrued payouts, all in one transaction.
 router.delete('/me', async (req, res) => {
   const { password } = z
     .object({ password: z.string().min(1, 'Confirm your password').max(200) })
@@ -413,7 +413,7 @@ router.delete('/me', async (req, res) => {
     if (!user.password_hash) {
       throw new ApiError(
         409,
-        'This account has no password yet — sign up with email first.',
+        'This account has no password yet. Sign up with email first.',
       );
     }
     if (!(await verifyPassword(password, user.password_hash))) {
@@ -505,7 +505,7 @@ router.delete('/me', async (req, res) => {
       [req.userId],
     );
 
-    // 5. (syncPayout removed — payouts table deleted in Phase 2a)
+    // 5. (syncPayout removed, payouts table deleted in Phase 2a)
 
     // 6. Anonymise the account in place, then revoke every session.
     await client.query(
@@ -547,12 +547,12 @@ router.delete('/me', async (req, res) => {
   // honestly `pending_gateway` for ops follow-up rather than rolling back a
   // deletion the user confirmed with their password.
   const { gatewaySettlements, ...publicOutcome } = outcome;
-  // Phase 2a: gateway settlement removed — no Stripe calls needed.
+  // Phase 2a: gateway settlement removed, no Stripe calls needed.
 
   res.json({ deleted: true, ...publicOutcome });
 });
 
-// GET /api/users — People-screen discovery list (P0-3). Registered before
+// GET /api/users: People-screen discovery list (P0-3). Registered before
 // '/:id' so the literal path is not swallowed by the profile route.
 router.get('/', async (req, res) => {
   const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
@@ -563,7 +563,7 @@ router.get('/', async (req, res) => {
   // Anonymised accounts are not people to discover.
   const conditions: string[] = ['u.is_deleted = false'];
   const params: unknown[] = [req.userId];
-  // P2-1: blocked accounts vanish from discovery/search both ways — the
+  // P2-1: blocked accounts vanish from discovery/search both ways, the
   // blocker never sees the person they blocked, and the blocked person never
   // sees them back. Pure SQL, so pagination stays consistent server-side.
   conditions.push(notBlockedBetween('$1', 'u.id'));
@@ -614,7 +614,7 @@ const accountTypeSchema = z.object({
 
 /**
  * Experiences that block a switch back to Personal: anything guests can still
- * act on. Drafts are excluded on purpose — nobody has booked a draft, and it
+ * act on. Drafts are excluded on purpose, nobody has booked a draft, and it
  * is still there (unpublished) if the account goes Professional again.
  */
 async function activeHostedExperiences(userId: string) {
@@ -685,7 +685,7 @@ async function setAccountType(userId: string, accountType: 'personal' | 'profess
   return loadUser(userId);
 }
 
-// GET /api/users/me/account-type — current mode, when it was activated and the
+// GET /api/users/me/account-type, current mode, when it was activated and the
 // upcoming experiences that currently block a switch back to Personal.
 router.get('/me/account-type', async (req, res) => {
   const [me] = await query<{
@@ -711,7 +711,7 @@ router.get('/me/account-type', async (req, res) => {
   });
 });
 
-// POST /api/users/me/account-type — switch mode on the same account.
+// POST /api/users/me/account-type, switch mode on the same account.
 // Personal → Professional promotes the role to host; Professional → Personal
 // is blocked while upcoming experiences exist (409) and never auto-cancels.
 router.post('/me/account-type', async (req, res) => {
@@ -720,7 +720,7 @@ router.post('/me/account-type', async (req, res) => {
   res.json({ user });
 });
 
-// POST /api/users/me/host — legacy alias kept for already-installed builds.
+// POST /api/users/me/host, legacy alias kept for already-installed builds.
 // It is now exactly "switch this account to Professional"; the client's real
 // entry point is /me/account-type.
 router.post('/me/host', async (req, res) => {
@@ -728,7 +728,7 @@ router.post('/me/host', async (req, res) => {
   res.json({ role: user.role, user });
 });
 
-// GET /api/users/me/tier — current ladder rung plus progress toward the next.
+// GET /api/users/me/tier, current ladder rung plus progress toward the next.
 // The client Profile card reads this to show met/unmet influencer criteria.
 router.get('/me/tier', async (req, res) => {
   const [me] = await query<UserRow>(
@@ -739,7 +739,7 @@ router.get('/me/tier', async (req, res) => {
   res.json(tierInfo(me));
 });
 
-// POST /api/users/me/influencer — claim Food Influencer status on the SAME
+// POST /api/users/me/influencer, claim Food Influencer status on the SAME
 // account. Idempotent for existing influencers; 403s when the thresholds are
 // not met yet (the structured body carries progress + thresholds so the UI can
 // show what is missing). Success flips the role and grants the 'verified'
@@ -783,7 +783,7 @@ router.post('/me/influencer', async (req, res) => {
   res.json({ role: 'influencer', user: await loadUser(me.id) });
 });
 
-// GET /api/users/me — the signed-in user's own profile.
+// GET /api/users/me, the signed-in user's own profile.
 router.get('/me', async (req, res) => {
   const [user] = await query<UserRow>(
     'SELECT * FROM users WHERE id = $1::UUID AND is_deleted = false',
@@ -793,7 +793,7 @@ router.get('/me', async (req, res) => {
   res.json({ user: serialize(user) });
 });
 
-// GET /api/users/handle-available?handle=… — advisory pre-check for the
+// GET /api/users/handle-available?handle=…, advisory pre-check for the
 // profile editor. Exposes exactly what the 409 on PATCH already does (is this
 // username claimable?) and nothing else; an invalid value answers 200 with
 // `reason: 'invalid'` so the field can render inline feedback instead of an
@@ -821,7 +821,7 @@ router.get('/handle-available', async (req, res) => {
   res.json({ handle, available: !clash, reason: clash ? 'taken' : null });
 });
 
-// GET /api/users/:id/followers — accounts that follow :id, newest first.
+// GET /api/users/:id/followers, accounts that follow :id, newest first.
 // P1-4: the target can hide who they follow / who follows them. The owner
 // always sees their own lists; everyone else gets 403 when the toggle is off.
 router.get('/:id/followers', async (req, res) => {
@@ -851,7 +851,7 @@ router.get('/:id/followers', async (req, res) => {
   });
 });
 
-// GET /api/users/:id/following — accounts :id follows, newest first.
+// GET /api/users/:id/following, accounts :id follows, newest first.
 router.get('/:id/following', async (req, res) => {
   const target = await loadRosterTarget(req.params.id);
   assertFollowListVisible(target, req.userId);
@@ -897,7 +897,7 @@ async function loadRosterTarget(id: string) {
 /**
  * P2-1 block gate for direct profile access. Discovery already hides blocked
  * accounts, but a stale deep link (or a cached id) must not read a blocked
- * profile's data back out of `/users/:id` — either direction of a blocked
+ * profile's data back out of `/users/:id`, either direction of a blocked
  * pair gets a 403 for the OTHER account; viewing your own profile is always
  * allowed. 403 rather than 404: the profile was publicly visible before the
  * block, so pretending it vanished would be the less honest signal.
@@ -933,7 +933,7 @@ function assertFollowListVisible(
 /**
  * P1-4 privacy gate for the activity a profile broadcasts: with `showActivity`
  * off, other users no longer receive the host's upcoming-dinner list. Reviews
- * stay visible — they are the trust record of the platform, not user activity.
+ * stay visible, they are the trust record of the platform, not user activity.
  */
 function activityVisible(
   target: { id: string; showActivity?: boolean },
@@ -943,7 +943,7 @@ function activityVisible(
   return target.showActivity !== false;
 }
 
-// GET /api/users/:id — profile card plus hosted upcoming events and reviews.
+// GET /api/users/:id, profile card plus hosted upcoming events and reviews.
 router.get('/:id', async (req, res) => {
   if (!isUuid(req.params.id)) throw notFound('User');
   // Anonymised accounts have no profile page; their reviews and bookings

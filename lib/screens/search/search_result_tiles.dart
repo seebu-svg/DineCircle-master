@@ -364,7 +364,7 @@ class _Badge extends StatelessWidget {
   }
 }
 
-/// `24 Aug` — short enough for a chip, unambiguous because it carries the year
+/// `24 Aug`, short enough for a chip, unambiguous because it carries the year
 /// only when the date is not in the current year.
 String _shortDate(DateTime date) {
   const months = [

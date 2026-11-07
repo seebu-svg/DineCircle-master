@@ -227,8 +227,8 @@ class BookingReceiptSheet extends StatelessWidget {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
-                            'Receipt PDFs are not available yet — '
-                            'backend export required.',
+                            'Receipt PDFs are not available yet. '
+                            'Backend export required.',
                           ),
                         ),
                       );

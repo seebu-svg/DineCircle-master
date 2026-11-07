@@ -16,7 +16,7 @@ final RegExp _emailPattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
 /// intentionally not surfaced on the first-launch screen for now.
 enum _AuthIntent { signIn, signUp }
 
-/// Email + password sign-in / account creation — the simple first-launch path.
+/// Email + password sign-in / account creation, the simple first-launch path.
 ///
 /// On success the [SessionController] flips to a signed-in session and the
 /// session-driven app flow routes onward; this screen does not navigate itself.

@@ -144,7 +144,7 @@ class ExperienceCard extends StatelessWidget {
                         ),
                     ],
                   ),
-                  // Reserve CTA — separate bottom row
+                  // Reserve CTA, separate bottom row
                   const SizedBox(height: AppSpacing.xs),
                   Align(
                     alignment: Alignment.centerRight,

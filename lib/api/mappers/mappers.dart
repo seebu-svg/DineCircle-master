@@ -22,7 +22,7 @@ import '../json.dart';
 /// The list feed only embeds a slim host/venue reference, so these mappers
 /// deliberately fill required-but-absent fields with safe defaults (null
 /// coordinates, empty strings). The detail endpoints supply the full
-/// venue/menu/attendees — including real lat/lng — which these same functions
+/// venue/menu/attendees,including real lat/lng,which these same functions
 /// consume when present.
 class Mappers {
   Mappers._();
@@ -125,7 +125,7 @@ class Mappers {
     accountType: d.accountType,
     professionalSince: d.professionalSince,
     joinedYear: d.joinedYear,
-    // Account & Settings (P1) — ride the `/auth/me` payload so the Settings
+    // Account & Settings (P1), ride the `/auth/me` payload so the Settings
     // screens hydrate straight off the session without a second round-trip.
     email: d.email,
     homeArea: d.homeArea,
@@ -322,7 +322,7 @@ class Mappers {
       createdAt: d.createdAt ?? DateTime.now(),
       qrCode: d.reference,
       guestName: user.name,
-      // The server stores an empty label while a gateway owns the payment —
+      // The server stores an empty label while a gateway owns the payment,
       // the settlement webhook writes the real brand/last4. Inventing a card
       // here would show a method the guest never used, so the empty value is
       // passed through and surfaces as "Not recorded".
@@ -357,7 +357,7 @@ class Mappers {
       createdAt: d.createdAt ?? DateTime.now(),
       qrCode: d.reference,
       guestName: user.name,
-      // The server stores an empty label while a gateway owns the payment —
+      // The server stores an empty label while a gateway owns the payment,
       // the settlement webhook writes the real brand/last4. Inventing a card
       // here would show a method the guest never used, so the empty value is
       // passed through and surfaces as "Not recorded".

@@ -3,7 +3,7 @@
  *
  * Boots the REAL API in PAYMENTS_MODE=mock: Stripe-shaped gateway semantics
  * offline, with genuine webhook signature verification through the Stripe
- * SDK (generateTestHeaderString / constructEvent are pure local crypto —
+ * SDK (generateTestHeaderString / constructEvent are pure local crypto,
  * no network, no live keys). This exercises the whole ladder:
  *   checkout → pending_payment → webhook → paid (+ card label + payout),
  *   authorization → approve/decline, cancel → pending_gateway → confirmed,
@@ -277,7 +277,7 @@ test('succeeded webhook with a mismatched amount refuses to settle', async () =>
   const forged = paymentIntentEvent('payment_intent.succeeded', booking, {
     latest_charge: CARD_CHARGE,
   });
-  forged.data.object.amount = 1; // pennies — not the $100.00 the booking holds
+  forged.data.object.amount = 1; // pennies, not the $100.00 the booking holds
   const { status } = await deliverWebhook(forged);
   assert.equal(status, 200); // acknowledged (no retry storm) but not applied
   assert.equal((await bookingRow(booking.id)).payment_status, 'pending_payment');
