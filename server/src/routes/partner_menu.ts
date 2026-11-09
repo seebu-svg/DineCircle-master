@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { query } from '../db.js';
-import { ApiError, notFound } from '../context.js';
+import { ApiError, notFound, patchKeys } from '../context.js';
 import { requireVenueRole, loadVenueGate, isVerifiedVenue } from '../access.js';
 
 const router = Router();
@@ -112,6 +112,7 @@ const patchSectionSchema = sectionSchema.partial();
 router.patch('/:restaurantId/menu/sections/:sectionId', async (req, res) => {
   await requireVenueRole(req, req.params.restaurantId, 'manager');
   const input = patchSectionSchema.parse(req.body ?? {});
+  const provided = patchKeys(req.body);
 
   const sets: string[] = [];
   const params: unknown[] = [];
@@ -119,6 +120,7 @@ router.patch('/:restaurantId/menu/sections/:sectionId', async (req, res) => {
     name: 'name', branchId: 'branch_id', position: 'position', isActive: 'is_active',
   };
   for (const [key, column] of Object.entries(map)) {
+    if (!provided.has(key)) continue;
     const value = (input as Record<string, unknown>)[key];
     if (value === undefined) continue;
     params.push(value);
@@ -209,6 +211,7 @@ const patchItemSchema = itemSchema.partial();
 router.patch('/:restaurantId/menu/items/:itemId', async (req, res) => {
   await requireVenueRole(req, req.params.restaurantId, 'manager');
   const input = patchItemSchema.parse(req.body ?? {});
+  const provided = patchKeys(req.body);
 
   // A move between sections must stay inside the same restaurant.
   if (input.sectionId !== undefined) {
@@ -228,6 +231,7 @@ router.patch('/:restaurantId/menu/items/:itemId', async (req, res) => {
     dietaryTags: 'dietary_tags', photoUrl: 'photo_url',
   };
   for (const [key, column] of Object.entries(map)) {
+    if (!provided.has(key)) continue;
     const value = (input as Record<string, unknown>)[key];
     if (value === undefined) continue;
     params.push(value);

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import type pg from 'pg';
 import { z } from 'zod';
 import { query, withTransaction } from '../db.js';
-import { ApiError, notFound } from '../context.js';
+import { ApiError, notFound, patchKeys } from '../context.js';
 import { requireVenueRole, isVerifiedVenue } from '../access.js';
 import { list, parsePagination, optionalDate } from '../api.js';
 
@@ -555,12 +555,27 @@ const patchDealSchema = dealBaseSchema.partial().extend({
 router.patch('/:restaurantId/deals/:dealId', async (req, res) => {
   await requireVenueRole(req, req.params.restaurantId, 'manager');
   const input = patchDealSchema.parse(req.body ?? {});
+  const provided = patchKeys(req.body);
 
   const [existing] = await query<DealRow>(
     'SELECT * FROM restaurant_deals WHERE id = $1::UUID AND restaurant_id = $2::UUID',
     [req.params.dealId, req.params.restaurantId],
   );
   if (!existing) throw notFound('Deal');
+
+  // The PATCH schema is built from `dealBaseSchema` rather than `dealSchema`,
+  // so the percent ceiling that `superRefine` applies on create never runs
+  // here. Re-check it against the row as it will exist after this write:
+  // otherwise a package deal edited via `PATCH {status}` would keep its money
+  // value while flipping `kind`, and render as e.g. "5999% off".
+  // `input.kind` cannot be trusted on its own: `.partial()` still applies the
+  // `.default('percent')`, so read the effective value through `provided`.
+  const nextKind = provided.has('kind') && input.kind !== undefined ? input.kind : existing.kind;
+  const nextValue =
+    provided.has('value') && input.value !== undefined ? input.value : Number(existing.value);
+  if (nextKind === 'percent' && nextValue > 100) {
+    throw new ApiError(422, 'Percent deals must be 1-100');
+  }
 
   if (input.status !== undefined) {
     const allowed = DEAL_TRANSITIONS[existing.status] ?? [];
@@ -585,6 +600,7 @@ router.patch('/:restaurantId/deals/:dealId', async (req, res) => {
   const sets: string[] = [];
   const params: unknown[] = [];
   for (const [key, column] of Object.entries(map)) {
+    if (!provided.has(key)) continue;
     const value = (input as Record<string, unknown>)[key];
     if (value === undefined) continue;
     params.push(key === 'code' && typeof value === 'string' ? value.toUpperCase() : value);
@@ -604,6 +620,9 @@ router.patch('/:restaurantId/deals/:dealId', async (req, res) => {
   ).catch((error: { code?: string }) => {
     if (error.code === '23514') {
       throw new ApiError(422, 'Deal violates its value or date constraints');
+    }
+    if (error.code === '23505') {
+      throw new ApiError(409, 'That deal code is already in use at this venue');
     }
     throw error;
   });

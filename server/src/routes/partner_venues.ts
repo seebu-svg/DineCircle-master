@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { query, withTransaction } from '../db.js';
-import { ApiError, notFound, forbidden } from '../context.js';
+import { ApiError, notFound, forbidden, patchKeys } from '../context.js';
 import {
   isVerifiedVenue,
   requirePartner,
@@ -844,6 +844,7 @@ const patchBranchSchema = branchSchema.partial();
 router.patch('/:restaurantId/branches/:branchId', async (req, res) => {
   await requireVenueRole(req, req.params.restaurantId, 'manager');
   const input = patchBranchSchema.parse(req.body ?? {});
+  const provided = patchKeys(req.body);
 
   const updated = await withTransaction(async (client) => {
     const { rows: existing } = await client.query<BranchRow>(
@@ -870,6 +871,7 @@ router.patch('/:restaurantId/branches/:branchId', async (req, res) => {
       timezone: 'timezone',
     };
     for (const [key, column] of Object.entries(map)) {
+      if (!provided.has(key)) continue;
       const value = (input as Record<string, unknown>)[key];
       if (value === undefined) continue;
       params.push(value);

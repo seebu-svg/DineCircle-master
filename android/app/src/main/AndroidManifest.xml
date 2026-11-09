@@ -1,7 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Release builds need INTERNET explicitly (debug overlays only cover
-         debug/profile). usesCleartextTraffic lets test builds talk to the
-         LAN-hosted DineCircle API over plain http:// (dev seed data). -->
+         debug/profile). Cleartext http is NOT permitted in release: every
+         shipped request and image URL is https. The debug overlay re-enables
+         it for LAN development against a local API. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Live location for the map + nearby experience (WS-A). -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
@@ -11,7 +12,6 @@
     <application
         android:label="DineCircle"
         android:name="${applicationName}"
-        android:usesCleartextTraffic="true"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher">
         <!-- Google Maps SDK key. Injected via the GOOGLE_MAPS_API_KEY dart

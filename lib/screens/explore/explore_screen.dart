@@ -140,6 +140,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   /// tripping the `@protected` lint (extensions are not subclasses).
   void _updateVenueTag(String tag) => setState(() => _venueTag = tag);
   void _updateCuisine(String? cuisine) => setState(() => _cuisine = cuisine);
+  void _updateSelectedTab(_DiscoverTab tab) => setState(() => _selectedTab = tab);
+  void _updateQuery(String query) => setState(() => _query = query);
   void _toggleMapView() => setState(() => _showMap = !_showMap);
 
   /// Toggle save/follow state for a restaurant via the repository.
@@ -966,7 +968,7 @@ extension _ExploreTabContent on _ExploreScreenState {
                           isSelected: _cuisine == c,
                           onTap: () {
                             _updateCuisine(_cuisine == c ? null : c);
-                            setState(() => _selectedTab = _DiscoverTab.restaurants);
+                            _updateSelectedTab(_DiscoverTab.restaurants);
                           },
                         ),
                     ],
@@ -1060,7 +1062,7 @@ extension _ExploreTabContent on _ExploreScreenState {
                   title: 'Tonight & Upcoming',
                   actionText: 'See all',
                   onAction: () =>
-                      setState(() => _selectedTab = _DiscoverTab.experiences),
+                      _updateSelectedTab(_DiscoverTab.experiences),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Padding(
@@ -1377,7 +1379,7 @@ extension _ExploreTabContent on _ExploreScreenState {
                 _updateCuisine(null);
                 _updateVenueTag('');
                 _searchController.clear();
-                setState(() => _query = '');
+                _updateQuery('');
                 ref.invalidate(
                   venueSearchProvider(VenueSearch(query: _query, tag: _venueTag)),
                 );

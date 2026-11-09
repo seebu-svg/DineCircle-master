@@ -4,4 +4,8 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- The dev API is served over plain HTTP on the LAN (API_BASE_URL in
+         dart-defines.json), which Android blocks by default since API 28.
+         Debug-only so release builds keep cleartext disabled. -->
+    <application android:usesCleartextTraffic="true" />
 </manifest>

@@ -17,6 +17,16 @@ import 'app_shell.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // A production build pointed at a plain-http host cannot reach the API,
+  // because release manifests forbid cleartext. Say so once at startup rather
+  // than letting every screen fail with a generic network error.
+  if (AppConfig.isInsecureProductionBuild) {
+    debugPrint(
+      'CONFIGURATION ERROR: ENVIRONMENT=production but API_BASE_URL is '
+      '${AppConfig.apiBaseUrl}. Rebuild with an https host.',
+    );
+  }
+
   // Log configuration in debug mode
   if (AppConfig.enableDebugLogging) {
     debugPrint('🔧 App Configuration:');

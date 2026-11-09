@@ -57,6 +57,12 @@ export class ApiError extends Error {
   constructor(
     readonly status: number,
     message: string,
+    /**
+     * Extra machine-readable fields merged into the error body, so a client can
+     * branch on `code` instead of parsing prose or re-parsing a stringified
+     * JSON payload out of `error`.
+     */
+    readonly details?: Record<string, unknown>,
   ) {
     super(message);
   }
@@ -148,6 +154,20 @@ export const requireHostStudio: RequestHandler = (
     forbidden('Switch to a Professional account to use Host Studio'),
   );
 };
+
+/**
+ * Keys the caller actually sent, read from the raw body before Zod parses it.
+ *
+ * Zod's `.partial()` wraps each field in `ZodOptional` but *keeps* the inner
+ * `.default()`, so an absent key still comes back populated. A PATCH handler
+ * that trusts the parsed object therefore cannot tell "not sent" apart from
+ * "sent as the default" and will overwrite columns the caller never touched.
+ * Build the SET list off these keys instead.
+ */
+export function patchKeys(body: unknown): Set<string> {
+  if (body === null || typeof body !== 'object') return new Set();
+  return new Set(Object.keys(body as Record<string, unknown>));
+}
 
 /** Serializes the current user for auth endpoints (full profile shape). */
 export async function loadUser(id: string) {

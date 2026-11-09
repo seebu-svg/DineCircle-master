@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { query } from '../db.js';
-import { ApiError, notFound } from '../context.js';
+import { ApiError, notFound, patchKeys } from '../context.js';
 import { requireVenueRole } from '../access.js';
 import { list, one, parsePagination, optionalString, optionalDate } from '../api.js';
 import {
@@ -96,6 +96,7 @@ const patchTableSchema = tableSchema.partial();
 router.patch('/:restaurantId/tables/:tableId', async (req, res) => {
   await requireVenueRole(req, req.params.restaurantId, 'manager');
   const input = patchTableSchema.parse(req.body ?? {});
+  const provided = patchKeys(req.body);
 
   const sets: string[] = [];
   const params: unknown[] = [];
@@ -104,6 +105,7 @@ router.patch('/:restaurantId/tables/:tableId', async (req, res) => {
     isActive: 'is_active',
   };
   for (const [key, column] of Object.entries(map)) {
+    if (!provided.has(key)) continue;
     const value = (input as Record<string, unknown>)[key];
     if (value === undefined) continue;
     params.push(value);

@@ -112,7 +112,10 @@ app.use(cors({
     // are always allowed, the check below is for cross-origin browser traffic.
     if (!origin) return callback(null, true);
     if (isAllowedOrigin(origin)) return callback(null, true);
-    callback(new Error('CORS: origin not allowed'));
+    // A rejected origin is a client mistake, not a server fault. Raising an
+    // ApiError keeps it a 403; a plain Error would be flattened into a 500 and
+    // make a misconfigured CORS_ALLOWED_ORIGINS look like an outage.
+    callback(new ApiError(403, 'Origin not allowed'));
   },
 }));
 
@@ -151,9 +154,24 @@ app.use('/api/public/avatars', publicAvatarsRouter);
 // as avatars, every render site is an `Image.network` with no bearer token.
 app.use('/api/public/venue-images', publicVenueImagesRouter);
 
+// Liveness + readiness in one. A failed database round trip must answer a
+// non-2xx status so the platform health check (and any external monitor)
+// sees the instance as unhealthy instead of a generic 500 from the error
+// handler. The body stays small: this route is polled, never read by a human.
 app.get('/api/health', async (_req: Request, res: Response) => {
   const started = Date.now();
-  await pool.query('SELECT 1');
+  try {
+    await pool.query('SELECT 1');
+  } catch (error) {
+    console.error('Health check failed:', error);
+    res.status(503).json({
+      status: 'degraded',
+      database: 'unreachable',
+      latencyMs: Date.now() - started,
+      time: new Date().toISOString(),
+    });
+    return;
+  }
   res.json({
     status: 'ok',
     database: 'unified dinecircle',
@@ -213,7 +231,9 @@ app.use((_req: Request, res: Response, _next: NextFunction) => {
 app.use(
   (error: unknown, _req: Request, res: Response, _next: NextFunction) => {
     if (error instanceof ApiError) {
-      res.status(error.status).json({ error: error.message });
+      // `details` carries machine-readable fields (e.g. `code: plan_required`)
+      // so clients branch on a value instead of parsing the message.
+      res.status(error.status).json({ error: error.message, ...error.details });
       return;
     }
     if (error instanceof ZodError) {
@@ -264,18 +284,58 @@ try {
 // Phase 2b: Socket.IO removed, no real-time chat layer.
 const httpServer = app.listen(port, () => {
   console.log(`DineCircle API listening on http://localhost:${port}`);
+  if (process.env.NODE_ENV !== 'production') {
+    // Hosted platforms always set NODE_ENV for the app; if it is missing the
+    // build runs with development defaults, which accepts ANY CORS origin and
+    // re-enables the phone sign-in flow. Loud enough to find in the log
+    // stream, harmless locally where this is expected.
+    console.warn(
+      `NODE_ENV is "${process.env.NODE_ENV ?? 'unset'}". ` +
+        'Development defaults apply: every CORS origin is accepted and the ' +
+        'phone sign-in route is enabled.',
+    );
+  }
 });
+
+/** How long to let in-flight requests drain before forcing the process down. */
+const SHUTDOWN_GRACE_MS = 10_000;
 
 let shuttingDown = false;
 function shutdown(signal: string): void {
   if (shuttingDown) return;
   shuttingDown = true;
   console.log(`\n${signal} received. Shutting down`);
+
+  // Hard deadline: a single kept-alive connection that never closes would
+  // otherwise hold the container open until the platform SIGKILLs it, which
+  // loses the in-flight work we are trying to drain.
+  const forceExit = setTimeout(() => {
+    console.error(`Shutdown exceeded ${SHUTDOWN_GRACE_MS}ms. Forcing exit.`);
+    process.exit(1);
+  }, SHUTDOWN_GRACE_MS);
+  forceExit.unref();
+
   httpServer.close(async () => {
     await pool.end().catch(() => undefined);
     process.exit(0);
   });
+  // Stop accepting new keep-alive requests immediately; idle sockets do not
+  // count as in-flight work and need not delay the drain.
+  httpServer.closeIdleConnections();
 }
 
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
+
+// A rejection that escapes every handler means the process is in an unknown
+// state. Log it with the stack, then exit non-zero so the platform restarts a
+// clean container instead of serving from a half-broken one.
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection:', reason);
+  shutdown('unhandledRejection');
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught exception:', error);
+  shutdown('uncaughtException');
+});

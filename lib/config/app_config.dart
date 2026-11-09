@@ -1,3 +1,5 @@
+import '../api/app_config.dart' as api_config;
+
 /// Application configuration management.
 /// 
 /// This file centralizes all environment-specific configuration values
@@ -15,6 +17,13 @@
 ///
 /// The app talks to the DineCircle Express API for both authentication and
 /// data access; there is no direct database client in the Flutter layer.
+///
+/// The API host and timeouts are NOT declared here. They live in
+/// `lib/api/app_config.dart`, which the HTTP client, the avatar widget and the
+/// booking screen all read. Re-declaring them here previously gave this file a
+/// different default (`https://api.dinecircle.com` vs `http://10.0.2.2:4000`),
+/// so a build without dart-defines would log one host while calling another.
+/// These getters delegate to that single source so the two can never diverge.
 class AppConfig {
   AppConfig._();
 
@@ -52,6 +61,14 @@ class AppConfig {
   /// Whether the app is running in staging mode
   static const bool isStaging = environment == 'staging';
 
+  /// True when a production build was compiled against a non-HTTPS host.
+  ///
+  /// Release manifests no longer permit cleartext traffic, so such a build
+  /// fails every request. Surfacing this at startup turns an opaque network
+  /// error into a named configuration mistake.
+  static bool get isInsecureProductionBuild =>
+      isProduction && !apiBaseUrl.startsWith('https://');
+
   // ─── Feature Flags ────────────────────────────────────────────────────────
 
   /// Enable debug logging
@@ -74,19 +91,14 @@ class AppConfig {
 
   // ─── API Configuration ────────────────────────────────────────────────────
 
-  /// DineCircle Express API base URL
-  static const String apiBaseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: isProduction
-        ? 'https://api.dinecircle.com'
-        : 'http://localhost:4000',
-  );
+  /// DineCircle Express API base URL. Delegates to the API client's own
+  /// configuration so this value can never disagree with the host actually used.
+  static String get apiBaseUrl => api_config.AppConfig.apiBaseUrl;
 
-  /// API request timeout in milliseconds
-  static const int apiTimeoutMs = int.fromEnvironment(
-    'API_TIMEOUT_MS',
-    defaultValue: 30000,
-  );
+  // Request timeouts are declared as explicit `Duration` constants in
+  // `lib/api/app_config.dart`. The `API_TIMEOUT_MS` dart-define is therefore
+  // inert for this app (only the partner app consumes it); tune the durations
+  // there instead of the build config.
 
   /// Returns a map of all configuration values (for debugging).
   ///

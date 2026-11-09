@@ -49,7 +49,10 @@ app.*.map.json
 
 # Local build-time config (Stripe publishable + Google Maps keys) — see
 # dart-defines.example.json. Keeps keyless CI/widget tests dormant.
+# dart-defines.json holds the production host; dart-defines.local.json holds a
+# throwaway LAN/tunnel host written by tmp-live/up.sh. Neither is committed.
 dart-defines.json
+dart-defines.local.json
 
 # Local secrets
 .env
@@ -58,6 +61,7 @@ dart-defines.json
 
 # Scratch workspace for one-off migration/maintenance scripts
 .tmp/
+.tmpx/
 
 # Local APK-unpacking probe and QA screenshots (throwaway artifacts)
 /.apk_probe/
