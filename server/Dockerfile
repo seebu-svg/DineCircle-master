@@ -35,10 +35,13 @@ COPY --from=build /app/dist ./dist
 # container dies on readFileSync before it ever serves a request.
 COPY database ./database
 
-# Health endpoint is /api/health (unauthenticated, returns JSON).
+# Health endpoint is /api/health (unauthenticated, returns JSON). The port is
+# read from $PORT because orchestrators assign it at runtime: Render's Docker
+# runtime injects PORT=10000, while docker-compose pins 4000. Hardcoding 4000
+# here would make the container report itself unhealthy on Render.
 EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:4000/api/health || exit 1
+  CMD wget -qO- "http://127.0.0.1:${PORT:-4000}/api/health" || exit 1
 
 USER node
 CMD ["node", "dist/server.js"]
