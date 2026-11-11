@@ -17,6 +17,7 @@ import partnerMenuRouter from './routes/partner_menu.js';
 import partnerOpsRouter from './routes/partner_ops.js';
 import partnerImagesRouter from './routes/partner_images.js';
 import partnerTablesRouter from './routes/partner_tables.js';
+import partnerCollabsRouter from './routes/partner_collabs.js';
 import partnerVenuesRouter, {
   verificationRouter as partnerVerificationRouter,
   adminRouter as partnerAdminRouter,
@@ -216,6 +217,7 @@ app.use('/api/partner/verification', partnerVerificationRouter);
 app.use('/api/partner/restaurants', requireActiveSubscription(true), partnerMenuRouter);
 app.use('/api/partner/restaurants', requireActiveSubscription(true), partnerTablesRouter);
 app.use('/api/partner/restaurants', requireActiveSubscription(true), partnerOpsRouter);
+app.use('/api/partner/restaurants', requireActiveSubscription(true), partnerCollabsRouter);
 app.use('/api/partner/restaurants', requireActiveSubscription(true), partnerImagesRouter);
 app.use('/api/partner/restaurants', requireActiveSubscription(true), partnerVenuesRouter);
 app.use('/api/partner', requireActiveSubscription(true), partnerRouter);
