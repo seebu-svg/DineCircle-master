@@ -87,7 +87,7 @@ router.get('/:restaurantId', async (req, res) => {
     `SELECT id, restaurant_id, section_id, name, description, price, position,
             is_available, dietary_tags, photo_url
        FROM restaurant_menu_items
-      WHERE restaurant_id = $1::UUID
+      WHERE restaurant_id = $1::UUID AND moderation_status <> 'removed'
       ORDER BY position ASC, name ASC`,
     [restaurantId],
   );

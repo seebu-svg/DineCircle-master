@@ -1311,13 +1311,15 @@ class _BookingBarState extends ConsumerState<_BookingBar> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // RSVP is free; the price is what the venue charges for the meal.
+                  // Joining is free; the price is what the venue charges for
+                  // the meal. Kept to two words so the footer never truncates
+                  // to "Free R..." on a narrow device.
                   Text(
-                    'Free RSVP',
+                    'Free to join',
                     style: AppTextStyles.displaySmall.copyWith(
                       color: AppColors.primary,
                     ),
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(

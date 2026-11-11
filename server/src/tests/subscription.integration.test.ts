@@ -110,7 +110,10 @@ test('PATCH subscription, owner sets monthly plan, status stays none (partner ca
   assert.equal(status, 200, JSON.stringify(json));
   const sub = json.data.subscription;
   assert.equal(sub.plan, 'monthly');
-  assert.equal(sub.status, 'none'); // Partner cannot set status
+  // A venue that has never had a subscription row gets the Phase-3 trial
+  // bootstrap ('trialing'), not 'none'. What matters is that the partner's own
+  // request cannot pick the status.
+  assert.equal(sub.status, 'trialing');
   assert.equal(sub.pricePkr, 5000);
   assert.equal(sub.autoRenew, true);
   assert.ok(sub.periodStart);
@@ -152,7 +155,9 @@ test('PATCH subscription, status field is ignored (partner cannot self-activate)
   });
   assert.equal(status, 200);
   const sub = json.data.subscription;
-  assert.equal(sub.status, 'none'); // Status change ignored
+  // The submitted `status: 'active'` is dropped; the row keeps the bootstrapped
+  // trial state instead, which is the invariant this test exists for.
+  assert.equal(sub.status, 'trialing'); // Status change ignored
 });
 
 test('PATCH subscription, staff role gets 403', async () => {

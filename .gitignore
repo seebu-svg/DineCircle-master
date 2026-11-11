@@ -66,3 +66,4 @@ dart-defines.local.json
 # Local APK-unpacking probe and QA screenshots (throwaway artifacts)
 /.apk_probe/
 /.qa/
+/server/.qa/

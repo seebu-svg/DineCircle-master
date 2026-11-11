@@ -33,7 +33,7 @@ router.get('/:imageId', async (req, res) => {
     `SELECT i.content_type, i.byte_size, i.bytes, i.created_at
        FROM venue_images i
        JOIN restaurants r ON r.id = i.restaurant_id
-      WHERE i.id = $1::UUID`,
+      WHERE i.id = $1::UUID AND i.moderation_status <> 'removed'`,
     [imageId],
   );
   if (!row) {

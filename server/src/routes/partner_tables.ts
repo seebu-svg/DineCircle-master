@@ -214,8 +214,11 @@ router.get('/:restaurantId/reservations', async (req, res) => {
     conditions.push(`r.start_at >= $${params.length}::timestamptz`);
   }
   if (to !== null) {
+    // Half-open window: callers (the Partner App Insights range chips) send
+    // midnight *after* the last day they mean, so a booking at exactly that
+    // instant belongs to the next day and must not be counted here.
     params.push(to);
-    conditions.push(`r.start_at <= $${params.length}::timestamptz`);
+    conditions.push(`r.start_at < $${params.length}::timestamptz`);
   }
 
   const where = conditions.join(' AND ');

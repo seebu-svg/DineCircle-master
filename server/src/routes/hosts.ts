@@ -4,6 +4,7 @@ import type pg from 'pg';
 import { query, withTransaction } from '../db.js';
 import { ApiError, forbidden, notFound, requireHostStudio } from '../context.js';
 import type { UserRole } from '../context.js';
+import { notifyVenue } from '../notify.js';
 
 // Phase 2a: 0% commission, inlined so pricing.ts can be deleted.
 const PLATFORM_COMMISSION_RATE = 0;
@@ -58,7 +59,7 @@ async function requireHost(id: string): Promise<void> {
 export function assertHostAccess(requesterId: string, requesterRole: UserRole, targetHostId: string): void {
   if (requesterId === targetHostId) return;
   if (requesterRole === 'super_admin') return;
-  throw forbidden('You can only view your own earnings');
+  throw forbidden('You can only view your own collaborations');
 }
 
 // GET /api/hosts/:id/payouts, one earnings line per hosted event.
@@ -92,6 +93,7 @@ type TablesRow = {
   hosted_count: number;
   upcoming_count: number;
   fill_rate: number;
+  seats_reserved: number;
 };
 
 // GET /api/hosts/:id/summary, headline numbers for the earnings panel.
@@ -117,9 +119,21 @@ router.get('/:id/summary', async (req, res) => {
   const [tables] = await query<TablesRow>(
     `SELECT count(*)::int AS hosted_count,
             (count(*) FILTER (WHERE start_at >= now()))::int AS upcoming_count,
-            COALESCE(AVG(seats_booked::numeric / GREATEST(seats_total, 1)), 0)::float8 AS fill_rate
+            COALESCE(AVG(seats_booked::numeric / GREATEST(seats_total, 1)), 0)::float8 AS fill_rate,
+            COALESCE(SUM(seats_booked), 0)::int AS seats_reserved
      FROM dinner_events
      WHERE host_id = $1::UUID`,
+    [hostId],
+  );
+
+  // Ratings come from guest reviews of this host's experiences. `users.rating`
+  // is a cached column nothing in the host workflow writes, so reading it
+  // would report a stale (or seeded) number instead of the review average.
+  const [ratings] = await query<{ avg: number | null; count: number }>(
+    `SELECT AVG(r.rating)::float8 AS avg, count(*)::int AS count
+     FROM reviews r
+     JOIN dinner_events e ON e.id = r.event_id
+     WHERE e.host_id = $1::UUID`,
     [hostId],
   );
 
@@ -140,11 +154,17 @@ router.get('/:id/summary', async (req, res) => {
     lifetimeGross,
     commissionTotal: money?.commission_total ?? 0,
     netTotal: earned + inTransit + scheduled,
+    // `seatsSold` is the payout ledger's count, kept for the partner app's
+    // existing contract. Free RSVPs reserve a seat without selling one, so the
+    // customer app reads `seatsReserved` (live `dinner_events.seats_booked`).
     seatsSold,
+    seatsReserved: tables?.seats_reserved ?? 0,
     averageSeatPrice: seatsSold > 0 ? lifetimeGross / seatsSold : 0,
     hostedCount: tables?.hosted_count ?? 0,
     upcomingCount: tables?.upcoming_count ?? 0,
     averageFillRate: tables?.fill_rate ?? 0,
+    averageRating: Number(ratings?.avg ?? 0),
+    reviewCount: ratings?.count ?? 0,
     nextPayoutDate: nextPayout.toISOString(),
     platformCommissionRate: PLATFORM_COMMISSION_RATE,
     // Withdrawable now: net captured, less withdrawals still in flight.
@@ -200,11 +220,21 @@ type InviteRow = {
   proposed_by: string;
   experience_id: string | null;
   created_at: Date;
+  responded_at: Date | null;
+  responded_by: string | null;
+  decline_reason: string;
   restaurant_name: string;
   restaurant_cover: string;
   restaurant_neighborhood: string;
   restaurant_rating: string;
   restaurant_cuisines: string[];
+  host_name: string | null;
+  host_handle: string | null;
+  host_avatar: string | null;
+  experience_title: string | null;
+  experience_cover: string | null;
+  experience_start: Date | null;
+  experience_status: string | null;
 };
 
 function serializeInvite(row: InviteRow) {
@@ -216,6 +246,23 @@ function serializeInvite(row: InviteRow) {
     proposedBy: row.proposed_by,
     experienceId: row.experience_id,
     receivedAt: row.created_at,
+    respondedAt: row.responded_at,
+    declineReason: row.decline_reason,
+    // Direction B: a venue proposes on top of a draft experience, so the host
+    // has to see what they are being asked to accept without a second call.
+    experience: row.experience_id === null ? null : {
+      id: row.experience_id,
+      title: row.experience_title,
+      coverImage: row.experience_cover,
+      startAt: row.experience_start,
+      status: row.experience_status,
+    },
+    host: {
+      id: row.host_id,
+      name: row.host_name,
+      handle: row.host_handle,
+      avatarUrl: row.host_avatar,
+    },
     restaurant: {
       id: row.restaurant_id,
       name: row.restaurant_name,
@@ -230,9 +277,15 @@ function serializeInvite(row: InviteRow) {
 const INVITE_SELECT = `
   SELECT ci.*, r.name AS restaurant_name, r.cover_image AS restaurant_cover,
          r.neighborhood AS restaurant_neighborhood,
-         r.rating AS restaurant_rating, r.cuisines AS restaurant_cuisines
+         r.rating AS restaurant_rating, r.cuisines AS restaurant_cuisines,
+         h.name AS host_name, h.handle AS host_handle,
+         h.avatar_url AS host_avatar,
+         ex.title AS experience_title, ex.cover_image AS experience_cover,
+         ex.start_at AS experience_start, ex.status AS experience_status
   FROM collaboration_invites ci
-  JOIN restaurants r ON r.id = ci.restaurant_id`;
+  JOIN restaurants r ON r.id = ci.restaurant_id
+  LEFT JOIN users h ON h.id = ci.host_id
+  LEFT JOIN dinner_events ex ON ex.id = ci.experience_id`;
 
 const INVITE_BY_ID = `${INVITE_SELECT} WHERE ci.id = $1::UUID`;
 
@@ -243,7 +296,6 @@ type PerformanceRow = {
   cover_image: string;
   views: number;
   seats_booked: number;
-  price_per_seat: string;
   bookings: number;
   pending: number;
   checked_in: number;
@@ -256,7 +308,7 @@ router.get('/:id/performance', async (req, res) => {
   assertHostAccess(req.userId, req.userRole, hostId);
 
   const rows = await query<PerformanceRow>(
-    `SELECT e.id AS event_id, e.title, e.cover_image, e.views, e.seats_booked, e.price_per_seat,
+    `SELECT e.id AS event_id, e.title, e.cover_image, e.views, e.seats_booked,
             (SELECT count(*) FROM bookings b
               WHERE b.event_id = e.id
                 AND b.status IN ('confirmed', 'pending'))::int  AS bookings,
@@ -281,7 +333,6 @@ router.get('/:id/performance', async (req, res) => {
       bookings: r.bookings,
       pending: r.pending,
       checkedIn: r.checked_in,
-      gross: Number(r.seats_booked) * Number(r.price_per_seat),
     })),
     count: rows.length,
   });
@@ -357,6 +408,10 @@ const proposeSchema = z.object({
   restaurantId: z.string().uuid(),
   title: z.string().trim().min(3).max(120),
   message: z.string().trim().min(1).max(1000),
+  // Optional: attach the experience this proposal is about. Validated against
+  // the caller and the target venue so a proposal cannot point at a stranger's
+  // draft.
+  experienceId: z.string().uuid().optional(),
 });
 
 router.post('/:id/collabs/propose', async (req, res) => {
@@ -367,14 +422,27 @@ router.post('/:id/collabs/propose', async (req, res) => {
   const input = proposeSchema.parse(req.body ?? {});
 
   // Validate restaurant exists and is a verified partner.
-  const [restaurant] = await query<{ id: string; owner_id: string }>(
+  const [restaurant] = await query<{ id: string; owner_id: string | null }>(
     `SELECT id, owner_id FROM restaurants
      WHERE id = $1::UUID AND is_partner = true AND partnership_status = 'verified'`,
     [input.restaurantId],
   );
   if (!restaurant) throw notFound('Restaurant partner');
 
-  // Prevent duplicate active proposals (same host + restaurant, status invited or accepted).
+  if (input.experienceId) {
+    const [linked] = await query<{ id: string }>(
+      `SELECT id FROM dinner_events
+       WHERE id = $1::UUID AND host_id = $2::UUID AND restaurant_id = $3::UUID`,
+      [input.experienceId, hostId, input.restaurantId],
+    );
+    if (!linked) {
+      throw new ApiError(422, 'That experience does not belong to you at this venue');
+    }
+  }
+
+  // Friendly pre-check. The real guard against two concurrent sends is
+  // `uq_collab_active`, because a read-then-write check cannot see the row the
+  // other request is about to insert.
   const [existing] = await query<{ id: string }>(
     `SELECT id FROM collaboration_invites
      WHERE host_id = $1::UUID AND restaurant_id = $2::UUID
@@ -386,45 +454,39 @@ router.post('/:id/collabs/propose', async (req, res) => {
     throw new ApiError(409, 'An active collaboration already exists with this restaurant');
   }
 
-  // A data-modifying CTE is the only place Postgres accepts an INSERT inside a
-  // SELECT: `FROM (INSERT ... RETURNING *)` is a syntax error at "INTO", which
-  // made every call to this route answer 500. Insert, then read the row back
-  // through the same joins the list endpoints use.
-  let createdId: string;
-  try {
-    const [inserted] = await query<{ id: string }>(
-      `INSERT INTO collaboration_invites (host_id, restaurant_id, title, message, proposed_by)
-       VALUES ($1::UUID, $2::UUID, $3, $4, 'host')
-       RETURNING id`,
-      [hostId, input.restaurantId, input.title, input.message],
-    );
-    createdId = inserted!.id;
-  } catch (error) {
-    // `uq_collab_active` is the real guard against two concurrent sends: the
-    // pre-check above cannot see the row another request is about to insert.
-    if ((error as { code?: string }).code === '23505') {
-      throw new ApiError(409, 'An active collaboration already exists with this restaurant');
+  const createdId = await withTransaction(async (client) => {
+    let insertedId: string;
+    try {
+      const { rows } = await client.query<{ id: string }>(
+        `INSERT INTO collaboration_invites
+           (host_id, restaurant_id, title, message, proposed_by, experience_id)
+         VALUES ($1::UUID, $2::UUID, $3, $4, 'host', $5::UUID)
+         RETURNING id`,
+        [
+          hostId, input.restaurantId, input.title, input.message,
+          input.experienceId ?? null,
+        ],
+      );
+      insertedId = rows[0]!.id;
+    } catch (error) {
+      if ((error as { code?: string }).code === '23505') {
+        throw new ApiError(409, 'An active collaboration already exists with this restaurant');
+      }
+      throw error;
     }
-    throw error;
-  }
-  const [created] = await query<InviteRow>(INVITE_BY_ID, [createdId]);
 
-  // Notify the restaurant owner about the new proposal.
-  if (restaurant.owner_id) {
-    await query(
-      `INSERT INTO activity (actor_id, kind, title, body, is_unread)
-       VALUES ($1, 'collab', $2, $3, true)`,
-      [
-        restaurant.owner_id,
-        `New collaboration proposal from host`,
-        `"${input.title}": ${input.message.slice(0, 80)}`,
-      ],
-    );
-  }
+    await notifyVenue(client, input.restaurantId, {
+      kind: 'collab',
+      title: 'New collaboration proposal from host',
+      body: `"${input.title}": ${input.message.slice(0, 80)}`,
+      eventId: input.experienceId ?? null,
+    });
+    return insertedId;
+  });
 
-  // Re-read with restaurant JOIN for the full response.
-  const [full] = await query<InviteRow>(INVITE_BY_ID, [created?.id ?? hostId]);
-  res.status(201).json({ collaboration: serializeInvite(full ?? created!) });
+  // Re-read with the venue/host/experience JOINs for the full response.
+  const [full] = await query<InviteRow>(INVITE_BY_ID, [createdId]);
+  res.status(201).json({ collaboration: serializeInvite(full!) });
 });
 
 // POST /api/hosts/:id/collabs/:collabId/cancel, host cancels their own pending proposal.
@@ -443,7 +505,7 @@ router.post('/:id/collabs/:collabId/cancel', async (req, res) => {
   }
 
   await query(
-    `UPDATE collaboration_invites SET status = 'cancelled'
+    `UPDATE collaboration_invites SET status = 'cancelled', updated_at = now()
      WHERE id = $1::UUID AND host_id = $2::UUID`,
     [req.params.collabId, hostId],
   );
@@ -453,106 +515,157 @@ router.post('/:id/collabs/:collabId/cancel', async (req, res) => {
 });
 
 // POST /api/hosts/:id/collabs/:collabId/complete, mark collaboration completed.
+// Optionally records which experience the partnership actually shipped, so the
+// venue can see the result of the proposal it approved.
+const completeSchema = z.object({ experienceId: z.string().uuid().optional() });
+
 router.post('/:id/collabs/:collabId/complete', async (req, res) => {
   const hostId = req.params.id;
   await requireHost(hostId);
   if (req.userId !== hostId) throw forbidden('You can only complete your own collaborations');
 
+  const input = completeSchema.parse(req.body ?? {});
   const [collab] = await query<InviteRow>(INVITE_BY_ID, [req.params.collabId]);
   if (!collab || collab.host_id !== hostId) throw notFound('Collaboration');
   if (collab.status !== 'accepted') {
     throw new ApiError(400, 'Only accepted collaborations can be marked complete');
   }
 
-  await query(
-    `UPDATE collaboration_invites SET status = 'completed'
-     WHERE id = $1::UUID AND host_id = $2::UUID`,
-    [req.params.collabId, hostId],
-  );
-
-  // Notify the restaurant owner.
-  const [restaurant] = await query<{ owner_id: string; name: string }>(
-    'SELECT owner_id, name FROM restaurants WHERE id = $1::UUID',
-    [collab.restaurant_id],
-  );
-  if (restaurant?.owner_id) {
-    await query(
-      `INSERT INTO activity (actor_id, kind, title, body, is_unread)
-       VALUES ($1, 'collab', $2, $3, true)`,
-      [
-        restaurant.owner_id,
-        `Collaboration completed`,
-        `"${collab.title}" with ${restaurant.name} has been marked as completed.`,
-      ],
+  if (input.experienceId) {
+    const [linked] = await query<{ id: string }>(
+      `SELECT id FROM dinner_events
+        WHERE id = $1::UUID AND host_id = $2::UUID AND restaurant_id = $3::UUID`,
+      [input.experienceId, hostId, collab.restaurant_id],
     );
+    if (!linked) {
+      throw new ApiError(422, 'That experience does not belong to you at this venue');
+    }
   }
+
+  const moved = await withTransaction(async (client) => {
+    const result = await client.query(
+      `UPDATE collaboration_invites
+          SET status = 'completed', updated_at = now(),
+              experience_id = COALESCE($3::UUID, experience_id)
+        WHERE id = $1::UUID AND host_id = $2::UUID AND status = 'accepted'`,
+      [req.params.collabId, hostId, input.experienceId ?? null],
+    );
+    if ((result.rowCount ?? 0) === 0) return false;
+
+    await notifyVenue(client, collab.restaurant_id, {
+      kind: 'collab',
+      title: 'Collaboration completed',
+      body: `"${collab.title}" has been marked as completed.`,
+      eventId: input.experienceId ?? collab.experience_id,
+    });
+    return true;
+  });
+  if (!moved) throw new ApiError(409, 'This collaboration is no longer accepted');
 
   const [updated] = await query<InviteRow>(INVITE_BY_ID, [req.params.collabId]);
   res.json({ collaboration: serializeInvite(updated!), status: 'completed' });
 });
 
-// POST /api/hosts/:id/invites/:inviteId/accept, flip an invite to accepted.
+// POST /api/hosts/:id/invites/:inviteId/accept, flip a venue-sent invite to
+// accepted.
+//
 // Only the invite's own host may act on it: a foreign `:id` or caller reads as
 // a 404 (no existence leak) rather than a 403 that would confirm it exists.
+// The host may only answer an invite the *venue* sent: accepting one's own
+// outgoing proposal (Direction A) used to succeed, which let a host grant
+// themselves a collaboration the venue never approved.
+const respondSchema = z.object({ reason: z.string().trim().max(500).optional() });
+
 router.post('/:id/invites/:inviteId/accept', async (req, res) => {
+  const hostId = req.params.id;
+  await requireHost(hostId);
+  if (req.userId !== hostId) throw forbidden('You can only answer your own invites');
+
+  const body = respondSchema.parse(req.body ?? {});
   const [invite] = await query<InviteRow>(INVITE_BY_ID, [req.params.inviteId]);
-  if (!invite || invite.host_id !== req.userId) throw notFound('Invite');
-
-  await query(
-    `UPDATE collaboration_invites SET status = 'accepted'
-     WHERE id = $1::UUID AND host_id = $2::UUID`,
-    [req.params.inviteId, invite.host_id],
-  );
-
-  // Notify the restaurant owner that the proposal was accepted.
-  const [restaurant] = await query<{ owner_id: string; name: string }>(
-    'SELECT owner_id, name FROM restaurants WHERE id = $1::UUID',
-    [invite.restaurant_id],
-  );
-  if (restaurant?.owner_id) {
-    await query(
-      `INSERT INTO activity (actor_id, kind, title, body, event_id, is_unread)
-       VALUES ($1, 'collab', $2, $3, $4, true)`,
-      [
-        restaurant.owner_id,
-        `Collaboration accepted`,
-        `${invite.title} with ${restaurant.name} has been accepted.`,
-        invite.experience_id,
-      ],
-    );
+  if (!invite || invite.host_id !== hostId) throw notFound('Invite');
+  if (invite.proposed_by !== 'restaurant') {
+    throw new ApiError(409, 'Only a proposal the venue sent can be accepted here');
   }
+  if (invite.status !== 'invited') {
+    throw new ApiError(409, `This proposal is already ${invite.status}`);
+  }
+
+  // Conditional UPDATE: two taps racing each other can only move one row, so
+  // the loser gets a 409 instead of a second "accepted" notification.
+  const moved = await withTransaction(async (client) => {
+    const result = await client.query(
+      `UPDATE collaboration_invites
+          SET status = 'accepted', responded_at = now(), responded_by = $2::UUID,
+              decline_reason = $3, updated_at = now()
+        WHERE id = $1::UUID AND host_id = $2::UUID AND status = 'invited'
+          AND proposed_by = 'restaurant'`,
+      [req.params.inviteId, hostId, body.reason ?? ''],
+    );
+    if ((result.rowCount ?? 0) === 0) return false;
+
+    const { rows: venueRows } = await client.query<{ name: string }>(
+      'SELECT name FROM restaurants WHERE id = $1::UUID',
+      [invite.restaurant_id],
+    );
+    const venueName = venueRows[0]?.name ?? 'your venue';
+    await notifyVenue(client, invite.restaurant_id, {
+      kind: 'collab',
+      title: 'Collaboration accepted',
+      body: `"${invite.title}" with ${venueName} has been accepted.`,
+      eventId: invite.experience_id,
+    });
+    return true;
+  });
+  if (!moved) throw new ApiError(409, 'This proposal is no longer pending');
 
   const [updated] = await query<InviteRow>(INVITE_BY_ID, [req.params.inviteId]);
   res.json({ invite: serializeInvite(updated!), status: 'accepted' });
 });
 
-// POST /api/hosts/:id/invites/:inviteId/decline, flip an invite to declined.
+// POST /api/hosts/:id/invites/:inviteId/decline, refuse a venue-sent invite.
 router.post('/:id/invites/:inviteId/decline', async (req, res) => {
+  const hostId = req.params.id;
+  await requireHost(hostId);
+  if (req.userId !== hostId) throw forbidden('You can only answer your own invites');
+
+  const body = respondSchema.parse(req.body ?? {});
   const [invite] = await query<InviteRow>(INVITE_BY_ID, [req.params.inviteId]);
-  if (!invite || invite.host_id !== req.userId) throw notFound('Invite');
-
-  await query(
-    `UPDATE collaboration_invites SET status = 'declined'
-     WHERE id = $1::UUID AND host_id = $2::UUID`,
-    [req.params.inviteId, invite.host_id],
-  );
-
-  // Notify the restaurant owner that the proposal was declined.
-  const [restaurant] = await query<{ owner_id: string; name: string }>(
-    'SELECT owner_id, name FROM restaurants WHERE id = $1::UUID',
-    [invite.restaurant_id],
-  );
-  if (restaurant?.owner_id) {
-    await query(
-      `INSERT INTO activity (actor_id, kind, title, body, is_unread)
-       VALUES ($1, 'collab', $2, $3, true)`,
-      [
-        restaurant.owner_id,
-        `Collaboration declined`,
-        `${invite.title} with ${restaurant.name} was declined.`,
-      ],
-    );
+  if (!invite || invite.host_id !== hostId) throw notFound('Invite');
+  if (invite.proposed_by !== 'restaurant') {
+    throw new ApiError(409, 'Only a proposal the venue sent can be declined here');
   }
+  if (invite.status !== 'invited') {
+    throw new ApiError(409, `This proposal is already ${invite.status}`);
+  }
+
+  const moved = await withTransaction(async (client) => {
+    const result = await client.query(
+      `UPDATE collaboration_invites
+          SET status = 'declined', responded_at = now(), responded_by = $2::UUID,
+              decline_reason = $3, updated_at = now()
+        WHERE id = $1::UUID AND host_id = $2::UUID AND status = 'invited'
+          AND proposed_by = 'restaurant'`,
+      [req.params.inviteId, hostId, body.reason ?? ''],
+    );
+    if ((result.rowCount ?? 0) === 0) return false;
+
+    const { rows: venueRows } = await client.query<{ name: string }>(
+      'SELECT name FROM restaurants WHERE id = $1::UUID',
+      [invite.restaurant_id],
+    );
+    const venueName = venueRows[0]?.name ?? 'your venue';
+    await notifyVenue(client, invite.restaurant_id, {
+      kind: 'collab',
+      title: 'Collaboration declined',
+      body: body.reason
+        ? `"${invite.title}" was declined: ${body.reason}`
+        : `"${invite.title}" with ${venueName} was declined.`,
+      eventId: invite.experience_id,
+    });
+    return true;
+  });
+  if (!moved) throw new ApiError(409, 'This proposal is no longer pending');
 
   const [updated] = await query<InviteRow>(INVITE_BY_ID, [req.params.inviteId]);
   res.json({ invite: serializeInvite(updated!), status: 'declined' });
@@ -560,11 +673,20 @@ router.post('/:id/invites/:inviteId/decline', async (req, res) => {
 
 // ── Unified analytics ────────────────────────────────────────────────────────
 
-/** Parse ?period= into an interval expression or null for 'all'. */
+/**
+ * Parse ?period= into a Postgres interval literal, or null for 'all'.
+ *
+ * The interval is applied as a CLOSED window on `dinner_events.start_at`
+ * (`>= now() - interval` AND `<= now()`), so `?period=7d` really means
+ * "experiences that started in the last 7 days", which is the label the app
+ * renders. Future events belong to the status snapshot, never to a past
+ * window: previously the filter had no upper bound and every period returned
+ * the same payload.
+ */
 function periodInterval(period: string): string | null {
-  if (period === '7d') return "now() - interval '7 days'";
-  if (period === '30d') return "now() - interval '30 days'";
-  if (period === '90d') return "now() - interval '90 days'";
+  if (period === '7d') return '7 days';
+  if (period === '30d') return '30 days';
+  if (period === '90d') return '90 days';
   return null;
 }
 
@@ -577,63 +699,103 @@ router.get('/:id/analytics', async (req, res) => {
   const period: string = typeof req.query.period === 'string' ? req.query.period.toLowerCase().trim() : 'all';
   const dateFilter = periodInterval(period);
   const dateCondition = dateFilter
-    ? `AND e.start_at >= ${dateFilter}`
+    ? `AND e.start_at >= now() - interval '${dateFilter}' AND e.start_at <= now()`
+    : '';
+  const pastDateCondition = dateFilter
+    ? `AND e2.start_at >= now() - interval '${dateFilter}'`
     : '';
   const payoutDateCondition = dateFilter
-    ? `AND p.payout_date >= ${dateFilter}`
+    ? `AND p.payout_date >= now() - interval '${dateFilter}'`
     : '';
 
-  // Core metrics from payouts + events
-  const [metrics] = await query<{
-    total_events: number; total_bookings: number; total_seats_sold: number;
-    gross_revenue: number; net_earnings: number; avg_fill_rate: number;
-    upcoming_count: number; completed_count: number;
+  // Event-scoped metrics, kept in their own single-table aggregate. Joining
+  // `payouts` here multiplied SUM(e.seats_booked) by the number of payout rows
+  // for the same event, so a host with two payouts on one experience saw its
+  // reservations counted twice.
+  const [eventMetrics] = await query<{
+    total_events: number;
+    total_bookings: number;
+    total_seats_reserved: number;
+    avg_fill_rate: number;
+    total_views: number;
   }>(
     `SELECT
-       COUNT(DISTINCT e.id)::int AS total_events,
-       COALESCE(SUM(b_count.bookings), 0)::int AS total_bookings,
-       COALESCE(SUM(e.seats_booked), 0)::int AS total_seats_sold,
-       COALESCE(SUM(e.seats_booked * e.price_per_seat), 0)::float8 AS gross_revenue,
-       COALESCE(SUM(p.gross - p.commission), 0)::float8 AS net_earnings,
+       COUNT(*)::int AS total_events,
+       COALESCE(SUM(e.seats_booked), 0)::int AS total_seats_reserved,
        COALESCE(AVG(e.seats_booked::numeric / GREATEST(e.seats_total, 1)), 0)::float8 AS avg_fill_rate,
+       COALESCE(SUM(e.views), 0)::int AS total_views,
+       COALESCE(SUM((
+         SELECT count(*) FROM bookings b
+          WHERE b.event_id = e.id
+            AND b.status IN ('confirmed','pending','completed')
+       )), 0)::int AS total_bookings
+     FROM dinner_events e
+     WHERE e.host_id = $1::UUID ${dateCondition}`,
+    [hostId],
+  );
+
+  // Money is only ever the payouts ledger. `dinner_events.price_per_seat` is
+  // the venue's dining estimate, not money the host collected, so multiplying
+  // it by reserved seats reported revenue that never existed.
+  const [moneyMetrics] = await query<{
+    gross_revenue: number;
+    net_earnings: number;
+    seats_sold: number;
+  }>(
+    `SELECT COALESCE(SUM(p.gross), 0)::float8 AS gross_revenue,
+            COALESCE(SUM(p.gross - p.commission), 0)::float8 AS net_earnings,
+            COALESCE(SUM(p.seats_sold), 0)::int AS seats_sold
+       FROM payouts p
+       JOIN dinner_events e ON e.id = p.event_id
+      WHERE e.host_id = $1::UUID ${payoutDateCondition}`,
+    [hostId],
+  );
+
+  // Status snapshot, deliberately not scoped to the period: "Upcoming" answers
+  // "what is still ahead of me", which a past window cannot express. "Done" is
+  // derived from start_at because no backend path ever writes
+  // `dinner_events.status = 'completed'`, so counting that status was always 0.
+  const [counts] = await query<{
+    upcoming_count: number;
+    completed_count: number;
+  }>(
+    `SELECT
        (SELECT count(*)::int FROM dinner_events e2
          WHERE e2.host_id = $1::UUID AND e2.start_at >= now()
            AND e2.status IN ('confirmed','live')) AS upcoming_count,
        (SELECT count(*)::int FROM dinner_events e2
          WHERE e2.host_id = $1::UUID AND e2.start_at < now()
-           AND e2.status = 'completed') AS completed_count
-     FROM dinner_events e
-     LEFT JOIN (
-       SELECT event_id, count(*)::int AS bookings
-       FROM bookings WHERE status IN ('confirmed','pending','completed')
-       GROUP BY event_id
-     ) b_count ON b_count.event_id = e.id
-     LEFT JOIN payouts p ON p.event_id = e.id ${payoutDateCondition}
-     WHERE e.host_id = $1::UUID ${dateCondition}`,
+           AND e2.status NOT IN ('cancelled','draft')
+           ${pastDateCondition}) AS completed_count`,
     [hostId],
   );
 
-  // Average rating from users table
-  const [ratingRow] = await query<{ rating: string }>(
-    'SELECT rating FROM users WHERE id = $1::UUID',
+  // Average rating from guest reviews of this host's experiences. `users.rating`
+  // is a cached column no host workflow updates, so it would report 0 (or a
+  // seeded figure) no matter how many reviews exist.
+  const [ratingRow] = await query<{ avg: number | null; count: number }>(
+    `SELECT AVG(r.rating)::float8 AS avg, count(*)::int AS count
+       FROM reviews r
+       JOIN dinner_events e ON e.id = r.event_id
+      WHERE e.host_id = $1::UUID`,
     [hostId],
   );
 
-  // Top performing events (by gross revenue)
+  // Top experiences by reserved seats. Ordering by `seats_booked *
+  // price_per_seat` ranked hosts by a revenue figure nobody was paid.
   const topEvents = await query<{
     event_id: string; title: string; cover_image: string;
-    views: number; seats_booked: number; price_per_seat: string;
+    views: number; seats_booked: number;
     bookings: number; checked_in: number;
   }>(
     `SELECT e.id AS event_id, e.title, e.cover_image, e.views, e.seats_booked,
-            e.price_per_seat,
             (SELECT count(*)::int FROM bookings b
               WHERE b.event_id = e.id AND b.status IN ('confirmed','pending')) AS bookings,
             (SELECT count(*)::int FROM bookings b
               WHERE b.event_id = e.id AND b.checked_in) AS checked_in
      FROM dinner_events e
      WHERE e.host_id = $1::UUID ${dateCondition}
-     ORDER BY (e.seats_booked * e.price_per_seat) DESC
+     ORDER BY e.seats_booked DESC, e.start_at DESC
      LIMIT 5`,
     [hostId],
   );
@@ -661,7 +823,7 @@ router.get('/:id/analytics', async (req, res) => {
 
   // Per-event performance
   const perfRows = await query<PerformanceRow>(
-    `SELECT e.id AS event_id, e.title, e.cover_image, e.views, e.seats_booked, e.price_per_seat,
+    `SELECT e.id AS event_id, e.title, e.cover_image, e.views, e.seats_booked,
             (SELECT count(*) FROM bookings b
               WHERE b.event_id = e.id
                 AND b.status IN ('confirmed', 'pending'))::int  AS bookings,
@@ -676,22 +838,24 @@ router.get('/:id/analytics', async (req, res) => {
     [hostId],
   );
 
-  const m = metrics ?? {} as Record<string, number>;
-  const totalBookings = (m as any).total_bookings ?? 0;
-  const totalViews = topEvents.reduce((s, e) => s + Number(e.views), 0)
-    + perfRows.reduce((s, r) => s + Number(r.views), 0);
+  const totalBookings = eventMetrics?.total_bookings ?? 0;
+  const totalViews = eventMetrics?.total_views ?? 0;
 
   res.json({
     analytics: {
-      totalEventsHosted: (m as any).total_events ?? 0,
+      totalEventsHosted: eventMetrics?.total_events ?? 0,
       totalBookings,
-      totalSeatsSold: (m as any).total_seats_sold ?? 0,
-      grossRevenue: Number((m as any).gross_revenue ?? 0),
-      hostNetEarnings: Number((m as any).net_earnings ?? 0),
-      averageSeatFillRate: Number((m as any).avg_fill_rate ?? 0),
-      averageRating: Number(ratingRow?.rating ?? 0),
-      upcomingCount: (m as any).upcoming_count ?? 0,
-      completedCount: (m as any).completed_count ?? 0,
+      // Reserved seats, not sales: a free RSVP holds a seat without money
+      // changing hands, so "sold" would be a claim the data cannot support.
+      totalSeatsReserved: eventMetrics?.total_seats_reserved ?? 0,
+      grossRevenue: moneyMetrics?.gross_revenue ?? 0,
+      hostNetEarnings: moneyMetrics?.net_earnings ?? 0,
+      seatsSold: moneyMetrics?.seats_sold ?? 0,
+      averageSeatFillRate: eventMetrics?.avg_fill_rate ?? 0,
+      averageRating: Number(ratingRow?.avg ?? 0),
+      reviewCount: ratingRow?.count ?? 0,
+      upcomingCount: counts?.upcoming_count ?? 0,
+      completedCount: counts?.completed_count ?? 0,
       totalViews,
       conversionRate: totalViews > 0 ? (totalBookings / totalViews) * 100 : 0,
     },
@@ -703,7 +867,6 @@ router.get('/:id/analytics', async (req, res) => {
       seatsBooked: e.seats_booked,
       bookings: e.bookings,
       checkedIn: e.checked_in,
-      gross: Number(e.seats_booked) * Number(e.price_per_seat),
     })),
     trend: trendRows.slice(0, trendMonths + 1).reverse()
       .map((r) => ({ label: r.label, seats: r.seats, revenue: r.revenue })),
@@ -716,7 +879,6 @@ router.get('/:id/analytics', async (req, res) => {
       bookings: r.bookings,
       pending: r.pending,
       checkedIn: r.checked_in,
-      gross: Number(r.seats_booked) * Number(r.price_per_seat),
     })),
   });
 });
@@ -788,9 +950,12 @@ router.get('/:id/promotable-events', async (req, res) => {
     [hostId],
   );
 
-  // Get the host's follower count.
-  const [followerRow] = await query<{ followers_count: number }>(
-    'SELECT followers_count FROM users WHERE id = $1::UUID',
+  // Get the host's follower count from the follow graph itself. The cached
+  // `users.followers_count` column was seeded with marketing-sized numbers
+  // (128,400 against 20 real follow rows) and nothing refreshes it, so it
+  // cannot back a "N followers will see this" promise.
+  const [followerRow] = await query<{ followers: number }>(
+    'SELECT count(*)::int AS followers FROM follows WHERE followee_id = $1::UUID',
     [hostId],
   );
 
@@ -806,7 +971,7 @@ router.get('/:id/promotable-events', async (req, res) => {
       pricePerSeat: Number(e.price_per_seat),
       restaurantName: e.restaurant_name,
     })),
-    followerCount: followerRow?.followers_count ?? 0,
+    followerCount: followerRow?.followers ?? 0,
     count: rows.length,
   });
 });

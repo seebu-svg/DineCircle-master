@@ -248,7 +248,7 @@ async function searchExperiences(
   const { params, push } = binder([viewerId, viewerId]);
   const conditions = [
     AUDIENCE_GATE.replaceAll('$VIEWER_UUID', '$2').replaceAll('$VIEWER', '$1'),
-    "(e.status NOT IN ('draft','requested','declined') OR e.host_id = $2)",
+    "(e.status NOT IN ('draft','requested','declined','cancelled') OR e.host_id = $2)",
     notBlockedBetween('$2', 'e.host_id'),
   ];
   const like = push(likeTerm(p.query));
@@ -416,7 +416,7 @@ router.get('/suggest', async (req, res) => {
     query<{ text: string; ref_id: string }>(
       `SELECT e.title AS text, e.id::text AS ref_id
        FROM dinner_events e
-       WHERE e.status NOT IN ('draft','requested','declined') AND e.start_at >= now()
+       WHERE e.status NOT IN ('draft','requested','declined','cancelled') AND e.start_at >= now()
          AND e.title ILIKE $1
        LIMIT ${take}`,
       [like],

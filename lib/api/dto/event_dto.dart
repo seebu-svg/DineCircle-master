@@ -142,6 +142,12 @@ class EventDto {
     this.cancellation = '',
     this.attendeeIds = const [],
     this.status = 'confirmed',
+    this.declineReason = '',
+    this.requiresApproval = false,
+    this.approvalStaleAt,
+    this.restaurantApprovedAt,
+    this.cancelledAt,
+    this.cancellationReason = '',
     this.menu = const [],
     this.venue,
     this.attendees = const [],
@@ -174,6 +180,16 @@ class EventDto {
   final String cancellation;
   final List<String> attendeeIds;
   final String status;
+
+  // ── Venue approval trail ──
+  // The server serialises these on every event, so Host Studio can render the
+  // real approval state instead of guessing from `status` alone.
+  final String declineReason;
+  final bool requiresApproval;
+  final DateTime? approvalStaleAt;
+  final DateTime? restaurantApprovedAt;
+  final DateTime? cancelledAt;
+  final String cancellationReason;
 
   // ── Detail-only ──
   final List<MenuCourseDto> menu;
@@ -211,6 +227,12 @@ class EventDto {
     cancellation: asString(json['cancellation']),
     attendeeIds: asStringList(json['attendeeIds']),
     status: asString(json['status'], 'confirmed'),
+    declineReason: asString(json['declineReason']),
+    requiresApproval: asBool(json['requiresApproval']),
+    approvalStaleAt: asDateOrNull(json['approvalStaleAt']),
+    restaurantApprovedAt: asDateOrNull(json['restaurantApprovedAt']),
+    cancelledAt: asDateOrNull(json['cancelledAt']),
+    cancellationReason: asString(json['cancellationReason']),
     menu: asMapList(json['menu']).map(MenuCourseDto.fromJson).toList(),
     venue: json['venue'] is Map
         ? (json['venue'] as Map).cast<String, dynamic>()

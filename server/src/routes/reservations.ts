@@ -7,6 +7,7 @@ import {
   availability,
   cancelOwnReservation,
   createReservation,
+  formatVenueDateTime,
   serializeReservation,
 } from '../reservations.js';
 
@@ -80,21 +81,25 @@ router.post('/restaurants/:restaurantId/reservations', async (req, res) => {
     status: 'pending',
   });
 
-  const [venue] = await query<{ name: string }>(
-    'SELECT name FROM restaurants WHERE id = $1::UUID',
+  const [venue] = await query<{ name: string; timezone: string | null }>(
+    `SELECT r.name,
+            (SELECT b.timezone FROM restaurant_branches b
+              WHERE b.restaurant_id = r.id
+              ORDER BY b.is_primary DESC LIMIT 1) AS timezone
+       FROM restaurants r WHERE r.id = $1::UUID`,
     [req.params.restaurantId],
   );
 
   // Tell the venue desk in the same request: a pending reservation nobody is
-  // told about is how bookings silently rot.
+  // told about is how bookings silently rot. The time is rendered in the
+  // venue's own timezone, a raw ISO instant left the desk guessing.
   await query(
     `INSERT INTO notifications (restaurant_id, title, body, category, read)
      VALUES ($1::UUID, 'New table reservation', $2, 'reservation', false)`,
     [
       req.params.restaurantId,
-      `${guest.name} requested a table for ${input.partySize} (${
-        new Date(input.startAt).toISOString()
-      }).`,
+      `${guest.name} requested a table for ${input.partySize} on `
+        + `${formatVenueDateTime(input.startAt, venue?.timezone ?? 'UTC')}.`,
     ],
   );
 

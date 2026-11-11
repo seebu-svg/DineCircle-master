@@ -105,6 +105,30 @@ export type SlotOption = {
 };
 
 /**
+ * Renders an instant as `Sat, Nov 14 at 7:00 PM` in the venue's own timezone.
+ *
+ * Venue-facing copy must never carry a raw ISO timestamp: the desk reading a
+ * notification has no way to know whether `2026-11-14T14:00:00.000Z` means
+ * lunch or closing time, and it disagreed with the diner's own app by five
+ * hours for every Karachi branch.
+ */
+export function formatVenueDateTime(instant: Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).formatToParts(instant);
+  const part = (type: string) =>
+    parts.find((candidate) => candidate.type === type)?.value ?? '';
+  return `${part('weekday')}, ${part('month')} ${part('day')} at `
+    + `${part('hour')}:${part('minute')} ${part('dayPeriod').toUpperCase()}`;
+}
+
+/**
  * Availability for one service day.
  *
  * `date` is a `YYYY-MM-DD` string interpreted in the venue's own timezone, so a

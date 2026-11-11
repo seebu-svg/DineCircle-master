@@ -221,20 +221,38 @@ class Mappers {
           : null,
       attendees: e.attendees.map(_userFromAttendeeRef).toList(),
       hostStatus: _hostStatusFromEventStatus(e.status),
+      declineReason: e.declineReason.isEmpty ? null : e.declineReason,
+      approvalStaleAt: e.approvalStaleAt,
+      cancelledAt: e.cancelledAt,
+      // A `requested`/`declined` status can only have come from a venue with
+      // the approval opt-in, so the host-side copy can promise a venue decision.
+      requiresVenueApproval:
+          e.status == 'requested' ||
+          e.status == 'declined' ||
+          e.restaurantApprovedAt != null,
     );
   }
 
-  /// Server lifecycle status → host-side view status. Drafts drive the Host
-  /// Studio drafts section; everything the public sees collapses to published.
+  /// Server lifecycle status → host-side view status.
+  ///
+  /// `requested` and `declined` keep their own states now. Collapsing them into
+  /// `published`/`cancelled` was the bug: a host saw "Published" for an
+  /// experience the venue had not approved, and "Cancelled" for one the venue
+  /// had only rejected.
   static HostEventStatus _hostStatusFromEventStatus(String status) {
     switch (status) {
       case 'draft':
         return HostEventStatus.draft;
+      case 'requested':
+        return HostEventStatus.requested;
+      case 'declined':
+        return HostEventStatus.declined;
       case 'completed':
         return HostEventStatus.completed;
       case 'cancelled':
-      case 'declined':
         return HostEventStatus.cancelled;
+      case 'confirmed':
+      case 'live':
       default:
         return HostEventStatus.published;
     }
@@ -321,7 +339,9 @@ class Mappers {
       status: _bookingStatus(d.status),
       createdAt: d.createdAt ?? DateTime.now(),
       qrCode: d.reference,
-      guestName: user.name,
+      guestName: d.guestName ?? user.name,
+      guestEmail: d.guestEmail,
+      guestPhone: d.guestPhone,
       // The server stores an empty label while a gateway owns the payment,
       // the settlement webhook writes the real brand/last4. Inventing a card
       // here would show a method the guest never used, so the empty value is
@@ -356,7 +376,9 @@ class Mappers {
       status: _bookingStatus(d.status),
       createdAt: d.createdAt ?? DateTime.now(),
       qrCode: d.reference,
-      guestName: user.name,
+      guestName: d.guestName ?? user.name,
+      guestEmail: d.guestEmail,
+      guestPhone: d.guestPhone,
       // The server stores an empty label while a gateway owns the payment,
       // the settlement webhook writes the real brand/last4. Inventing a card
       // here would show a method the guest never used, so the empty value is

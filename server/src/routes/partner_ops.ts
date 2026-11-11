@@ -235,15 +235,27 @@ router.get('/:restaurantId/dashboard', async (req, res) => {
 
 // ── Host event approvals ─────────────────────────────────────────────────────
 
+type MenuItemRow = {
+  event_id: string; id: string; position: number; name: string;
+  description: string; pairing: string | null; signature: boolean;
+};
+
 type RequestRow = {
   id: string; title: string; tagline: string; description: string;
-  host_id: string; host_name: string; start_at: Date; end_at: Date | null;
+  host_id: string; host_name: string; host_handle: string | null;
+  host_avatar: string | null;
+  start_at: Date; end_at: Date | null;
   seats_total: number; seats_booked: number; price_per_seat: string;
   type: string; status: string; cover_image: string; created_at: Date;
   decline_reason: string; restaurant_approved_at: Date | null;
+  approval_stale_at: Date | null; requires_host_approval: boolean;
+  gallery: string[]; audience: string; menu_style: string;
+  included: string[]; tags: string[]; host_note: string;
+  duration_minutes: number; language: string; dress_code: string;
+  cancelled_at: Date | null; cancellation_reason: string;
 };
 
-function serializeRequest(e: RequestRow) {
+function serializeRequest(e: RequestRow, menu: MenuItemRow[] = []) {
   return {
     id: e.id,
     title: e.title,
@@ -251,8 +263,15 @@ function serializeRequest(e: RequestRow) {
     description: e.description,
     hostId: e.host_id,
     hostName: e.host_name,
+    host: {
+      id: e.host_id,
+      name: e.host_name,
+      handle: e.host_handle,
+      avatarUrl: e.host_avatar,
+    },
     startAt: e.start_at,
     endAt: e.end_at,
+    durationMinutes: e.duration_minutes,
     seatsTotal: e.seats_total,
     seatsBooked: e.seats_booked,
     seatsLeft: Math.max(0, e.seats_total - e.seats_booked),
@@ -260,19 +279,66 @@ function serializeRequest(e: RequestRow) {
     type: e.type,
     status: e.status,
     coverImage: e.cover_image,
+    gallery: e.gallery ?? [],
+    audience: e.audience,
+    menuStyle: e.menu_style,
+    included: e.included ?? [],
+    tags: e.tags ?? [],
+    hostNote: e.host_note,
+    language: e.language,
+    dressCode: e.dress_code,
+    menu: menu.map((m) => ({
+      id: m.id,
+      position: m.position,
+      name: m.name,
+      description: m.description,
+      pairing: m.pairing,
+      isSignature: m.signature,
+    })),
     declineReason: e.decline_reason,
     approvedAt: e.restaurant_approved_at,
+    requiresApproval: e.requires_host_approval,
+    // A re-request after a host edit carries a newer `approval_stale_at` than
+    // the venue's last decision, which is what the "Changed since approval"
+    // badge in the Partner App reads.
+    approvalStaleAt: e.approval_stale_at,
+    isReapproval: e.approval_stale_at !== null
+      && (e.restaurant_approved_at === null || e.approval_stale_at > e.restaurant_approved_at),
+    cancelledAt: e.cancelled_at,
+    cancellationReason: e.cancellation_reason,
     createdAt: e.created_at,
   };
 }
 
 const REQUEST_SELECT = `
   SELECT e.id, e.title, e.tagline, e.description, e.host_id, u.name AS host_name,
+         u.handle AS host_handle, u.avatar_url AS host_avatar,
          e.start_at, e.end_at, e.seats_total, e.seats_booked, e.price_per_seat,
          e.type, e.status, e.cover_image, e.created_at, e.decline_reason,
-         e.restaurant_approved_at
+         e.restaurant_approved_at, e.approval_stale_at,
+         r.requires_host_approval, e.gallery, e.audience, e.menu_style,
+         e.included, e.tags, e.host_note, e.duration_minutes, e.language,
+         e.dress_code, e.cancelled_at, e.cancellation_reason
     FROM dinner_events e
-    JOIN users u ON u.id = e.host_id`;
+    JOIN users u ON u.id = e.host_id
+    JOIN restaurants r ON r.id = e.restaurant_id`;
+
+/** Menu rows for a set of events, grouped by event id. */
+async function menusFor(eventIds: string[]): Promise<Map<string, MenuItemRow[]>> {
+  const grouped = new Map<string, MenuItemRow[]>();
+  if (eventIds.length === 0) return grouped;
+  const rows = await query<MenuItemRow>(
+    `SELECT event_id, id, position, name, description, pairing, signature
+       FROM menu_items WHERE event_id = ANY($1::UUID[]) ORDER BY position ASC`,
+    [eventIds],
+  );
+  for (const row of rows) {
+    const bucket = grouped.get(row.event_id) ?? [];
+    bucket.push(row);
+    grouped.set(row.event_id, bucket);
+  }
+  return grouped;
+}
 
 // GET /api/partner/restaurants/:restaurantId/event-requests
 router.get('/:restaurantId/event-requests', async (req, res) => {
@@ -281,8 +347,8 @@ router.get('/:restaurantId/event-requests', async (req, res) => {
   const status = typeof req.query.status === 'string' && req.query.status !== ''
     ? req.query.status
     : 'requested';
-  if (!['requested', 'confirmed', 'declined'].includes(status)) {
-    throw new ApiError(400, 'status must be requested, confirmed or declined');
+  if (!['requested', 'confirmed', 'declined', 'completed'].includes(status)) {
+    throw new ApiError(400, 'status must be requested, confirmed, declined or completed');
   }
 
   const params: unknown[] = [req.params.restaurantId, status];
@@ -301,9 +367,31 @@ router.get('/:restaurantId/event-requests', async (req, res) => {
     params,
   );
 
+  const menus = await menusFor(rows.map((r) => r.id));
   res.json(
-    list('requests', rows.map(serializeRequest), page, totalRow?.count ?? 0),
+    list('requests', rows.map((r) => serializeRequest(r, menus.get(r.id) ?? [])), page, totalRow?.count ?? 0),
   );
+});
+
+/**
+ * GET /api/partner/restaurants/:restaurantId/event-requests/:eventId
+ *
+ * The full record the venue is being asked to approve. The list used to be the
+ * only surface, so a partner approved an experience having seen a title, a date
+ * and a price — never the menu, the gallery or the host's note.
+ */
+router.get('/:restaurantId/event-requests/:eventId', async (req, res) => {
+  await requireVenueRole(req, req.params.restaurantId);
+
+  const [row] = await query<RequestRow>(
+    `${REQUEST_SELECT}
+      WHERE e.id = $1::UUID AND e.restaurant_id = $2::UUID`,
+    [req.params.eventId, req.params.restaurantId],
+  );
+  if (!row) throw notFound('Event request');
+
+  const menus = await menusFor([row.id]);
+  res.json({ data: { request: serializeRequest(row, menus.get(row.id) ?? []) } });
 });
 
 /**
@@ -343,7 +431,8 @@ router.post('/:restaurantId/event-requests/:eventId/approve', async (req, res) =
     await client.query(
       `UPDATE dinner_events
           SET status = 'confirmed', restaurant_approved_at = now(),
-              restaurant_approved_by = $2::UUID, decline_reason = ''
+              restaurant_approved_by = $2::UUID, decline_reason = '',
+              approval_stale_at = NULL, updated_at = now()
         WHERE id = $1::UUID`,
       [request.id, req.userId],
     );
@@ -383,7 +472,7 @@ router.post('/:restaurantId/event-requests/:eventId/decline', async (req, res) =
     await client.query(
       `UPDATE dinner_events
           SET status = 'declined', decline_reason = $2,
-              restaurant_approved_by = $3::UUID
+              restaurant_approved_by = $3::UUID, updated_at = now()
         WHERE id = $1::UUID`,
       [request.id, input.reason, req.userId],
     );
@@ -412,7 +501,7 @@ type DealRow = {
   id: string; restaurant_id: string; title: string; description: string;
   kind: string; value: string; code: string | null; starts_at: Date; ends_at: Date;
   max_redemptions: number | null; redemptions: number; status: string;
-  image_url: string;
+  image_url: string; terms: string;
   created_at: Date; updated_at: Date;
 };
 
@@ -424,13 +513,19 @@ function serializeDeal(d: DealRow) {
     description: d.description,
     kind: d.kind,
     value: Number(d.value),
-    code: d.code,
+    // An empty code and no code are the same promise to a guest, and the app
+    // hides the chip on either. Normalise so clearing the field really clears it.
+    code: d.code || null,
     startsAt: d.starts_at,
     endsAt: d.ends_at,
     maxRedemptions: d.max_redemptions,
     redemptions: d.redemptions,
     status: d.status,
     imageUrl: d.image_url,
+    // Guest-facing conditions and redemption steps. The public deals route has
+    // always returned this; the partner route dropped it, so a partner could
+    // not see or edit the conditions their own guests read.
+    terms: d.terms ?? '',
     createdAt: d.created_at,
     updatedAt: d.updated_at,
   };
@@ -446,6 +541,7 @@ const dealBaseSchema = z.object({
   endsAt: z.coerce.date(),
   maxRedemptions: z.coerce.number().int().positive().max(100000).nullable().optional(),
   imageUrl: z.string().trim().max(400).default(''),
+  terms: z.string().trim().max(2000).default(''),
 });
 
 const dealSchema = dealBaseSchema.superRefine((deal, ctx) => {
@@ -526,13 +622,13 @@ router.post('/:restaurantId/deals', async (req, res) => {
   const [created] = await query<DealRow>(
     `INSERT INTO restaurant_deals
        (restaurant_id, title, description, kind, value, code, starts_at, ends_at,
-        max_redemptions, image_url, status)
-     VALUES ($1::UUID,$2,$3,$4,$5,$6,$7,$8,$9,$10,'draft')
+        max_redemptions, image_url, terms, status)
+     VALUES ($1::UUID,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'draft')
      RETURNING *`,
     [
       req.params.restaurantId, input.title, input.description, input.kind,
       input.value, code, startsAt, input.endsAt, input.maxRedemptions ?? null,
-      input.imageUrl,
+      input.imageUrl, input.terms,
     ],
   );
   if (!created) throw new ApiError(500, 'Deal creation failed');
@@ -595,7 +691,8 @@ router.patch('/:restaurantId/deals/:dealId', async (req, res) => {
   const map: Record<string, string> = {
     title: 'title', description: 'description', kind: 'kind', value: 'value',
     code: 'code', startsAt: 'starts_at', endsAt: 'ends_at',
-    maxRedemptions: 'max_redemptions', imageUrl: 'image_url', status: 'status',
+    maxRedemptions: 'max_redemptions', imageUrl: 'image_url', terms: 'terms',
+    status: 'status',
   };
   const sets: string[] = [];
   const params: unknown[] = [];
@@ -657,6 +754,58 @@ router.delete('/:restaurantId/deals/:dealId', async (req, res) => {
   );
   if (!retired) throw notFound('Deal');
   res.json({ data: { id: retired.id, status: 'expired' } });
+});
+
+/**
+ * POST /api/partner/restaurants/:restaurantId/deals/:dealId/redeem
+ *
+ * Counts one use of a deal at the table. Deliberately `staff`, not `manager`:
+ * the person who honours the offer is whoever is on the floor, and refusing
+ * them would push the count into a spreadsheet.
+ *
+ * The whole guard lives in the WHERE clause, so the check and the increment are
+ * one statement. Two waiters tapping at the same moment can never push
+ * `redemptions` past `max_redemptions`, which a read-then-write would allow.
+ */
+router.post('/:restaurantId/deals/:dealId/redeem', async (req, res) => {
+  await requireVenueRole(req, req.params.restaurantId);
+
+  const include = 'id = $1::UUID AND restaurant_id = $2::UUID';
+  const [redeemed] = await query<DealRow>(
+    `UPDATE restaurant_deals
+        SET redemptions = redemptions + 1, updated_at = now()
+      WHERE ${include}
+        AND status = 'active'
+        AND starts_at <= now()
+        AND ends_at > now()
+        AND (max_redemptions IS NULL OR redemptions < max_redemptions)
+      RETURNING *`,
+    [req.params.dealId, req.params.restaurantId],
+  );
+  if (redeemed) {
+    res.json({ data: { deal: serializeDeal(redeemed) } });
+    return;
+  }
+
+  // Nothing was counted. Say which guard refused so the desk knows whether to
+  // fix the deal or to stop honouring it, instead of a bare 409.
+  const [existing] = await query<DealRow>(
+    `SELECT * FROM restaurant_deals WHERE ${include}`,
+    [req.params.dealId, req.params.restaurantId],
+  );
+  if (!existing) throw notFound('Deal');
+  if (existing.status !== 'active') {
+    throw new ApiError(
+      409, `This deal is ${existing.status} and cannot be redeemed`,
+    );
+  }
+  if (new Date(existing.starts_at).getTime() > Date.now()) {
+    throw new ApiError(409, 'This deal has not started yet');
+  }
+  if (new Date(existing.ends_at).getTime() <= Date.now()) {
+    throw new ApiError(409, 'This deal has already passed its end date');
+  }
+  throw new ApiError(409, 'This deal has reached its redemption limit');
 });
 
 // ── Earnings & payouts ───────────────────────────────────────────────────────

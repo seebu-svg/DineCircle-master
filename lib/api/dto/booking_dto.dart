@@ -22,6 +22,9 @@ class BookingDto {
     this.createdAt,
     this.startAt,
     this.isUpcoming = false,
+    this.guestName,
+    this.guestEmail,
+    this.guestPhone,
   });
 
   final String id;
@@ -50,6 +53,13 @@ class BookingDto {
   final DateTime? startAt;
   final bool isUpcoming;
 
+  /// Contact the guest entered at checkout (`bookings.guest_*`). Null on rows
+  /// created before those columns existed, so callers must handle the absence
+  /// rather than inventing a placeholder address.
+  final String? guestName;
+  final String? guestEmail;
+  final String? guestPhone;
+
   static BookingDto fromJson(Map<String, dynamic> json) => BookingDto(
     id: asString(json['id']),
     eventId: asString(json['eventId']),
@@ -70,5 +80,8 @@ class BookingDto {
     createdAt: asDateOrNull(json['createdAt']),
     startAt: asDateOrNull(json['startAt']),
     isUpcoming: asBool(json['isUpcoming']),
+    guestName: asStringOrNull(json['guestName']),
+    guestEmail: asStringOrNull(json['guestEmail']),
+    guestPhone: asStringOrNull(json['guestPhone']),
   );
 }

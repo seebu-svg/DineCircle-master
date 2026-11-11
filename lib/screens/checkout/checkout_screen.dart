@@ -27,10 +27,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   int _currentStep = 0; // 0=seats, 1=guest info, 2=review+confirm
   bool _submitting = false;
 
-  // Guest info
+  // Guest info. Prefilled from the signed-in account, never invented: these
+  // values are persisted on the booking so the host can reach the diner.
   final _nameController = TextEditingController();
-  final _emailController = TextEditingController(text: 'alex@example.com');
-  final _phoneController = TextEditingController(text: '+1 (415) 555-0101');
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _notesController = TextEditingController();
 
   // Promo code
@@ -68,9 +69,31 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   void initState() {
     super.initState();
     final user = ref.read(currentUserProvider);
-    if (user != null && user.name.isNotEmpty) {
-      _nameController.text = user.name;
+    if (user != null) {
+      if (user.name.isNotEmpty) _nameController.text = user.name;
+      if (user.email.isNotEmpty) _emailController.text = user.email;
     }
+  }
+
+  /// Email shape the server also enforces (`z.string().email()`); catching it
+  /// here keeps the guest on the form instead of failing at submit time.
+  static final RegExp _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
+  /// Returns an error message for the first missing or malformed guest field,
+  /// or null when the block is complete. Name, email and phone are all asked
+  /// for because the venue's only route to a diner on the night is this block.
+  String? _guestInfoError() {
+    if (_nameController.text.trim().isEmpty) {
+      return 'Enter the guest name.';
+    }
+    final email = _emailController.text.trim();
+    if (email.isEmpty) return 'Enter an email address.';
+    if (!_emailPattern.hasMatch(email)) {
+      return 'Enter a valid email address.';
+    }
+    final phone = _phoneController.text.trim();
+    if (phone.isEmpty) return 'Enter a phone number.';
+    return null;
   }
 
   @override
@@ -607,7 +630,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           ),
           1 => PrimaryButton(
             text: 'Continue to Review',
-            onPressed: () => setState(() => _currentStep = 2),
+            onPressed: _goToReview,
           ),
           _ => PrimaryButton(
             text: 'Confirm Booking',
@@ -677,6 +700,20 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
   }
 
+  // ── Step navigation ──
+  /// Advancing out of the guest-info step is gated: contact details are what
+  /// the booking is for, so a blank or malformed field must not reach review.
+  void _goToReview() {
+    final error = _guestInfoError();
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error), backgroundColor: AppColors.danger),
+      );
+      return;
+    }
+    setState(() => _currentStep = 2);
+  }
+
   // ── Submit booking ──
   Future<void> _submit() async {
     if (_submitting) return;
@@ -699,6 +736,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 ? _promoController.text.trim().toUpperCase()
                 : null,
             paymentLabel: _paymentLabel,
+            guestName: _nameController.text.trim(),
+            guestEmail: _emailController.text.trim(),
+            guestPhone: _phoneController.text.trim(),
           );
       if (!mounted) return;
 
@@ -706,7 +746,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       widget.onComplete?.call(booking);
     } on ApiException catch (error) {
       if (!mounted) return;
-      setState(() => _submitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(error.message),
@@ -715,13 +754,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       );
     } catch (_) {
       if (!mounted) return;
-      setState(() => _submitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Something went wrong. Please try again.'),
           backgroundColor: AppColors.danger,
         ),
       );
+    } finally {
+      // Reset in one place: when the booking succeeded this screen stays mounted
+      // underneath the confirmation route, and leaving `_submitting` true there
+      // turned the CTA into a spinner that never stopped.
+      if (mounted) setState(() => _submitting = false);
     }
   }
 }

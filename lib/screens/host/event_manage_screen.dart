@@ -88,12 +88,14 @@ class _EventManageScreenState extends ConsumerState<EventManageScreen> {
 
   int get _guestCount => _confirmedGuests.map((g) => g.user.id).toSet().length;
 
-  double get _grossRevenue => _dinner.bookedSeats * _dinner.pricePerSeat;
-
   Color get _statusColor {
     switch (_dinner.hostStatus) {
       case HostEventStatus.draft:
         return AppColors.textSecondary;
+      case HostEventStatus.requested:
+        return AppColors.warning;
+      case HostEventStatus.declined:
+        return AppColors.danger;
       case HostEventStatus.published:
         return AppColors.success;
       case HostEventStatus.pausedBookings:
@@ -104,6 +106,14 @@ class _EventManageScreenState extends ConsumerState<EventManageScreen> {
         return AppColors.danger;
     }
   }
+
+  /// The server accepts content edits on draft, requested, declined and
+  /// confirmed experiences, and refuses them once the dinner is over or
+  /// called off. Tying this to `isDraft` alone used to grey out editing for a
+  /// venue-declined experience, which is precisely when the host needs it.
+  bool get _isEditable =>
+      _dinner.hostStatus != HostEventStatus.cancelled &&
+      _dinner.hostStatus != HostEventStatus.completed;
 
   Future<void> _updateGuest(GuestEntry guest, GuestRequestStatus status) async {
     final approve = status == GuestRequestStatus.approved;
@@ -222,24 +232,42 @@ class _EventManageScreenState extends ConsumerState<EventManageScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     final newTitle = titleController.text.trim();
                     final newPrice =
                         double.tryParse(priceController.text) ??
                         _dinner.pricePerSeat;
-                    setState(() {
-                      _dinner = _dinner.copyWith(
-                        title: newTitle.isEmpty ? _dinner.title : newTitle,
-                        pricePerSeat: newPrice,
-                      );
-                    });
                     Navigator.pop(sheetContext);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Event updated'),
-                        backgroundColor: AppColors.success,
-                      ),
-                    );
+                    try {
+                      final updated = await ref
+                          .read(eventsRepositoryProvider)
+                          .patchEvent(_dinner.id, {
+                            'title': newTitle.isEmpty
+                                ? _dinner.title
+                                : newTitle,
+                            'pricePerSeat': newPrice,
+                          });
+                      if (!mounted) return;
+                      setState(() => _dinner = updated);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Event updated'),
+                          backgroundColor: AppColors.success,
+                        ),
+                      );
+                    } catch (e) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            e is ApiException
+                                ? e.message
+                                : 'Could not update the event',
+                          ),
+                          backgroundColor: AppColors.danger,
+                        ),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
@@ -328,7 +356,7 @@ class _EventManageScreenState extends ConsumerState<EventManageScreen> {
                   const SizedBox(height: AppSpacing.sm),
                   Center(
                     child: Text(
-                      'Total capacity: ${_dinner.bookedSeats} already sold',
+                      'Total capacity: ${_dinner.bookedSeats} already reserved',
                       style: AppTextStyles.caption,
                     ),
                   ),
@@ -336,7 +364,7 @@ class _EventManageScreenState extends ConsumerState<EventManageScreen> {
                     Padding(
                       padding: const EdgeInsets.only(top: AppSpacing.sm),
                       child: Text(
-                        'Cannot go below already sold seats',
+                        'Cannot go below seats already reserved',
                         style: AppTextStyles.caption.copyWith(
                           color: AppColors.danger,
                         ),
@@ -349,19 +377,41 @@ class _EventManageScreenState extends ConsumerState<EventManageScreen> {
                     child: ElevatedButton(
                       onPressed: seats < _dinner.bookedSeats
                           ? null
-                          : () {
-                              setState(() {
-                                _dinner = _dinner.copyWith(totalSeats: seats);
-                              });
+                          : () async {
                               Navigator.pop(sheetContext);
-                              ScaffoldMessenger.of(this.context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Capacity updated to $seats seats',
+                              try {
+                                final updated = await ref
+                                    .read(eventsRepositoryProvider)
+                                    .patchEvent(_dinner.id, {
+                                      'seatsTotal': seats,
+                                    });
+                                if (!mounted) return;
+                                setState(() => _dinner = updated);
+                                ScaffoldMessenger.of(
+                                  this.context,
+                                ).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Capacity updated to $seats seats',
+                                    ),
+                                    backgroundColor: AppColors.success,
                                   ),
-                                  backgroundColor: AppColors.success,
-                                ),
-                              );
+                                );
+                              } catch (e) {
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(
+                                  this.context,
+                                ).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      e is ApiException
+                                          ? e.message
+                                          : 'Could not update capacity',
+                                    ),
+                                    backgroundColor: AppColors.danger,
+                                  ),
+                                );
+                              }
                             },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
@@ -470,17 +520,9 @@ class _EventManageScreenState extends ConsumerState<EventManageScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(sheetContext);
-                        ScaffoldMessenger.of(this.context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Announcement sent to $recipientCount guest(s): $audience',
-                            ),
-                            backgroundColor: AppColors.success,
-                          ),
-                        );
-                      },
+                      // There is no announcement endpoint yet: the old handler
+                      // only showed a success snackbar while nothing was sent.
+                      onPressed: null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                       ),
@@ -490,6 +532,13 @@ class _EventManageScreenState extends ConsumerState<EventManageScreen> {
                           color: Colors.white,
                         ),
                       ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    'Announcements are not available in this release yet.',
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ],
@@ -649,43 +698,26 @@ class _EventManageScreenState extends ConsumerState<EventManageScreen> {
     );
   }
 
-  void _confirmCancel() {
-    final commissionRate =
-        ref.read(myHostSummaryProvider).valueOrNull?.platformCommissionRate ??
-        0.10;
-    final refundTotal = _grossRevenue * (1 - commissionRate);
-    showDialog(
+  Future<void> _confirmCancel() async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
           backgroundColor: AppColors.surfaceElevated,
           title: Text('Cancel Event?', style: AppTextStyles.titleLarge),
           content: Text(
-            '$_guestCount confirmed guest(s) will be notified and $refundTotal will be refunded. This cannot be undone.',
+            '$_guestCount confirmed guest(s) will be notified and their seats '
+            'released. The experience leaves Explore and bookings close; the '
+            'record stays so guests can still see what happened.',
             style: AppTextStyles.bodySmall,
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
+              onPressed: () => Navigator.pop(dialogContext, false),
               child: const Text('Keep Event'),
             ),
             ElevatedButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                setState(() {
-                  _dinner = _dinner.copyWith(
-                    hostStatus: HostEventStatus.cancelled,
-                  );
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Event cancelled. Guests notified and refunds issued.',
-                    ),
-                    backgroundColor: AppColors.danger,
-                  ),
-                );
-              },
+              onPressed: () => Navigator.pop(dialogContext, true),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.danger,
               ),
@@ -698,6 +730,36 @@ class _EventManageScreenState extends ConsumerState<EventManageScreen> {
         );
       },
     );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await ref.read(eventsRepositoryProvider).cancelEvent(_dinner.id);
+      if (!mounted) return;
+      setState(() {
+        // Soft cancel: the row survives, so the local model keeps its history
+        // instead of pretending the experience never existed.
+        _dinner = _dinner.copyWith(
+          hostStatus: HostEventStatus.cancelled,
+          cancelledAt: DateTime.now(),
+        );
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Event cancelled. Confirmed guests were notified.'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e is ApiException ? e.message : 'Could not cancel the event',
+          ),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+    }
   }
 
   // ────────────────────────────────────────────────────────────
@@ -707,6 +769,7 @@ class _EventManageScreenState extends ConsumerState<EventManageScreen> {
   @override
   Widget build(BuildContext context) {
     final isCancelled = _dinner.hostStatus == HostEventStatus.cancelled;
+    final venueBanner = _buildVenueBanner();
     return Scaffold(
       appBar: AppBar(title: const Text('Manage Event')),
       body: SingleChildScrollView(
@@ -716,6 +779,10 @@ class _EventManageScreenState extends ConsumerState<EventManageScreen> {
           children: [
             _buildHeader(),
             const SizedBox(height: AppSpacing.lg),
+            if (venueBanner != null) ...[
+              venueBanner,
+              const SizedBox(height: AppSpacing.lg),
+            ],
             _buildStats(),
             const SizedBox(height: AppSpacing.lg),
             _buildActionGrid(isCancelled: isCancelled),
@@ -724,6 +791,82 @@ class _EventManageScreenState extends ConsumerState<EventManageScreen> {
             const SizedBox(height: AppSpacing.xxl),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Explains where an experience stands with the venue, and quotes the
+  /// venue's reason when it declined.
+  ///
+  /// Returns null for every state that needs no explanation. Without this a
+  /// host looking at a `requested` experience had no way to learn that diners
+  /// could not book it yet, and a declined one showed only a red pill.
+  Widget? _buildVenueBanner() {
+    final status = _dinner.hostStatus;
+    if (status != HostEventStatus.requested &&
+        status != HostEventStatus.declined) {
+      return null;
+    }
+    final declined = status == HostEventStatus.declined;
+    final color = declined ? AppColors.danger : AppColors.warning;
+    final title = declined
+        ? _dinner.isReapproval
+              ? 'Waiting on the venue again after your changes'
+              : 'The venue declined this experience'
+        : _dinner.isReapproval
+              ? 'Your changes go back to the venue for approval'
+              : 'Waiting for the venue to approve';
+    final body = declined
+        ? (_dinner.declineReason?.isNotEmpty == true
+              ? _dinner.declineReason!
+              : 'The venue did not leave a reason. Edit the experience and '
+                    'publish it again to send it back to their queue.')
+        : 'Diners cannot find or book this yet. '
+              '${_dinner.restaurant.name} approves it from their partner app.';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                declined
+                    ? Icons.do_not_disturb_on_rounded
+                    : Icons.hourglass_top_rounded,
+                color: color,
+                size: 18,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppTextStyles.labelMedium.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          // The venue's note is their own wording, so it is quoted rather than
+          // summarised, and clamped so a long message cannot blow up the card.
+          Text(
+            body,
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.textPrimary,
+            ),
+            maxLines: 6,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }
@@ -824,8 +967,8 @@ class _EventManageScreenState extends ConsumerState<EventManageScreen> {
         const SizedBox(width: AppSpacing.sm),
         Expanded(
           child: _MiniStat(
-            label: 'Revenue',
-            value: 'Rs ${_grossRevenue.toStringAsFixed(0)}',
+            label: 'Price / seat',
+            value: 'Rs ${_dinner.pricePerSeat.toStringAsFixed(0)}',
             color: AppColors.success,
           ),
         ),
@@ -834,40 +977,60 @@ class _EventManageScreenState extends ConsumerState<EventManageScreen> {
   }
 
   Widget _buildActionGrid({required bool isCancelled}) {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: AppSpacing.sm,
-      crossAxisSpacing: AppSpacing.sm,
-      childAspectRatio: 3.4,
+    // Edits and capacity changes go through `PATCH /events/:id`, which the
+    // server allows until an experience is completed or cancelled. At a venue
+    // that reserves approval, editing a decided experience reopens it.
+    final isEditable = _isEditable;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _ActionCard(
-          icon: Icons.edit_rounded,
-          label: 'Edit Event',
-          onTap: isCancelled ? null : _showEditSheet,
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: AppSpacing.sm,
+          crossAxisSpacing: AppSpacing.sm,
+          childAspectRatio: 3.4,
+          children: [
+            _ActionCard(
+              icon: Icons.edit_rounded,
+              label: 'Edit Event',
+              onTap: isEditable ? _showEditSheet : null,
+            ),
+            _ActionCard(
+              icon: Icons.event_seat_rounded,
+              label: 'Manage Seats',
+              onTap: isEditable ? _showSeatsSheet : null,
+            ),
+            _ActionCard(
+              icon: Icons.campaign_rounded,
+              label: 'Announce',
+              onTap: isCancelled ? null : _showAnnounceSheet,
+            ),
+            _ActionCard(
+              icon: Icons.how_to_reg_rounded,
+              label: 'Attendance',
+              onTap: _showAttendanceSheet,
+            ),
+            _ActionCard(
+              icon: Icons.cancel_rounded,
+              label: isCancelled ? 'Event Cancelled' : 'Cancel Event',
+              danger: true,
+              onTap: isCancelled ? null : _confirmCancel,
+            ),
+          ],
         ),
-        _ActionCard(
-          icon: Icons.event_seat_rounded,
-          label: 'Manage Seats',
-          onTap: isCancelled ? null : _showSeatsSheet,
-        ),
-        _ActionCard(
-          icon: Icons.campaign_rounded,
-          label: 'Announce',
-          onTap: isCancelled ? null : _showAnnounceSheet,
-        ),
-        _ActionCard(
-          icon: Icons.how_to_reg_rounded,
-          label: 'Attendance',
-          onTap: _showAttendanceSheet,
-        ),
-        _ActionCard(
-          icon: Icons.cancel_rounded,
-          label: isCancelled ? 'Event Cancelled' : 'Cancel Event',
-          danger: true,
-          onTap: isCancelled ? null : _confirmCancel,
-        ),
+        if (!isCancelled && !isEditable) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'This experience has already taken place, so its listing is '
+            'locked. Cancellation, attendance and guest approval stay '
+            'available for your records.',
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
       ],
     );
   }

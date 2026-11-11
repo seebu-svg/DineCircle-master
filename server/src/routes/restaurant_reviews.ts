@@ -63,6 +63,7 @@ router.get('/:restaurantId/reviews', async (req, res) => {
        FROM reviews r
        JOIN users u ON u.id = r.author_id
       WHERE r.restaurant_id = $1::UUID
+        AND r.moderation_status <> 'removed'
       ORDER BY r.created_at DESC
       LIMIT $2 OFFSET $3`,
     [restaurantId, limit, offset],
@@ -71,7 +72,7 @@ router.get('/:restaurantId/reviews', async (req, res) => {
   const [aggregate] = await query<{ avg_rating: string; count: number }>(
     `SELECT COALESCE(AVG(rating), 0)::text AS avg_rating, count(*)::int AS count
        FROM reviews
-      WHERE restaurant_id = $1::UUID`,
+      WHERE restaurant_id = $1::UUID AND moderation_status <> 'removed'`,
     [restaurantId],
   );
 

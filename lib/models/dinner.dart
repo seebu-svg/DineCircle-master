@@ -1,3 +1,4 @@
+import '../utils/venue_time.dart';
 import 'user_profile.dart';
 import 'restaurant.dart';
 import 'host_models.dart';
@@ -45,6 +46,22 @@ class Dinner {
   final List<UserProfile> attendees;
   final HostEventStatus hostStatus;
 
+  /// The venue's own words when it declined, shown verbatim next to a
+  /// `Declined by venue` status so the host knows what to fix.
+  final String? declineReason;
+
+  /// When a change reopened an already-decided experience. The venue inbox
+  /// reads it to tell "first approval" apart from "re-approval after a change".
+  final DateTime? approvalStaleAt;
+
+  /// When the experience was soft-cancelled. The row is retained, so guests
+  /// and Host Studio can still open it after it leaves the feed.
+  final DateTime? cancelledAt;
+
+  /// Whether this venue reserves the right to approve a host's experience
+  /// before diners can see it.
+  final bool requiresVenueApproval;
+
   const Dinner({
     required this.id,
     required this.title,
@@ -67,10 +84,19 @@ class Dinner {
     this.endsAt,
     this.attendees = const [],
     this.hostStatus = HostEventStatus.published,
+    this.declineReason,
+    this.approvalStaleAt,
+    this.cancelledAt,
+    this.requiresVenueApproval = false,
   });
 
   int get availableSeats => totalSeats - bookedSeats;
   bool get isFull => availableSeats <= 0;
+
+  /// True when the venue has decided once and the host changed the experience
+  /// afterwards, so the approval on file no longer describes what is being
+  /// published.
+  bool get isReapproval => approvalStaleAt != null;
 
   /// Whether [userId] is this dinner's host. Use the live session id, the old
   /// `isHostedByCurrentUser` getter was a hardcoded stub with no session access.
@@ -78,30 +104,30 @@ class Dinner {
       userId != null && userId.isNotEmpty && host.id == userId;
 
   String get formattedDate {
+    final start = dateTime.toLocal();
     final now = DateTime.now();
-    final difference = dateTime.difference(now);
+    final startDay = DateTime(start.year, start.month, start.day);
+    final today = DateTime(now.year, now.month, now.day);
+    final daysAway = startDay.difference(today).inDays;
 
-    if (difference.inDays == 0) {
+    if (daysAway == 0) {
       return 'Today';
-    } else if (difference.inDays == 1) {
+    } else if (daysAway == 1) {
       return 'Tomorrow';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days';
+    } else if (daysAway > 1 && daysAway < 7) {
+      return '$daysAway days';
     } else {
-      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+      return formatVenueDate(dateTime);
     }
   }
 
-  String get formattedTime {
-    return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
-  }
+  String get formattedTime => formatVenueTime(dateTime);
 
   String get formattedEndTime {
     if (endsAt == null) {
-      final end = dateTime.add(const Duration(hours: 3));
-      return '${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
+      return formatVenueTime(dateTime.add(const Duration(hours: 3)));
     }
-    return '${endsAt!.hour.toString().padLeft(2, '0')}:${endsAt!.minute.toString().padLeft(2, '0')}';
+    return formatVenueTime(endsAt!);
   }
 
   String get formattedLocation {
@@ -130,6 +156,10 @@ class Dinner {
     DateTime? endsAt,
     List<UserProfile>? attendees,
     HostEventStatus? hostStatus,
+    String? declineReason,
+    DateTime? approvalStaleAt,
+    DateTime? cancelledAt,
+    bool? requiresVenueApproval,
   }) {
     return Dinner(
       id: id ?? this.id,
@@ -153,6 +183,10 @@ class Dinner {
       endsAt: endsAt ?? this.endsAt,
       attendees: attendees ?? this.attendees,
       hostStatus: hostStatus ?? this.hostStatus,
+      declineReason: declineReason ?? this.declineReason,
+      approvalStaleAt: approvalStaleAt ?? this.approvalStaleAt,
+      cancelledAt: cancelledAt ?? this.cancelledAt,
+      requiresVenueApproval: requiresVenueApproval ?? this.requiresVenueApproval,
     );
   }
 

@@ -214,8 +214,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: _MetricCard(
-                label: 'Seats Sold',
-                value: '${a.totalSeatsSold}',
+                label: 'Seats Reserved',
+                value: '${a.totalSeatsReserved}',
                 icon: Icons.event_seat_rounded,
                 color: AppColors.primaryLight,
               ),
@@ -227,7 +227,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
           children: [
             Expanded(
               child: _MetricCard(
-                label: 'Gross Revenue',
+                label: 'Recorded Revenue',
                 value: _money(a.grossRevenue),
                 icon: Icons.payments_rounded,
                 color: AppColors.success,
@@ -246,7 +246,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
             Expanded(
               child: _MetricCard(
                 label: 'Avg Rating',
-                value: a.averageRating > 0
+                value: a.reviewCount > 0
                     ? a.averageRating.toStringAsFixed(1)
                     : '-',
                 icon: Icons.star_rounded,
@@ -314,12 +314,14 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
             Expanded(
               child: _PerformanceCard(
                 label: 'Avg Rating',
-                value: a.averageRating > 0
+                value: a.reviewCount > 0
                     ? '${a.averageRating.toStringAsFixed(1)} ★'
                     : '-',
                 icon: Icons.star_rounded,
                 color: AppColors.gold,
-                subtitle: 'From guest reviews',
+                subtitle: a.reviewCount > 0
+                    ? 'From ${a.reviewCount} guest review(s)'
+                    : 'No guest reviews yet',
               ),
             ),
           ],
@@ -500,7 +502,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
         const SizedBox(width: AppSpacing.sm),
         Flexible(
           child: Text(
-            _money(stat.gross),
+            '${stat.seatsBooked} seats',
             style: AppTextStyles.titleSmall.copyWith(color: AppColors.success),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -524,7 +526,6 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
             if (i > 0) const Divider(height: AppSpacing.lg),
             _ExpandableEventRow(
               stat: stats[i],
-              moneyFmt: _money,
               compactFmt: _compact,
             ),
           ],
@@ -669,12 +670,10 @@ class _EarningsRow extends StatelessWidget {
 
 class _ExpandableEventRow extends StatefulWidget {
   final HostEventStat stat;
-  final String Function(double) moneyFmt;
   final String Function(num) compactFmt;
 
   const _ExpandableEventRow({
     required this.stat,
-    required this.moneyFmt,
     required this.compactFmt,
   });
 
@@ -725,7 +724,7 @@ class _ExpandableEventRowState extends State<_ExpandableEventRow> {
                   ),
                 ),
                 Text(
-                  widget.moneyFmt(s.gross),
+                  '${s.seatsBooked} seats',
                   style: AppTextStyles.titleSmall.copyWith(
                     color: AppColors.success,
                   ),

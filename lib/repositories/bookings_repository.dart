@@ -23,6 +23,9 @@ abstract class BookingsRepository {
     required int seats,
     String? promoCode,
     String paymentLabel = Booking.kDefaultPaymentMethod,
+    String? guestName,
+    String? guestEmail,
+    String? guestPhone,
   });
 
   /// Cancels one of the caller's bookings; seats are released server-side.
@@ -68,6 +71,9 @@ class ApiBookingsRepository implements BookingsRepository {
     required int seats,
     String? promoCode,
     String paymentLabel = Booking.kDefaultPaymentMethod,
+    String? guestName,
+    String? guestEmail,
+    String? guestPhone,
   }) async {
     final body = await _client.postJson(
       '/events/${dinner.id}/bookings',
@@ -76,6 +82,14 @@ class ApiBookingsRepository implements BookingsRepository {
         'paymentLabel': paymentLabel,
         if (promoCode != null && promoCode.trim().isNotEmpty)
           'promoCode': promoCode.trim().toUpperCase(),
+        // Real contact the host can act on; omitted rather than invented when
+        // the guest left a field blank.
+        if (guestName != null && guestName.trim().isNotEmpty)
+          'guestName': guestName.trim(),
+        if (guestEmail != null && guestEmail.trim().isNotEmpty)
+          'guestEmail': guestEmail.trim(),
+        if (guestPhone != null && guestPhone.trim().isNotEmpty)
+          'guestPhone': guestPhone.trim(),
       },
     );
     final booking = asMap(asMap(body)['booking']);

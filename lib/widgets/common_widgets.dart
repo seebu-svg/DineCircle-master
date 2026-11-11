@@ -63,6 +63,28 @@ class RatingPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // An unrated venue has no rating to show. Printing "0.0 (0)" claimed a
+    // score nobody gave, so the pill says what is actually true instead.
+    final hasReviews = rating > 0 && (reviewCount == null || reviewCount! > 0);
+    if (!hasReviews) {
+      return Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.xs,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceElevated,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Text(
+          'No reviews yet',
+          style: AppTextStyles.caption.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+      );
+    }
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.sm,

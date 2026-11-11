@@ -38,6 +38,10 @@ router.get('/reviews', async (req, res) => {
     add('rv.author_id = ?', authorId);
   }
 
+  // A review an admin removed leaves this public feed. `flagged` stays visible:
+  // flagging queues it for a human, it is not a verdict.
+  conditions.push(`rv.moderation_status <> 'removed'`);
+
   const where = conditions.length === 0 ? '' : `WHERE ${conditions.join(' AND ')}`;
   const parsedLimit = Math.min(Number(limit) || 50, 200);
 

@@ -26,6 +26,13 @@ export type UserRole =
 export type AccountType = 'personal' | 'professional';
 
 /**
+ * Which half of the admin console a persona is shown. Gates navigation in the
+ * browser only; every `/api/admin` endpoint checks the role, not the scope, so
+ * a hidden module cannot be reached by typing a URL.
+ */
+export type AdminScope = 'full' | 'operations' | 'trust_safety' | 'finance' | 'support';
+
+/**
  * Single-account growth ladder: diner ('user') → host → influencer.
  * An influencer keeps every host capability (publishing, earnings, Host
  * Studio); partner/super admins also publish but sit outside the ladder.
@@ -49,6 +56,8 @@ declare global {
       userRole: UserRole;
       /** The acting user's account mode ('personal' | 'professional'). */
       accountType: AccountType;
+      /** Admin-console persona scope, read by the console UI only. */
+      adminScope?: AdminScope;
     }
   }
 }
@@ -94,18 +103,27 @@ export const requireAuth: RequestHandler = async (
       user_id: string;
       role: string;
       account_type: string;
+      admin_scope: string;
+      suspended_at: Date | null;
     }>(
-      `SELECT at.user_id, u.role, u.account_type
+      `SELECT at.user_id, u.role, u.account_type, u.admin_scope, u.suspended_at
        FROM auth_tokens at
        JOIN users u ON u.id = at.user_id
        WHERE at.token = $1 AND at.expires_at > now() AND NOT u.is_deleted`,
       [hashToken(token)],
     );
     if (!session) throw unauthorized();
+    // An admin suspension freezes the account on every surface at once, the
+    // same way a deleted one does. The console's suspend action and the report
+    // resolver both write this column, so no client needs its own kill switch.
+    if (session.suspended_at) {
+      throw forbidden('This account has been suspended. Contact support.');
+    }
 
     req.userId = session.user_id;
     req.userRole = session.role as UserRole;
     req.accountType = session.account_type as AccountType;
+    req.adminScope = session.admin_scope as AdminScope;
     next();
   } catch (error) {
     next(error);
@@ -185,6 +203,8 @@ export async function loadUser(id: string) {
     dm_from_followers_only: boolean; allow_tagging: boolean;
     // Customer account mode, drives the Host Studio gate on both ends.
     account_type: string; professional_since: Date | null;
+    // Admin console persona + state. Additive, the mobile clients ignore them.
+    admin_scope: string; suspended_at: Date | null; suspension_reason: string;
   }>('SELECT * FROM users WHERE id = $1', [id]);
   if (!user) throw notFound('User');
   return {
@@ -220,5 +240,10 @@ export async function loadUser(id: string) {
     allowTagging: user.allow_tagging,
     isInfluencer: user.role === 'influencer',
     isVerified: user.badges.includes('verified') || user.role === 'influencer',
+    // Console-only: which nav sections the signed-in persona may see, and
+    // whether the account is currently frozen by an admin suspension.
+    adminScope: user.admin_scope,
+    suspendedAt: user.suspended_at,
+    suspensionReason: user.suspension_reason,
   };
 }

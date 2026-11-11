@@ -55,20 +55,17 @@ class MyTablesScreen extends ConsumerWidget {
           message: 'No tables booked yet.\nReserve one from a restaurant page.',
         ),
         builder: (context, reservations) {
-          // Split into upcoming (pending/confirmed/seated) and past (completed/
-          // cancelled/no-show). Upcoming first.
+          // Split on status *and* clock: a reservation only counts as upcoming
+          // while its start instant is still ahead. Splitting on status alone
+          // parked a three-day-old `pending` row under "Upcoming" forever, which
+          // made the app look like it accepted reservations in the past.
+          final now = DateTime.now();
           final upcoming = reservations
-              .where((r) =>
-                  r.status == ReservationStatus.pending ||
-                  r.status == ReservationStatus.confirmed ||
-                  r.status == ReservationStatus.seated)
+              .where((r) => r.isUpcomingAt(now))
               .toList()
             ..sort((a, b) => a.startAt.compareTo(b.startAt));
           final past = reservations
-              .where((r) =>
-                  r.status == ReservationStatus.completed ||
-                  r.status == ReservationStatus.cancelled ||
-                  r.status == ReservationStatus.noShow)
+              .where((r) => !r.isUpcomingAt(now))
               .toList()
             ..sort((a, b) => b.startAt.compareTo(a.startAt));
 

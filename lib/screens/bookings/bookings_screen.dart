@@ -120,22 +120,17 @@ class _BookingsScreenState extends ConsumerState<BookingsScreen>
         onRetry: () => ref.invalidate(myBookingsProvider),
         builder: (context, allBookings) {
           final filtered = _filterByStatus(allBookings);
+          // Same status-plus-clock rule as My Tables: an event that has already
+          // started is Past even when the booking row is still `confirmed`.
+          final now = DateTime.now();
           final upcoming = filtered
-              .where(
-                (b) =>
-                    b.status == BookingStatus.confirmed ||
-                    b.status == BookingStatus.pending,
-              )
-              .toList();
+              .where((b) => b.isUpcomingAt(now))
+              .toList()
+            ..sort((a, b) => a.dinner.dateTime.compareTo(b.dinner.dateTime));
           final past = filtered
-              .where(
-                (b) =>
-                    b.status == BookingStatus.completed ||
-                    b.status == BookingStatus.cancelled ||
-                    b.status == BookingStatus.noShow ||
-                    b.status == BookingStatus.refunded,
-              )
-              .toList();
+              .where((b) => !b.isUpcomingAt(now))
+              .toList()
+            ..sort((a, b) => b.dinner.dateTime.compareTo(a.dinner.dateTime));
 
           return Column(
             children: [

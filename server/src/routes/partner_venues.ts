@@ -11,6 +11,8 @@ import {
 } from '../access.js';
 import type { PartnerRole } from '../access.js';
 import { list, one, parsePagination } from '../api.js';
+import { reviewVerificationRequest } from '../verification_review.js';
+import { inviteStaffToVenue } from '../partner_staff.js';
 
 const router = Router();
 
@@ -510,63 +512,18 @@ const reviewSchema = z.object({
 
 /**
  * POST /api/partner/verification/requests/:requestId/review, platform admin
- * decision. Approval is what flips the venue into `verified` + `is_partner`,
- * the two flags every downstream gate (host publishing, deals, payouts) reads.
+ * decision. The rule itself lives in `src/verification_review.ts` because the
+ * admin console reviews the same queue from `POST /api/admin/applications/:id`.
  */
 verificationRouter.post('/requests/:requestId/review', async (req, res) => {
   requirePlatformAdmin(req);
   const input = reviewSchema.parse(req.body ?? {});
 
-  const result = await withTransaction(async (client) => {
-    const { rows } = await client.query<{ id: string; restaurant_id: string; status: string }>(
-      `SELECT id, restaurant_id, status FROM partner_verification_requests
-        WHERE id = $1::UUID FOR UPDATE`,
-      [req.params.requestId],
-    );
-    const request = rows[0];
-    if (!request) throw notFound('Verification request');
-    if (request.status !== 'pending') {
-      throw new ApiError(409, `This request was already ${request.status}`);
-    }
-
-    await client.query(
-      `UPDATE partner_verification_requests
-          SET status = $2, reviewer_note = $3, reviewed_by = $4::UUID,
-              reviewed_at = now()
-        WHERE id = $1::UUID`,
-      [request.id, input.decision, input.reviewerNote, req.userId],
-    );
-
-    const approved = input.decision === 'approved';
-    const { rows: venues } = await client.query<{ id: string; name: string; owner_id: string | null }>(
-      `UPDATE restaurants
-          SET partnership_status = $2,
-              is_partner = $3,
-              verified_at = CASE WHEN $3 THEN now() ELSE verified_at END,
-              rejection_note = CASE WHEN $3 THEN '' ELSE $4 END
-        WHERE id = $1::UUID
-        RETURNING id, name, owner_id`,
-      [request.restaurant_id, approved ? 'verified' : 'rejected', approved, input.reviewerNote],
-    );
-
-    const venue = venues[0];
-    if (venue) {
-      // The venue desk is told either way; a rejection that only lands in an
-      // admin queue would leave the partner app showing a silent spinner.
-      await client.query(
-        `INSERT INTO notifications (restaurant_id, title, body, category, read)
-         VALUES ($1::UUID, $2, $3, 'verification', false)`,
-        [
-          venue.id,
-          approved ? 'Venue verified' : 'Verification needs work',
-          approved
-            ? 'Your venue is verified. You can now accept host event requests, publish deals and receive payouts.'
-            : `Verification was declined. ${input.reviewerNote}`.trim(),
-        ],
-      );
-    }
-
-    return { requestId: request.id, status: input.decision, restaurantId: request.restaurant_id };
+  const result = await reviewVerificationRequest({
+    requestId: req.params.requestId,
+    decision: input.decision,
+    reviewerNote: input.reviewerNote,
+    actorId: req.userId,
   });
 
   res.json({ data: result });
@@ -615,44 +572,26 @@ const inviteStaffSchema = z.object({
  * POST /api/partner/restaurants/:restaurantId/staff, invite an existing
  * account into the venue. Requires an already-registered user: the Partner App
  * cannot mint accounts, which keeps account creation on the single auth path.
+ * `src/partner_staff.ts` holds the write so the admin console invites look the
+ * same as partner invites.
  */
 router.post('/:restaurantId/staff', async (req, res) => {
   await requireVenueRole(req, req.params.restaurantId, 'owner');
   const input = inviteStaffSchema.parse(req.body ?? {});
-  if (!input.email && !input.phone) {
-    throw new ApiError(400, 'Provide the email or phone of an existing account');
-  }
 
-  const [staffUser] = await query<{ id: string; role: string; name: string }>(
-    `SELECT id, role, name FROM users
-      WHERE ($1::text IS NOT NULL AND lower(email) = lower($1))
-         OR ($2::text IS NOT NULL AND phone = $2)
-      LIMIT 1`,
-    [input.email ?? null, input.phone ?? null],
-  );
-  if (!staffUser) {
-    throw notFound('Account for that email/phone');
-  }
-
-  await query(
-    `INSERT INTO restaurant_staff (user_id, restaurant_id, role, status, invited_by)
-     VALUES ($1::UUID, $2::UUID, $3, 'invited', $4::UUID)
-     ON CONFLICT (user_id, restaurant_id)
-     DO UPDATE SET role = EXCLUDED.role, status = 'invited',
-                   invited_by = EXCLUDED.invited_by, updated_at = now()`,
-    [staffUser.id, req.params.restaurantId, input.role, req.userId],
-  );
+  const invited = await inviteStaffToVenue({
+    restaurantId: req.params.restaurantId,
+    role: input.role,
+    actorId: req.userId,
+    actorIsAdmin: req.userRole === 'super_admin',
+    email: input.email,
+    phone: input.phone,
+  });
 
   // The invitee is promoted only on acceptance (see the accept endpoint), so a
   // mis-typed invite can never silently grant partner-role access.
-  await query(
-    `INSERT INTO notifications (restaurant_id, title, body, category, read)
-     VALUES ($1::UUID, 'Staff invite', $2, 'staff', false)`,
-    [req.params.restaurantId, `${req.userRole === 'super_admin' ? 'An admin' : 'A venue owner'} invited ${staffUser.name} as ${input.role}.`],
-  );
-
   res.status(201).json({
-    data: { userId: staffUser.id, name: staffUser.name, role: input.role, status: 'invited' },
+    data: { userId: invited.userId, name: invited.name, role: invited.role, status: 'invited' },
   });
 });
 

@@ -20,8 +20,9 @@ abstract class HostsRepository {
   Future<CollaborationInvite> respondToInvite(
     String hostId,
     String inviteId,
-    bool accept,
-  );
+    bool accept, {
+    String? reason,
+  });
   Future<Wallet> wallet(String hostId);
   Future<Wallet> requestWithdrawal({
     required String hostId,
@@ -39,6 +40,7 @@ abstract class HostsRepository {
     required String restaurantId,
     required String title,
     required String message,
+    String? experienceId,
   });
   Future<CollaborationInvite> cancelProposal({
     required String hostId,
@@ -47,6 +49,7 @@ abstract class HostsRepository {
   Future<CollaborationInvite> completeProposal({
     required String hostId,
     required String collabId,
+    String? experienceId,
   });
 
   // ── Phase 3: Discovery & Promote ─────────────────────────────────────────
@@ -74,10 +77,13 @@ class ApiHostsRepository implements HostsRepository {
       lifetimeGross: asDouble(json['lifetimeGross']),
       commissionTotal: asDouble(json['commissionTotal']),
       seatsSold: asInt(json['seatsSold']),
+      seatsReserved: asInt(json['seatsReserved']),
       averageSeatPrice: asDouble(json['averageSeatPrice']),
       hostedCount: asInt(json['hostedCount']),
       upcomingCount: asInt(json['upcomingCount']),
       averageFillRate: asDouble(json['averageFillRate']),
+      averageRating: asDouble(json['averageRating']),
+      reviewCount: asInt(json['reviewCount']),
       nextPayoutDate: asDateOrNull(json['nextPayoutDate']),
       platformCommissionRate: asDouble(json['platformCommissionRate'], 0.10),
       available: asDouble(json['available']),
@@ -129,7 +135,6 @@ class ApiHostsRepository implements HostsRepository {
             bookings: asInt(r['bookings']),
             pending: asInt(r['pending']),
             checkedIn: asInt(r['checkedIn']),
-            gross: asDouble(r['gross']),
           ),
         )
         .toList();
@@ -163,17 +168,25 @@ class ApiHostsRepository implements HostsRepository {
   Future<CollaborationInvite> respondToInvite(
     String hostId,
     String inviteId,
-    bool accept,
-  ) async {
+    bool accept, {
+    String? reason,
+  }) async {
     final verb = accept ? 'accept' : 'decline';
+    // A decline without a reason leaves the host guessing what to fix; the
+    // server caps it at 500 characters and stores it verbatim.
+    final note = reason?.trim();
     final body = await _client.postJson(
       '/hosts/$hostId/invites/$inviteId/$verb',
+      body: {'reason': ?(note == null || note.isEmpty ? null : note)},
     );
     return _inviteFromDto(asMap(asMap(body)['invite']));
   }
 
   CollaborationInvite _inviteFromDto(Map<String, dynamic> row) {
     final restaurant = asMap(row['restaurant']);
+    // `experience` is null on every host-authored proposal, so an empty map
+    // means "nothing linked" rather than a payload that failed to parse.
+    final experienceRow = asMap(row['experience']);
     final status = asString(row['status'], 'invited');
     return CollaborationInvite(
       id: asString(row['id']),
@@ -190,6 +203,17 @@ class ApiHostsRepository implements HostsRepository {
       status: status,
       proposedBy: asString(row['proposedBy'], 'restaurant'),
       experienceId: asStringOrNull(row['experienceId']),
+      respondedAt: asDateOrNull(row['respondedAt']),
+      declineReason: asString(row['declineReason']),
+      experience: experienceRow.isEmpty
+          ? null
+          : LinkedExperience(
+              id: asString(experienceRow['id']),
+              title: asString(experienceRow['title']),
+              coverImage: asStringOrNull(experienceRow['coverImage']),
+              startAt: asDateOrNull(experienceRow['startAt']),
+              status: asString(experienceRow['status'], 'draft'),
+            ),
       restaurantRating: asDouble(restaurant['rating']),
       restaurantCuisines: asStringList(restaurant['cuisines']),
     );
@@ -242,11 +266,13 @@ class ApiHostsRepository implements HostsRepository {
     return HostAnalytics(
       totalEventsHosted: asInt(a['totalEventsHosted']),
       totalBookings: asInt(a['totalBookings']),
-      totalSeatsSold: asInt(a['totalSeatsSold']),
+      totalSeatsReserved: asInt(a['totalSeatsReserved']),
       grossRevenue: asDouble(a['grossRevenue']),
       hostNetEarnings: asDouble(a['hostNetEarnings']),
+      seatsSold: asInt(a['seatsSold']),
       averageSeatFillRate: asDouble(a['averageSeatFillRate']),
       averageRating: asDouble(a['averageRating']),
+      reviewCount: asInt(a['reviewCount']),
       upcomingCount: asInt(a['upcomingCount']),
       completedCount: asInt(a['completedCount']),
       totalViews: asInt(a['totalViews']),
@@ -278,7 +304,6 @@ class ApiHostsRepository implements HostsRepository {
     bookings: asInt(r['bookings']),
     pending: asInt(r['pending']),
     checkedIn: asInt(r['checkedIn']),
-    gross: asDouble(r['gross']),
   );
 
   // ── Phase 3: Collaborations ──────────────────────────────────────────────
@@ -297,6 +322,7 @@ class ApiHostsRepository implements HostsRepository {
     required String restaurantId,
     required String title,
     required String message,
+    String? experienceId,
   }) async {
     final body = await _client.postJson(
       '/hosts/$hostId/collabs/propose',
@@ -304,6 +330,9 @@ class ApiHostsRepository implements HostsRepository {
         'restaurantId': restaurantId,
         'title': title,
         'message': message,
+        // A host can propose on top of an experience they already drafted, so
+        // the venue approves a concrete dinner rather than a blank promise.
+        'experienceId': ?experienceId,
       },
     );
     return _inviteFromDto(asMap(asMap(body)['collaboration']));
@@ -324,9 +353,13 @@ class ApiHostsRepository implements HostsRepository {
   Future<CollaborationInvite> completeProposal({
     required String hostId,
     required String collabId,
+    String? experienceId,
   }) async {
     final body = await _client.postJson(
       '/hosts/$hostId/collabs/$collabId/complete',
+      // The experience built together, if the host names it here; otherwise the
+      // server keeps whatever was already linked.
+      body: {'experienceId': ?experienceId},
     );
     return _inviteFromDto(asMap(asMap(body)['collaboration']));
   }

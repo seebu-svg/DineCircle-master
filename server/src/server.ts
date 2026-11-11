@@ -37,6 +37,19 @@ import usersRouter from './routes/users.js';
 import publicAvatarsRouter from './routes/public_avatars.js';
 import publicVenueImagesRouter from './routes/public_venue_images.js';
 import { requireActiveSubscription } from './access.js';
+import adminOverviewRouter from './routes/admin/overview.js';
+import adminApplicationsRouter from './routes/admin/applications.js';
+import adminVenuesRouter from './routes/admin/venues.js';
+import adminPartnerAccountsRouter from './routes/admin/partnerAccounts.js';
+import adminSubscriptionsRouter from './routes/admin/subscriptions.js';
+import adminCustomersRouter from './routes/admin/customers.js';
+import adminHostsRouter from './routes/admin/hosts.js';
+import adminExperiencesRouter from './routes/admin/experiences.js';
+import adminDealsRouter, { contentRouter as adminContentRouter } from './routes/admin/deals.js';
+import adminReportsRouter from './routes/admin/reports.js';
+import adminAuditRouter from './routes/admin/audit.js';
+import adminAnalyticsRouter from './routes/admin/analytics.js';
+import adminSettingsRouter from './routes/admin/settings.js';
 
 
 const app = express();
@@ -87,6 +100,10 @@ const ALLOWED_ORIGINS = new Set([
   'http://localhost:3000',
   'http://localhost:4000',
   'http://localhost:8080',
+  // The admin console is served as static files next to the API; in local use
+  // it runs on its own port and therefore is genuinely cross-origin.
+  'http://localhost:8099',
+  'http://127.0.0.1:8099',
   'http://127.0.0.1:8080',
   'http://10.0.2.2:3000',
   'http://10.0.2.2:4000',
@@ -224,6 +241,29 @@ app.use('/api/partner', requireActiveSubscription(true), partnerRouter);
 
 // Admin routes (subscription activation, etc.)
 app.use('/api/admin/restaurants', partnerAdminRouter);
+
+/**
+ * Admin console surface.
+ * One literal prefix per router: an Express router answers any path under the
+ * prefix it is mounted on, so `/api/admin/:restaurantId` style sharing would
+ * let the venue router swallow `overview`, `applications` and every other
+ * module name. Each handler calls `requireAdminConsole` itself, matching the
+ * role-check style the partner routes already use.
+ */
+app.use('/api/admin/overview', adminOverviewRouter);
+app.use('/api/admin/applications', adminApplicationsRouter);
+app.use('/api/admin/venues', adminVenuesRouter);
+app.use('/api/admin/partner-accounts', adminPartnerAccountsRouter);
+app.use('/api/admin/subscriptions', adminSubscriptionsRouter);
+app.use('/api/admin/customers', adminCustomersRouter);
+app.use('/api/admin/hosts', adminHostsRouter);
+app.use('/api/admin/experiences', adminExperiencesRouter);
+app.use('/api/admin/deals', adminDealsRouter);
+app.use('/api/admin/content', adminContentRouter);
+app.use('/api/admin/reports', adminReportsRouter);
+app.use('/api/admin/audit-log', adminAuditRouter);
+app.use('/api/admin/analytics', adminAnalyticsRouter);
+app.use('/api/admin/settings', adminSettingsRouter);
 
 app.use((_req: Request, res: Response, _next: NextFunction) => {
   res.status(404).json({ error: 'Route not found' });

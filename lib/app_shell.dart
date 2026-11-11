@@ -46,11 +46,27 @@ class AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<AppShell> {
   int _currentIndex = 0;
 
-  // Category chosen from a home tile, carried into the Explore tab.
-  // (Previously used `initialCategory`; the new ExploreScreen uses tabs instead.)
+  /// Handset to the Explore tab so a Home quick action can select the tab it
+  /// actually promised. Without it every tile could only switch to Explore and
+  /// leave the guest on "All".
+  final GlobalKey<ExploreScreenState> _exploreKey =
+      GlobalKey<ExploreScreenState>();
 
+  /// Routes a discovery category to the surface that serves it.
+  ///
+  /// "Explore Deals" belongs to the Deals tab, which is its own root tab, not a
+  /// sub-view of Explore; the other categories open Explore with the matching
+  /// tab already selected. The category is the contract, so no caller has to
+  /// know a tab index.
   void _onCategoryTap(DiscoveryCategory category) {
+    if (category == DiscoveryCategory.deals) {
+      setState(() => _currentIndex = 2);
+      return;
+    }
     setState(() => _currentIndex = 1);
+    // The Explore tab is built eagerly inside the IndexedStack, so its state
+    // exists by the time a tile can be tapped.
+    _exploreKey.currentState?.selectCategory(category);
   }
 
   void _onDinnerTap(Dinner dinner) {
@@ -223,6 +239,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   onBecomeHostTap: _handleCreate,
                 ),
                 ExploreScreen(
+                  key: _exploreKey,
                   onDinnerTap: _onDinnerTap,
                   onRestaurantTap: _onRestaurantTap,
                   onUserTap: _onUserTap,

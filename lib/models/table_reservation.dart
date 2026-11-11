@@ -3,6 +3,10 @@
 ///
 /// Distinct from [Booking] (which is a dinner-event ticket with payment).
 /// A reservation is a seat-hold at a restaurant, not a paid event booking.
+library;
+
+import '../utils/venue_time.dart';
+
 class TableReservation {
   const TableReservation({
     required this.id,
@@ -61,6 +65,16 @@ class TableReservation {
       status == ReservationStatus.pending ||
       status == ReservationStatus.confirmed;
 
+  /// Whether this reservation still belongs under "Upcoming" when compared at
+  /// [now]. A live status is not enough: once [startAt] has passed the table is
+  /// no longer ahead of the diner, whether or not it was ever confirmed.
+  bool isUpcomingAt(DateTime now) {
+    final live = status == ReservationStatus.pending ||
+        status == ReservationStatus.confirmed ||
+        status == ReservationStatus.seated;
+    return live && startAt.isAfter(now);
+  }
+
   /// Human-readable status label for display.
   String get statusLabel {
     switch (status) {
@@ -81,23 +95,11 @@ class TableReservation {
     }
   }
 
-  /// Formatted start time for display (e.g. "7:30 PM").
-  String get formattedTime {
-    final hour = startAt.hour == 0 ? 12 : (startAt.hour > 12 ? startAt.hour - 12 : startAt.hour);
-    final minute = startAt.minute.toString().padLeft(2, '0');
-    final period = startAt.hour < 12 ? 'AM' : 'PM';
-    return '$hour:$minute $period';
-  }
+  /// Formatted start time for display (e.g. "7:30 PM"), in the guest's zone.
+  String get formattedTime => formatVenueTime(startAt);
 
-  /// Formatted date for display (e.g. "Mon, Jan 15").
-  String get formattedDate {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    // DateTime.weekday is 1=Mon..7=Sun
-    final dayName = days[startAt.weekday - 1];
-    final monthName = months[startAt.month - 1];
-    return '$dayName, $monthName ${startAt.day}';
-  }
+  /// Formatted date for display (e.g. "Mon, Jan 15"), in the guest's zone.
+  String get formattedDate => formatVenueDate(startAt);
 
   @override
   bool operator ==(Object other) =>

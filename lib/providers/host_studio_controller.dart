@@ -17,14 +17,18 @@ class InvitesController {
 
   final Ref _ref;
 
-  Future<CollaborationInvite> _respond(String inviteId, bool accept) async {
+  Future<CollaborationInvite> _respond(
+    String inviteId,
+    bool accept, {
+    String? reason,
+  }) async {
     final hostId = _ref.read(currentUserIdProvider);
     if (hostId == null) {
       throw StateError('Sign in to respond to invitations.');
     }
     final invite = await _ref
         .read(hostsRepositoryProvider)
-        .respondToInvite(hostId, inviteId, accept);
+        .respondToInvite(hostId, inviteId, accept, reason: reason);
     // Invalidate the family provider itself, invalidating only the derived
     // [myHostInvitesProvider] would rebuild it against a still-cached family
     // value and never re-read the server.
@@ -35,8 +39,10 @@ class InvitesController {
   Future<CollaborationInvite> accept(String inviteId) =>
       _respond(inviteId, true);
 
-  Future<CollaborationInvite> decline(String inviteId) =>
-      _respond(inviteId, false);
+  /// Declining with a [reason] is what makes the host's "why was this turned
+  /// down?" answerable — the server stores it verbatim and the outbox shows it.
+  Future<CollaborationInvite> decline(String inviteId, {String? reason}) =>
+      _respond(inviteId, false, reason: reason);
 }
 
 final invitesControllerProvider = Provider<InvitesController>(
@@ -130,6 +136,7 @@ class CollaborationsController {
     required String restaurantId,
     required String title,
     required String message,
+    String? experienceId,
   }) async {
     final hostId = _hostId();
     final invite = await _ref.read(hostsRepositoryProvider).sendProposal(
@@ -137,6 +144,7 @@ class CollaborationsController {
       restaurantId: restaurantId,
       title: title,
       message: message,
+      experienceId: experienceId,
     );
     _ref.invalidate(hostCollaborationsProvider(hostId));
     _ref.invalidate(hostInvitesProvider(hostId));
@@ -154,11 +162,15 @@ class CollaborationsController {
     return invite;
   }
 
-  Future<CollaborationInvite> completeProposal(String collabId) async {
+  Future<CollaborationInvite> completeProposal(
+    String collabId, {
+    String? experienceId,
+  }) async {
     final hostId = _hostId();
     final invite = await _ref.read(hostsRepositoryProvider).completeProposal(
       hostId: hostId,
       collabId: collabId,
+      experienceId: experienceId,
     );
     _ref.invalidate(hostCollaborationsProvider(hostId));
     _ref.invalidate(hostInvitesProvider(hostId));

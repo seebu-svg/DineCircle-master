@@ -9,6 +9,7 @@ import '../../providers/reservations_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_text_styles.dart';
+import '../../utils/venue_time.dart';
 import '../../widgets/buttons.dart';
 import '../../widgets/data_view.dart';
 
@@ -368,12 +369,7 @@ class _SlotChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hour = slot.startAt.hour == 0
-        ? 12
-        : (slot.startAt.hour > 12 ? slot.startAt.hour - 12 : slot.startAt.hour);
-    final minute = slot.startAt.minute.toString().padLeft(2, '0');
-    final period = slot.startAt.hour < 12 ? 'AM' : 'PM';
-    final label = '$hour:$minute $period';
+    final label = formatVenueTime(slot.startAt);
 
     return GestureDetector(
       onTap: onTap,

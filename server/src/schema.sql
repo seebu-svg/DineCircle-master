@@ -255,6 +255,19 @@ ALTER TABLE dinner_events ADD COLUMN IF NOT EXISTS is_demo boolean NOT NULL DEFA
 -- Phase 1e: collaborator_ids lets a venue-created experience tag host/influencer
 -- collaborators. Empty array = no collaborators (venue owns it solo).
 ALTER TABLE dinner_events ADD COLUMN IF NOT EXISTS collaborator_ids uuid[] NOT NULL DEFAULT '{}';
+-- Proposal-workflow repair: an experience is never destroyed any more, so the
+-- row has to carry the cancellation and re-approval trail itself.
+--   * `cancelled_at/by/reason` record a soft cancel (who ended it and why);
+--     the row stays queryable for guests and for audit.
+--   * `approval_stale_at` is stamped when a host edits an already-decided
+--     experience, which reopens it as `requested`. The venue inbox uses it to
+--     tell "first approval" apart from "re-approval after a change".
+--   * `updated_at` keeps the last content change visible to both sides.
+ALTER TABLE dinner_events ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE dinner_events ADD COLUMN IF NOT EXISTS approval_stale_at timestamptz;
+ALTER TABLE dinner_events ADD COLUMN IF NOT EXISTS cancelled_at timestamptz;
+ALTER TABLE dinner_events ADD COLUMN IF NOT EXISTS cancelled_by uuid REFERENCES users(id);
+ALTER TABLE dinner_events ADD COLUMN IF NOT EXISTS cancellation_reason text NOT NULL DEFAULT '';
 
 -- menu_items ──────────────────────────────────────────────────────────────────
 -- events.ts INSERT omits id → defaulted; column is `signature` (not is_signature).
@@ -286,8 +299,19 @@ CREATE TABLE IF NOT EXISTS bookings (
                  CHECK (status IN ('confirmed','pending','completed','cancelled')),
   checked_in     boolean NOT NULL DEFAULT false,
   checked_in_at  timestamptz,
+  -- Contact the guest actually typed at checkout, so the host has a real way to
+  -- reach the diner and the confirmation screen never shows invented details.
+  guest_name     text,
+  guest_email    text,
+  guest_phone    text,
   created_at     timestamptz NOT NULL DEFAULT now()
 );
+
+-- Added after the original table shipped; repeated here so existing databases
+-- pick the columns up on the next `npm run db:schema`.
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS guest_name text;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS guest_email text;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS guest_phone text;
 
 -- Stripe payments (Phase 4): the booking row now points at a real
 -- PaymentIntent when the Stripe gateway is active. `pending_payment` joins
@@ -391,6 +415,23 @@ ALTER TABLE collaboration_invites ADD COLUMN IF NOT EXISTS proposed_by text NOT 
 ALTER TABLE collaboration_invites ADD COLUMN IF NOT EXISTS experience_id uuid REFERENCES dinner_events(id);
 CREATE INDEX IF NOT EXISTS idx_collab_invites_restaurant ON collaboration_invites(restaurant_id);
 CREATE INDEX IF NOT EXISTS idx_collab_invites_status ON collaboration_invites(host_id, status);
+-- Proposal-workflow repair: who answered, when, and why. The recipient of a
+-- proposal is whichever side did not propose it, so the responder columns are
+-- filled by the accept/decline path on both directions.
+ALTER TABLE collaboration_invites ADD COLUMN IF NOT EXISTS responded_at timestamptz;
+ALTER TABLE collaboration_invites ADD COLUMN IF NOT EXISTS responded_by uuid REFERENCES users(id);
+ALTER TABLE collaboration_invites ADD COLUMN IF NOT EXISTS decline_reason text NOT NULL DEFAULT '';
+ALTER TABLE collaboration_invites ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+-- One live proposal per (host, venue) pair, enforced by the database instead of
+-- a read-then-write check that two concurrent sends can both pass. Declined,
+-- cancelled and completed rows are excluded so a pair can try again later.
+-- Pre-flight on an existing database:
+--   SELECT host_id, restaurant_id, count(*) FROM collaboration_invites
+--    WHERE status IN ('invited','accepted') GROUP BY 1,2 HAVING count(*) > 1;
+-- must return no rows before this index can be created.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_collab_active
+  ON collaboration_invites(host_id, restaurant_id)
+  WHERE status IN ('invited','accepted');
 
 -- reviews ─────────────────────────────────────────────────────────────────────
 -- reviews.ts INSERT omits id + event_title (title comes from JOIN).
@@ -1086,3 +1127,140 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN
   RAISE NOTICE 'Trigram search indexes skipped (%): ILIKE still works, without the index', SQLERRM;
 END $$;
+
+-- Admin console ──────────────────────────────────────────────────────────────
+-- The web admin panel needs a handful of admin-owned state that no mobile
+-- surface writes. Everything below is additive, so existing app behaviour is
+-- unchanged until an admin actually flips one of these values.
+
+-- Admin personas. `role` still decides whether a session may reach
+-- /api/admin/* at all; `admin_scope` only decides which sections the console
+-- renders, so a finance admin never sees a safety queue by accident.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_scope text NOT NULL DEFAULT 'full';
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_admin_scope_check;
+ALTER TABLE users ADD CONSTRAINT users_admin_scope_check
+  CHECK (admin_scope IN ('full','operations','trust_safety','finance','support'));
+
+-- Account suspension for diners, hosts and partner logins. `is_deleted` means
+-- anonymised in place, which is a different state, so it stays untouched.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS suspended_at      timestamptz;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS suspension_reason text NOT NULL DEFAULT '';
+
+-- Venue moderation. A suspended venue also gets `accepting_bookings = false`
+-- because that is the column discovery already filters on, so removal from the
+-- customer app needs no change to any mobile-facing query.
+ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS moderation_status text NOT NULL DEFAULT 'active';
+ALTER TABLE restaurants DROP CONSTRAINT IF EXISTS restaurants_moderation_status_check;
+ALTER TABLE restaurants ADD CONSTRAINT restaurants_moderation_status_check
+  CHECK (moderation_status IN ('active','suspended'));
+ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS moderation_note text NOT NULL DEFAULT '';
+ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS moderated_by uuid REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS moderated_at timestamptz;
+
+-- Content moderation shared shape for the reviewable record types. The public
+-- feeds hide only 'removed', so a flagged deal or review stays visible while an
+-- admin decision is pending, which matches how the apps behave today.
+ALTER TABLE restaurant_deals      ADD COLUMN IF NOT EXISTS moderation_status text NOT NULL DEFAULT 'clean';
+ALTER TABLE dinner_events         ADD COLUMN IF NOT EXISTS moderation_status text NOT NULL DEFAULT 'clean';
+ALTER TABLE reviews               ADD COLUMN IF NOT EXISTS moderation_status text NOT NULL DEFAULT 'clean';
+ALTER TABLE venue_images          ADD COLUMN IF NOT EXISTS moderation_status text NOT NULL DEFAULT 'clean';
+ALTER TABLE restaurant_menu_items ADD COLUMN IF NOT EXISTS moderation_status text NOT NULL DEFAULT 'clean';
+ALTER TABLE restaurant_deals      ADD COLUMN IF NOT EXISTS moderation_note text NOT NULL DEFAULT '';
+ALTER TABLE dinner_events         ADD COLUMN IF NOT EXISTS moderation_note text NOT NULL DEFAULT '';
+ALTER TABLE reviews               ADD COLUMN IF NOT EXISTS moderation_note text NOT NULL DEFAULT '';
+ALTER TABLE venue_images          ADD COLUMN IF NOT EXISTS moderation_note text NOT NULL DEFAULT '';
+ALTER TABLE restaurant_menu_items ADD COLUMN IF NOT EXISTS moderation_note text NOT NULL DEFAULT '';
+ALTER TABLE restaurant_deals      DROP CONSTRAINT IF EXISTS restaurant_deals_moderation_status_check;
+ALTER TABLE restaurant_deals      ADD CONSTRAINT restaurant_deals_moderation_status_check
+  CHECK (moderation_status IN ('clean','flagged','removed'));
+ALTER TABLE dinner_events         DROP CONSTRAINT IF EXISTS dinner_events_moderation_status_check;
+ALTER TABLE dinner_events         ADD CONSTRAINT dinner_events_moderation_status_check
+  CHECK (moderation_status IN ('clean','flagged','removed'));
+ALTER TABLE reviews               DROP CONSTRAINT IF EXISTS reviews_moderation_status_check;
+ALTER TABLE reviews               ADD CONSTRAINT reviews_moderation_status_check
+  CHECK (moderation_status IN ('clean','flagged','removed'));
+ALTER TABLE venue_images          DROP CONSTRAINT IF EXISTS venue_images_moderation_status_check;
+ALTER TABLE venue_images          ADD CONSTRAINT venue_images_moderation_status_check
+  CHECK (moderation_status IN ('clean','flagged','removed'));
+ALTER TABLE restaurant_menu_items DROP CONSTRAINT IF EXISTS restaurant_menu_items_moderation_status_check;
+ALTER TABLE restaurant_menu_items ADD CONSTRAINT restaurant_menu_items_moderation_status_check
+  CHECK (moderation_status IN ('clean','flagged','removed'));
+
+-- Report triage fields. `severity` drives the queue order, and the resolution
+-- text is what the case drawer shows as its final entry.
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS severity    text NOT NULL DEFAULT 'medium';
+ALTER TABLE reports DROP CONSTRAINT IF EXISTS reports_severity_check;
+ALTER TABLE reports ADD CONSTRAINT reports_severity_check
+  CHECK (severity IN ('low','medium','high'));
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS assigned_to uuid REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS resolution   text NOT NULL DEFAULT '';
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS resolved_by  uuid REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS resolved_at  timestamptz;
+
+-- partner_payment_receipts ───────────────────────────────────────────────────
+-- Proof of a manual bank transfer, JazzCash or Easypaisa payment. There is no
+-- gateway: a receipt row is what the finance queue verifies before a
+-- subscription can activate, and it is the only place payment evidence lives.
+CREATE TABLE IF NOT EXISTS partner_payment_receipts (
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  restaurant_id    uuid NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  amount_pkr       integer NOT NULL CHECK (amount_pkr >= 0),
+  method           text NOT NULL DEFAULT 'bank_transfer'
+                   CHECK (method IN ('bank_transfer','jazzcash','easypaisa')),
+  reference        text NOT NULL DEFAULT '',
+  proof_path       text NOT NULL DEFAULT '',
+  status           text NOT NULL DEFAULT 'awaiting_verification'
+                   CHECK (status IN ('awaiting_verification','verified','rejected')),
+  uploaded_by      uuid REFERENCES users(id) ON DELETE SET NULL,
+  verified_by      uuid REFERENCES users(id) ON DELETE SET NULL,
+  verified_at      timestamptz,
+  rejection_reason text NOT NULL DEFAULT '',
+  created_at       timestamptz NOT NULL DEFAULT now(),
+  updated_at       timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_receipts_status    ON partner_payment_receipts(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_receipts_restaurant ON partner_payment_receipts(restaurant_id);
+
+-- subscription_plans ─────────────────────────────────────────────────────────
+-- Plan pricing was previously a constant in code. Holding it here lets the
+-- admin console show and edit the reference price a receipt is checked
+-- against. It creates no charge: partners still pay outside the apps.
+CREATE TABLE IF NOT EXISTS subscription_plans (
+  id         text PRIMARY KEY,
+  name       text NOT NULL,
+  cycle      text NOT NULL CHECK (cycle IN ('month','year')),
+  price_pkr  integer NOT NULL CHECK (price_pkr >= 0),
+  is_active  boolean NOT NULL DEFAULT true,
+  inclusions jsonb NOT NULL DEFAULT '[]'::jsonb,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+INSERT INTO subscription_plans (id, name, cycle, price_pkr, inclusions) VALUES
+  ('pro_monthly', 'Partner Pro Monthly', 'month', 5000,
+   '["Digital menu with unlimited items","QR code menus and scan statistics","Deals, packages and reservations","Experience publishing with a host","0% commission on bookings"]'::jsonb),
+  ('pro_yearly', 'Partner Pro Yearly', 'year', 50000,
+   '["Digital menu with unlimited items","QR code menus and scan statistics","Deals, packages and reservations","Experience publishing with a host","0% commission on bookings","Two months free versus monthly"]'::jsonb)
+ON CONFLICT (id) DO NOTHING;
+
+-- platform_settings ──────────────────────────────────────────────────────────
+-- One row of simple key/value configuration for the console: identity fields,
+-- the launch city and the behaviour switches. Read on demand, never cached by
+-- the mobile apps, so a change cannot surprise a shipped build. The column is
+-- named `config` because `values` is a reserved word in Postgres.
+CREATE TABLE IF NOT EXISTS platform_settings (
+  id         text PRIMARY KEY DEFAULT 'default',
+  config     jsonb NOT NULL DEFAULT '{}'::jsonb,
+  updated_by uuid REFERENCES users(id) ON DELETE SET NULL,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+INSERT INTO platform_settings (id, config) VALUES
+  ('default',
+   '{"platformName":"DineCircle","supportEmail":"support@dinecircle.app","currency":"PKR","timezone":"Asia/Karachi","city":"Karachi","riskFlagThreshold":2,"autoApproveVenues":false,"requireReceipt":true,"emailOnNewApplication":true,"emailOnPaymentUpload":true,"weeklyDigest":true,"maintenanceMode":false}'::jsonb)
+ON CONFLICT (id) DO NOTHING;
+
+-- Existing admin accounts are full-scope, so the new column needs a backfill
+-- to stay consistent with the personas already in use.
+UPDATE users SET admin_scope = 'full'
+ WHERE role IN ('super_admin','partner_admin') AND admin_scope IS DISTINCT FROM 'full';

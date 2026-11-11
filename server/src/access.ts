@@ -177,6 +177,37 @@ export function requirePlatformAdmin(req: Request): void {
   }
 }
 
+/** Roles allowed to sign in to the admin console. */
+export const ADMIN_CONSOLE_ROLES: readonly UserRole[] = ['super_admin', 'partner_admin'];
+
+export function isAdminConsoleRole(role: UserRole | undefined): boolean {
+  return role !== undefined && ADMIN_CONSOLE_ROLES.includes(role);
+}
+
+/**
+ * Gate for every /api/admin/* console endpoint.
+ *
+ * Wider than `requirePlatformAdmin` on purpose: the console ships a
+ * partner-admin persona that works the operations queues, so both admin roles
+ * pass. The narrower super-admin check stays on the endpoints that mint
+ * accounts or change money, and the persona's `admin_scope` is a UI concern
+ * (which nav items render) rather than an authorization boundary, so it is
+ * never consulted here.
+ */
+export function requireAdminConsole(req: Request): void {
+  if (!isAdminConsoleRole(req.userRole)) {
+    throw forbidden('Admin console access requires an admin role');
+  }
+}
+
+/** Throws 403 unless the caller is a super admin (money and account minting). */
+export function requireSuperAdmin(req: Request): void {
+  requireAdminConsole(req);
+  if (req.userRole !== 'super_admin') {
+    throw forbidden('This action requires a super admin account');
+  }
+}
+
 /**
  * Whether a venue still has to be verified before it can sell anything.
  * `pending_review` / `unverified` / `rejected` are all non-selling states.

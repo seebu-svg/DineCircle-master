@@ -11,6 +11,7 @@ import '../../utils/debouncer.dart';
 import '../../models/dinner.dart';
 import '../../models/restaurant.dart';
 import '../../models/user_profile.dart';
+import '../../models/discovery_category.dart';
 import '../../models/deal.dart';
 import '../../widgets/restaurant_card.dart';
 import '../../widgets/common_widgets.dart';
@@ -25,6 +26,7 @@ import '../../providers/deals_provider.dart';
 import '../../providers/api_client_provider.dart';
 import '../../providers/users_provider.dart';
 import '../../repositories/users_repository.dart';
+import '../../utils/cuisine.dart';
 import '../../api/api_exception.dart';
 import '../deals/deal_detail_screen.dart';
 import 'explore_deal_card.dart';
@@ -117,10 +119,10 @@ class ExploreScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ExploreScreen> createState() => _ExploreScreenState();
+  ConsumerState<ExploreScreen> createState() => ExploreScreenState();
 }
 
-class _ExploreScreenState extends ConsumerState<ExploreScreen> {
+class ExploreScreenState extends ConsumerState<ExploreScreen> {
   final _searchController = TextEditingController();
   final Debouncer _debounce = Debouncer(const Duration(milliseconds: 400));
   _DiscoverTab _selectedTab = _DiscoverTab.all;
@@ -143,6 +145,31 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   void _updateSelectedTab(_DiscoverTab tab) => setState(() => _selectedTab = tab);
   void _updateQuery(String query) => setState(() => _query = query);
   void _toggleMapView() => setState(() => _showMap = !_showMap);
+
+  /// Opens the tab that best serves [category].
+  ///
+  /// The Home screen's quick-action tiles name a discovery intent, not a tab,
+  /// so the mapping lives here, next to the tabs themselves. Callers pass the
+  /// [DiscoveryCategory] they were given and never a tab index, which is what
+  /// keeps the two lists from drifting apart.
+  void selectCategory(DiscoveryCategory category) {
+    final tab = switch (category) {
+      DiscoveryCategory.bookTable => _DiscoverTab.restaurants,
+      DiscoveryCategory.deals => _DiscoverTab.restaurants,
+      DiscoveryCategory.diningEvents => _DiscoverTab.experiences,
+      DiscoveryCategory.experiences => _DiscoverTab.experiences,
+      DiscoveryCategory.socialDining => _DiscoverTab.hosts,
+    };
+    setState(() {
+      _selectedTab = tab;
+      // A tag or cuisine left over from a previous visit would silently filter
+      // the destination the guest just asked for.
+      _venueTag = '';
+      _cuisine = null;
+      _query = '';
+      _searchController.clear();
+    });
+  }
 
   /// Toggle save/follow state for a restaurant via the repository.
   Future<void> _toggleSave(Restaurant r) async {
@@ -771,7 +798,7 @@ class _HeaderDelegate extends SliverPersistentHeaderDelegate {
 // Tab content builders
 // ────────────────────────────────────────────────────────────────────────────
 
-extension _ExploreTabContent on _ExploreScreenState {
+extension _ExploreTabContent on ExploreScreenState {
   Widget _buildAllTab(
     AsyncValue<List<Dinner>> dinnersAsync,
     AsyncValue<List<Restaurant>> restaurantsAsync,
@@ -942,12 +969,9 @@ extension _ExploreTabContent on _ExploreScreenState {
           loading: () => const SizedBox.shrink(),
           error: (_, _) => const SizedBox.shrink(),
           data: (restaurants) {
-            final cuisines = restaurants
-                .expand((r) => r.cuisine.split(', '))
-                .where((c) => c.trim().isNotEmpty)
-                .toSet()
-                .toList()
-              ..sort();
+            final cuisines = canonicalCuisines(
+              restaurants.expand((r) => r.cuisine.split(', ')),
+            );
             if (cuisines.isEmpty) return const SizedBox.shrink();
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1232,12 +1256,9 @@ extension _ExploreTabContent on _ExploreScreenState {
           loading: () => const SizedBox.shrink(),
           error: (_, _) => const SizedBox.shrink(),
           data: (venues) {
-            final cuisines = venues
-                .expand((r) => r.cuisine.split(', '))
-                .where((c) => c.trim().isNotEmpty)
-                .toSet()
-                .toList()
-              ..sort();
+            final cuisines = canonicalCuisines(
+              venues.expand((r) => r.cuisine.split(', ')),
+            );
             if (cuisines.isEmpty) return const SizedBox.shrink();
             return Padding(
               padding: EdgeInsets.symmetric(
@@ -1275,7 +1296,7 @@ extension _ExploreTabContent on _ExploreScreenState {
                   spacing: AppSpacing.sm,
                   runSpacing: AppSpacing.sm,
                   children: [
-                    for (final tag in ['All', ..._ExploreScreenState._venueTags])
+                    for (final tag in ['All', ...ExploreScreenState._venueTags])
                       TagChip(
                         label: tag,
                         isSelected:
@@ -1387,7 +1408,7 @@ extension _ExploreTabContent on _ExploreScreenState {
               builder: (_, venues) {
                 final filtered = _cuisine == null
                     ? venues
-                    : venues.where((r) => r.cuisine.contains(_cuisine!)).toList();
+                    : venues.where((r) => cuisineMatches(r.cuisine, _cuisine!)).toList();
                 if (filtered.isEmpty) {
                   return _buildClearFiltersEmpty();
                 }
@@ -1497,7 +1518,9 @@ extension _ExploreTabContent on _ExploreScreenState {
             SectionHeader(
               title: regularDinners.isEmpty
                   ? 'No more dinners'
-                  : '${regularDinners.length} dinners to explore',
+                  : '${regularDinners.length} '
+                      '${regularDinners.length == 1 ? 'dinner' : 'dinners'} '
+                      'to explore',
             ),
             const SizedBox(height: AppSpacing.md),
             if (regularDinners.isEmpty)

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_text_styles.dart';
+import '../../utils/venue_time.dart';
 import '../../widgets/avatar_widget.dart';
 import '../../widgets/buttons.dart';
 import '../../api/api_exception.dart';
@@ -16,6 +17,7 @@ import '../../providers/hosts_provider.dart';
 import '../../providers/session_provider.dart';
 import '../../providers/users_provider.dart';
 import '../../widgets/data_view.dart';
+import '../../widgets/media_image.dart';
 import '../create/create_dinner_screen.dart';
 import 'analytics_screen.dart';
 import 'event_manage_screen.dart';
@@ -48,6 +50,8 @@ class _HostDashboardScreenState extends ConsumerState<HostDashboardScreen>
   static const _filters = [
     'All',
     'Published',
+    'Pending venue approval',
+    'Declined by venue',
     'Bookings Paused',
     'Completed',
     'Cancelled',
@@ -148,16 +152,30 @@ class _HostDashboardScreenState extends ConsumerState<HostDashboardScreen>
 
   /// Publishes a draft (`PATCH /events/:id {status:'published'}`). The server
   /// re-validates the merged row; a 422 surfaces its message inline.
+  ///
+  /// The returned status decides the wording: at a venue that reserves
+  /// approval, publishing hands the experience to the venue rather than to
+  /// diners, and saying "Published" there would be a lie.
   Future<void> _publishDraft(Dinner draft) async {
     try {
-      await ref.read(eventsControllerProvider).patchEvent(draft.id, {
-        'status': 'published',
-      });
+      final result = await ref
+          .read(eventsControllerProvider)
+          .patchEvent(draft.id, {
+            'status': 'published',
+          });
       if (!mounted) return;
+      final awaitingVenue = result.hostStatus == HostEventStatus.requested;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Draft published'),
-          backgroundColor: AppColors.success,
+        SnackBar(
+          content: Text(
+            awaitingVenue
+                ? 'Sent to ${draft.restaurant.name} for approval — diners'
+                      ' cannot book it yet.'
+                : 'Draft published',
+          ),
+          backgroundColor: awaitingVenue
+              ? AppColors.warning
+              : AppColors.success,
         ),
       );
     } on ApiException catch (error) {
@@ -172,12 +190,15 @@ class _HostDashboardScreenState extends ConsumerState<HostDashboardScreen>
   }
 
   /// Deletes a draft, reuses the host-cancel endpoint (`DELETE /events/:id`).
+  ///
+  /// The row is soft-cancelled rather than erased, so a draft that was already
+  /// proposed to a venue keeps its trail.
   Future<void> _deleteDraft(Dinner draft) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete draft?'),
-        content: Text('"${draft.title}" will be permanently removed.'),
+        content: Text('"${draft.title}" will be removed from your drafts.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -212,8 +233,13 @@ class _HostDashboardScreenState extends ConsumerState<HostDashboardScreen>
 
   List<Dinner> get _filteredEvents {
     final events = _hostedEvents;
-    if (_eventFilter == 'All') return events;
-    return events.where((d) => d.hostStatus.label == _eventFilter).toList();
+    if (_eventFilter != 'All') {
+      return events.where((d) => d.hostStatus.label == _eventFilter).toList();
+    }
+    // The two venue-hold states get their own explained sections above this
+    // list, so repeating them here would show the same card twice. Choosing
+    // their chip still lists them normally.
+    return events.where((d) => !d.hostStatus.isAwaitingVenue).toList();
   }
 
   List<Dinner> get _upcomingEvents =>
@@ -226,6 +252,23 @@ class _HostDashboardScreenState extends ConsumerState<HostDashboardScreen>
           )
           .toList()
         ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+
+  /// Experiences sitting in a venue's queue. They are not bookable and must
+  /// not be described as published, so they get their own section instead of
+  /// being hidden or merged into the live list.
+  List<Dinner> get _awaitingApproval =>
+      _hostedEvents
+          .where((d) => d.hostStatus == HostEventStatus.requested)
+          .toList()
+        ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+
+  /// Experiences a venue said no to. They stay editable so the host can fix
+  /// what was flagged and send them back.
+  List<Dinner> get _declinedByVenue =>
+      _hostedEvents
+          .where((d) => d.hostStatus == HostEventStatus.declined)
+          .toList()
+        ..sort((a, b) => b.dateTime.compareTo(a.dateTime));
 
   @override
   Widget build(BuildContext context) {
@@ -365,7 +408,7 @@ class _HostDashboardScreenState extends ConsumerState<HostDashboardScreen>
           const SizedBox(height: AppSpacing.lg),
           Text('Performance', style: AppTextStyles.titleMedium),
           const SizedBox(height: AppSpacing.md),
-          _PerformanceGrid(summary: summary, userRating: user.rating),
+          _PerformanceGrid(summary: summary),
           const SizedBox(height: AppSpacing.lg),
           Row(
             children: [
@@ -419,6 +462,8 @@ class _HostDashboardScreenState extends ConsumerState<HostDashboardScreen>
   Widget _buildEvents(BuildContext context) {
     final events = _filteredEvents;
     final drafts = _drafts;
+    final awaiting = _awaitingApproval;
+    final declined = _declinedByVenue;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.paddingScreen),
       child: Column(
@@ -464,6 +509,30 @@ class _HostDashboardScreenState extends ConsumerState<HostDashboardScreen>
             const SizedBox(height: AppSpacing.lg),
             Text('Your Experiences', style: AppTextStyles.titleMedium),
             const SizedBox(height: AppSpacing.md),
+          ],
+          if (awaiting.isNotEmpty || declined.isNotEmpty) ...[
+            if (awaiting.isNotEmpty)
+              _VenueHoldSection(
+                title: 'Awaiting venue approval',
+                icon: Icons.hourglass_top_rounded,
+                color: AppColors.warning,
+                note: 'The venue reviews these before diners can book them. '
+                    'Editing one sends it back to the queue.',
+                dinners: awaiting,
+                onOpen: _openEvent,
+              ),
+            if (declined.isNotEmpty)
+              _VenueHoldSection(
+                title: 'Declined by venue',
+                icon: Icons.cancel_outlined,
+                color: AppColors.danger,
+                note: 'Fix what the venue flagged and publish again to put it '
+                    'back in their queue.',
+                dinners: declined,
+                showReason: true,
+                onOpen: _openEvent,
+              ),
+            const SizedBox(height: AppSpacing.lg),
           ],
           _PremiumFilterChips(
             filters: _filters,
@@ -519,7 +588,6 @@ class _HostDashboardScreenState extends ConsumerState<HostDashboardScreen>
             lifetimeGross: summary?.lifetimeGross ?? 0,
             commissionTotal: summary?.commissionTotal ?? 0,
             netTotal: summary?.netTotal ?? 0,
-            events: _hostedEvents,
           ),
           const SizedBox(height: AppSpacing.lg),
           Text('Payout History', style: AppTextStyles.titleMedium),
@@ -985,6 +1053,15 @@ class _HostDashboardScreenState extends ConsumerState<HostDashboardScreen>
               Text(collab.title, style: AppTextStyles.titleMedium),
               const SizedBox(height: AppSpacing.sm),
               Text(collab.message, style: AppTextStyles.bodySmall),
+              // A venue's proposal is published on top of a draft the venue
+              // wrote, so the host has to see that experience before deciding.
+              if (collab.experience != null) ...[
+                const SizedBox(height: AppSpacing.lg),
+                _LinkedExperienceTile(
+                  experience: collab.experience!,
+                  onOpen: () => _openLinkedExperience(collab.experience!),
+                ),
+              ],
               const SizedBox(height: AppSpacing.xl),
               // Action buttons based on status and direction
               if (isIncoming && isPending) ...[
@@ -994,10 +1071,14 @@ class _HostDashboardScreenState extends ConsumerState<HostDashboardScreen>
                       child: OutlinedButton(
                         onPressed: () async {
                           Navigator.pop(sheetContext);
+                          // A bare decline leaves the venue guessing; asking
+                          // for a note is what makes the two sides reconcile.
+                          final reason = await _askDeclineReason(collab);
+                          if (reason == null || !mounted) return;
                           try {
                             await ref
                                 .read(invitesControllerProvider)
-                                .decline(collab.id);
+                                .decline(collab.id, reason: reason);
                             if (mounted) {
                               ScaffoldMessenger.of(this.context).showSnackBar(
                                 const SnackBar(content: Text('Proposal declined')),
@@ -1137,6 +1218,9 @@ class _HostDashboardScreenState extends ConsumerState<HostDashboardScreen>
                   ),
                 ),
               ] else ...[
+                // A decided proposal. The host's own outgoing row lands here,
+                // and the venue's decline note is the only answer they ever get
+                // to "why was mine turned down?".
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(AppSpacing.md),
@@ -1144,17 +1228,41 @@ class _HostDashboardScreenState extends ConsumerState<HostDashboardScreen>
                     color: AppColors.surfaceHigh,
                     borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                   ),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.info_outline_rounded,
-                          color: _statusColor(collab.status), size: 20),
-                      const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        'This collaboration is ${collab.statusLabel.toLowerCase()}',
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: _statusColor(collab.status),
-                        ),
+                      Row(
+                        children: [
+                          Icon(Icons.info_outline_rounded,
+                              color: _statusColor(collab.status), size: 20),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Text(
+                              collab.isOutgoing
+                                  ? '${collab.restaurant.name} '
+                                        '${collab.statusLabel.toLowerCase()}'
+                                  : 'This collaboration is '
+                                        '${collab.statusLabel.toLowerCase()}',
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: _statusColor(collab.status),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
+                      if (collab.respondedAt != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Responded ${formatVenueDate(collab.respondedAt!)}',
+                          style: AppTextStyles.labelSmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                      if (collab.declineReason.isNotEmpty) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        _VenueReason(reason: collab.declineReason),
+                      ],
                     ],
                   ),
                 ),
@@ -1508,6 +1616,288 @@ class _HostDashboardScreenState extends ConsumerState<HostDashboardScreen>
   /// Turns a thrown error into a short, user-facing message for a snackbar.
   String _describeError(Object e) =>
       e is ApiException ? e.message : 'Something went wrong. Please try again.';
+
+  /// Asks the host why they are turning a venue's proposal down. Returns null
+  /// when the host backs out; an empty string means "decline without a note",
+  /// which the server accepts.
+  Future<String?> _askDeclineReason(CollaborationInvite collab) async {
+    final controller = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Decline this proposal?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '“${collab.title}” from ${collab.restaurant.name} will be marked '
+              'declined. They see the note you write here.',
+              style: AppTextStyles.bodySmall,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: controller,
+              maxLines: 3,
+              maxLength: 500,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Reason (optional)',
+                hintText: 'e.g. Dates clash with our current series',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            child: const Text('Decline'),
+          ),
+        ],
+      ),
+    );
+    // Read the text before disposing: a disposed controller throws on `.text`.
+    final note = controller.text.trim();
+    controller.dispose();
+    if (confirmed != true) return null;
+    return note;
+  }
+
+  /// Opens the draft attached to a venue's proposal. The host's own experience
+  /// list is already loaded for this tab, so a miss means it is not theirs.
+  void _openLinkedExperience(LinkedExperience experience) {
+    final match = _hostedEvents.where((d) => d.id == experience.id).firstOrNull;
+    if (match == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This experience is not in your list yet. Pull to refresh.'),
+        ),
+      );
+      return;
+    }
+    _openEvent(match);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// Venue hold sections (awaiting approval / declined)
+// ══════════════════════════════════════════════════════════════
+
+/// A group of experiences whose next step belongs to the venue, not the host.
+///
+/// These states used to be invisible: a `requested` experience rendered as
+/// "Published" and a `declined` one as "Cancelled", so a host kept waiting for
+/// bookings on an experience nobody had approved, or assumed the venue had
+/// deleted theirs. Each card therefore carries the venue's own note.
+class _VenueHoldSection extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Color color;
+  final String note;
+  final List<Dinner> dinners;
+  final bool showReason;
+  final ValueChanged<Dinner> onOpen;
+
+  const _VenueHoldSection({
+    required this.title,
+    required this.icon,
+    required this.color,
+    required this.note,
+    required this.dinners,
+    required this.onOpen,
+    this.showReason = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 18, color: color),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                title,
+                style: AppTextStyles.titleMedium,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: 2,
+              ),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+              ),
+              child: Text(
+                '${dinners.length}',
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          note,
+          style: AppTextStyles.caption.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        ...dinners.map(
+          (dinner) => Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _PremiumEventCard(
+                  dinner: dinner,
+                  onTap: () => onOpen(dinner),
+                ),
+                if (showReason && (dinner.declineReason ?? '').isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.sm),
+                    child: _VenueReason(reason: dinner.declineReason!),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The experience summary carried by a venue's proposal, with a link to it.
+///
+/// Accepting a proposal is only meaningful if the host can see the dinner the
+/// venue wrote, so the sheet quotes its title, date and price and offers the
+/// full record in one tap.
+class _LinkedExperienceTile extends StatelessWidget {
+  final LinkedExperience experience;
+  final VoidCallback onOpen;
+
+  const _LinkedExperienceTile({required this.experience, required this.onOpen});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surfaceHigh,
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      child: InkWell(
+        onTap: onOpen,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                child: SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: MediaImage(
+                    source: experience.coverImage,
+                    fallbackIcon: Icons.event_rounded,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Experience attached',
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      experience.title,
+                      style: AppTextStyles.titleSmall,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (experience.startAt != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        '${formatVenueDate(experience.startAt!)} '
+                        '\u2022 ${formatVenueTime(experience.startAt!)}',
+                        style: AppTextStyles.caption,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textSecondary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The venue's own words about a declined experience, quoted verbatim.
+class _VenueReason extends StatelessWidget {
+  final String reason;
+
+  const _VenueReason({required this.reason});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceHigh,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Venue note',
+            style: AppTextStyles.labelSmall.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          // Selectable so a host can copy the exact wording into a reply to
+          // the venue; maxLines guards against a long note pushing the layout.
+          SelectableText(
+            reason,
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.textPrimary,
+            ),
+            maxLines: 6,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1675,8 +2065,10 @@ class _PremiumProfileCard extends StatelessWidget {
                     const SizedBox(width: AppSpacing.md),
                     _MiniStat(
                       icon: Icons.star_rounded,
-                      value: user.rating.toStringAsFixed(1),
-                      label: 'rating',
+                      value: user.reviewCount > 0
+                          ? user.rating.toStringAsFixed(1)
+                          : '—',
+                      label: user.reviewCount > 0 ? 'rating' : 'no reviews',
                       valueColor: AppColors.warning,
                     ),
                   ],
@@ -1904,10 +2296,9 @@ class _CompactBalanceChip extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════
 
 class _PerformanceGrid extends StatelessWidget {
-  final dynamic summary;
-  final double userRating;
+  final HostSummary? summary;
 
-  const _PerformanceGrid({required this.summary, required this.userRating});
+  const _PerformanceGrid({required this.summary});
 
   @override
   Widget build(BuildContext context) {
@@ -1930,8 +2321,8 @@ class _PerformanceGrid extends StatelessWidget {
               color: AppColors.primary,
             ),
             _PremiumStatCard(
-              label: 'Seats Sold',
-              value: '${summary?.seatsSold ?? 0}',
+              label: 'Seats Reserved',
+              value: '${summary?.seatsReserved ?? 0}',
               icon: Icons.event_seat_rounded,
               color: AppColors.info,
             ),
@@ -1948,14 +2339,16 @@ class _PerformanceGrid extends StatelessWidget {
               color: AppColors.gold,
             ),
             _PremiumStatCard(
-              label: 'Revenue',
+              label: 'Recorded Revenue',
               value: _formatMoney(summary?.lifetimeGross ?? 0),
               icon: Icons.payments_rounded,
               color: AppColors.success,
             ),
             _PremiumStatCard(
               label: 'Avg Rating',
-              value: userRating.toStringAsFixed(1),
+              value: (summary?.reviewCount ?? 0) > 0
+                  ? (summary?.averageRating ?? 0).toStringAsFixed(1)
+                  : '—',
               icon: Icons.star_rounded,
               color: AppColors.warning,
             ),
@@ -2048,6 +2441,10 @@ class _PremiumEventCard extends ConsumerWidget {
     switch (dinner.hostStatus) {
       case HostEventStatus.draft:
         return AppColors.textSecondary;
+      case HostEventStatus.requested:
+        return AppColors.warning;
+      case HostEventStatus.declined:
+        return AppColors.danger;
       case HostEventStatus.published:
         return AppColors.success;
       case HostEventStatus.pausedBookings:
@@ -2532,13 +2929,11 @@ class _PremiumBreakdownCard extends StatelessWidget {
   final double lifetimeGross;
   final double commissionTotal;
   final double netTotal;
-  final List<Dinner> events;
 
   const _PremiumBreakdownCard({
     required this.lifetimeGross,
     required this.commissionTotal,
     required this.netTotal,
-    required this.events,
   });
 
   @override
@@ -2569,31 +2964,6 @@ class _PremiumBreakdownCard extends StatelessWidget {
             value: _formatMoney(netTotal),
             valueColor: AppColors.success,
           ),
-          const Divider(height: AppSpacing.lg, color: AppColors.border),
-          ...events
-              .where((d) => d.hostStatus != HostEventStatus.cancelled)
-              .map(
-                (dinner) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          dinner.title,
-                          style: AppTextStyles.bodySmall,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Text(
-                        _formatMoney(dinner.bookedSeats * dinner.pricePerSeat),
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
         ],
       ),
     );

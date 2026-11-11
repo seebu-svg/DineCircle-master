@@ -7,18 +7,15 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <!-- Camera for QR menu scanning (DineCircle core module D). -->
     <uses-permission android:name="android.permission.CAMERA"/>
-    <!-- LAN TESTING ONLY. API_BASE_URL is currently http://192.168.100.70:4000,
-         and targetSdk 36 blocks plain http in a release build, so
-         usesCleartextTraffic has to be present or every request fails with
-         "Cleartext HTTP traffic to 192.168.100.70 not permitted". Remove this
-         attribute, together with the debug overlay entry, before building
-         against the hosted https API. -->
+    <!-- HTTPS-only build: API_BASE_URL is the hosted Render origin over TLS and
+         all imagery resolves from bundled assets, so cleartext stays at the
+         targetSdk 36 default (disabled). The debug overlay still permits http
+         for LAN development against a local API. -->
     <application
         android:label="DineCircle"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher"
-        android:usesCleartextTraffic="true">
+        android:roundIcon="@mipmap/ic_launcher">
         <!-- Google Maps SDK key. Injected via the GOOGLE_MAPS_API_KEY dart
              define (see build.gradle.kts); empty value renders the no-key
              demo map. Note: XML comments must not contain double dashes. -->

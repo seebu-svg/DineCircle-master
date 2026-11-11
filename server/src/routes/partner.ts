@@ -1,7 +1,10 @@
 import { Router } from 'express';
+import type { Request } from 'express';
 import { z } from 'zod';
-import { query } from '../db.js';
+import { query, withTransaction } from '../db.js';
 import { ApiError, notFound } from '../context.js';
+import { notifyUser } from '../notify.js';
+import { assertNoCapturedMoney, softCancel } from '../event_lifecycle.js';
 import {
   requirePartner,
   requireVenueRole,
@@ -39,14 +42,70 @@ const createPartnerEventSchema = z.object({
   coverImage: z.string().default(''),
   tags: z.array(z.string()).default([]),
   collaboratorIds: z.array(z.string().uuid()).default([]),
+  /**
+   * Direction B: create the draft on a host's behalf and propose it to them.
+   * When supplied the row is written as `draft` and owned by that host, so the
+   * venue can never publish on their behalf — publishing is a host action
+   * gated on the proposal being accepted.
+   */
+  hostId: z.string().uuid().optional(),
+  status: z.enum(['draft', 'published']).default('published'),
 });
 
-// POST /api/partner/events, create a new event for a partner restaurant.
+/**
+ * Fields only the host may change. A venue that edits a host's experience is
+ * limited to operations (timing and capacity); the experience's identity and
+ * pricing stay with the person whose name is on it.
+ */
+const HOST_OWNED_FIELDS = new Set([
+  'title', 'tagline', 'description', 'pricePerSeat', 'coverImage', 'tags',
+  'collaboratorIds',
+]);
+
+/** Load an event the caller operates, for a transition or an edit. */
+async function loadVenueEvent(
+  req: Request,
+  eventId: string,
+  minRole: 'staff' | 'manager' | 'owner' = 'manager',
+): Promise<{ id: string; host_id: string; restaurant_id: string; title: string; status: string }> {
+  const [event] = await query<{
+    id: string; host_id: string; restaurant_id: string; title: string; status: string;
+  }>(
+    `SELECT id, host_id, restaurant_id, title, status
+       FROM dinner_events WHERE id = $1::UUID`,
+    [eventId],
+  );
+  if (!event) throw notFound('Event');
+  await requireVenueRole(req, event.restaurant_id, minRole);
+  return event;
+}
+
+/**
+ * POST /api/partner/events, create a new event for a partner restaurant.
+ *
+ * Without `hostId` the acting operator becomes the host and the experience
+ * publishes directly: a venue approving its own listing is meaningless
+ * (`requires_host_approval` gates *host* submissions). With `hostId` the row is
+ * a draft owned by that host, which the venue then proposes to.
+ */
 router.post('/events', async (req, res) => {
   const input = createPartnerEventSchema.parse(req.body);
 
   // Creating a dining event on a venue is an operations action: manager+ only.
   await requireVenueRole(req, input.restaurantId, 'manager');
+
+  const targetHostId = input.hostId ?? req.userId;
+  if (input.hostId && input.hostId !== req.userId) {
+    const [host] = await query<{ id: string }>(
+      `SELECT id FROM users
+        WHERE id = $1::UUID AND account_type = 'professional'`,
+      [input.hostId],
+    );
+    if (!host) throw notFound('Host');
+  }
+  // A venue-created draft for somebody else is never published straight away.
+  const isDraft = input.hostId !== undefined || input.status === 'draft';
+  const initialStatus = isDraft ? 'draft' : 'confirmed';
 
   const durationMinutes = Math.round(
     (input.endAt.getTime() - input.startAt.getTime()) / 60000,
@@ -55,24 +114,20 @@ router.post('/events', async (req, res) => {
   const [created] = await query<{
     id: string; title: string; restaurant_id: string; status: string;
     start_at: Date; seats_total: number; seats_booked: number;
-    price_per_seat: string;
+    price_per_seat: string; host_id: string;
   }>(
-    // `host_id` is NOT NULL and was never supplied here, so every venue-created
-    // event failed with a 500: the draft→publish surface was dead code. The
-    // acting operator is recorded as the host, and the event is published
-    // straight away, a venue approving its own listing is meaningless (the
-    // `requires_host_approval` policy gates *host* submissions, not these).
     `INSERT INTO dinner_events (
        host_id, restaurant_id, title, tagline, description, start_at, end_at,
        duration_minutes, seats_total, seats_booked, price_per_seat,
        type, audience, status, menu_style, cover_image, tags, collaborator_ids
-     ) VALUES ($1::UUID,$2::UUID,$3,$4,$5,$6,$7,$8,$9,0,$10,$11,$12,'confirmed',$13,$14,$15,$16)
-     RETURNING id, title, restaurant_id, status, start_at, seats_total, seats_booked, price_per_seat`,
+     ) VALUES ($1::UUID,$2::UUID,$3,$4,$5,$6,$7,$8,$9,0,$10,$11,$12,$13,$14,$15,$16,$17)
+     RETURNING id, title, restaurant_id, status, start_at, seats_total,
+               seats_booked, price_per_seat, host_id`,
     [
-      req.userId, input.restaurantId, input.title, input.tagline, input.description,
+      targetHostId, input.restaurantId, input.title, input.tagline, input.description,
       input.startAt, input.endAt, durationMinutes, input.seatsTotal,
-      input.pricePerSeat, input.type, input.audience, input.menuStyle,
-      input.coverImage, input.tags, input.collaboratorIds,
+      input.pricePerSeat, input.type, input.audience, initialStatus,
+      input.menuStyle, input.coverImage, input.tags, input.collaboratorIds,
     ],
   );
 
@@ -84,6 +139,7 @@ router.post('/events', async (req, res) => {
         id: created.id,
         title: created.title,
         restaurantId: created.restaurant_id,
+        hostId: created.host_id,
         status: created.status,
         startAt: created.start_at,
         seatsTotal: created.seats_total,
@@ -94,53 +150,195 @@ router.post('/events', async (req, res) => {
   });
 });
 
-// PUT /api/partner/events/:id, update an event (partner who owns the restaurant).
+// PUT /api/partner/events/:id, update an event the caller operates.
+//
+// `status` is deliberately absent from the accepted body. It used to be a raw
+// column write, which meant a venue could set *any* status on *any* host's
+// event — including reverting a confirmed experience to draft or pushing a
+// requested one live. Status now moves only through the explicit transitions
+// below, and only the fields the venue actually owns may be written.
 router.put('/events/:id', async (req, res) => {
-  const updateSchema = createPartnerEventSchema.extend({ status: z.enum(["draft","requested","confirmed","live","completed","declined","cancelled"]).optional() }).partial();
-  const input = updateSchema.parse(req.body);
-  const eventId = req.params.id;
+  const eventId = String(req.params.id);
+  const body = (req.body ?? {}) as Record<string, unknown>;
+
+  if ('status' in body) {
+    throw new ApiError(
+      400,
+      'status cannot be written directly; use POST /events/:id/{cancel,complete,reopen}',
+    );
+  }
+  if ('hostId' in body || 'restaurantId' in body) {
+    throw new ApiError(400, 'An event cannot be moved to another host or venue');
+  }
+
+  const updateSchema = createPartnerEventSchema
+    .omit({ hostId: true, status: true, restaurantId: true })
+    .partial();
+  const input = updateSchema.parse(body);
+  const provided = new Set(Object.keys(body));
+
+  const event = await loadVenueEvent(req, eventId, 'manager');
+  const venueIsNotTheHost = event.host_id !== req.userId;
+
+  if (venueIsNotTheHost) {
+    for (const field of provided) {
+      if (HOST_OWNED_FIELDS.has(field)) {
+        throw new ApiError(403, `Host-owned field: ${field}`);
+      }
+    }
+  }
+
+  if (event.status === 'cancelled' || event.status === 'completed') {
+    throw new ApiError(
+      409,
+      `A ${event.status} experience can no longer be edited`,
+    );
+  }
 
   // Drive the SET list off the keys the caller actually sent. `.partial()` does
-  // not strip `.default()`s, so trusting `input` alone made `PATCH {}` reset
+  // not strip `.default()`s, so trusting `input` alone made `PUT {}` reset
   // tagline/description/type/audience/menu_style/cover_image/tags to defaults.
-  const provided = new Set(Object.keys(req.body ?? {}));
+  const columnMap: Record<string, string> = {
+    title: 'title',
+    tagline: 'tagline',
+    description: 'description',
+    startAt: 'start_at',
+    endAt: 'end_at',
+    seatsTotal: 'seats_total',
+    pricePerSeat: 'price_per_seat',
+    type: 'type',
+    audience: 'audience',
+    menuStyle: 'menu_style',
+    coverImage: 'cover_image',
+    tags: 'tags',
+    collaboratorIds: 'collaborator_ids',
+  };
 
-  // Verify the event's venue is one the caller operates
-  const [event] = await query<{ id: string; restaurant_id: string }>(
-    `SELECT id, restaurant_id FROM dinner_events WHERE id = $1::UUID`,
-    [eventId],
-  );
-  if (!event) throw notFound('Event');
-  await requireVenueRole(req, event.restaurant_id, 'manager');
-
+  const changed: string[] = [];
   const sets: string[] = [];
   const params: unknown[] = [];
-  let idx = 1;
+  for (const [field, column] of Object.entries(columnMap)) {
+    if (!provided.has(field)) continue;
+    const value = (input as Record<string, unknown>)[field];
+    if (value === undefined) continue;
+    params.push(value);
+    sets.push(`${column} = $${params.length}`);
+    changed.push(field);
+  }
 
-  if (provided.has('title') && input.title !== undefined) { sets.push(`title = $${idx++}`); params.push(input.title); }
-  if (provided.has('tagline') && input.tagline !== undefined) { sets.push(`tagline = $${idx++}`); params.push(input.tagline); }
-  if (provided.has('description') && input.description !== undefined) { sets.push(`description = $${idx++}`); params.push(input.description); }
-  if (provided.has('startAt') && input.startAt !== undefined) { sets.push(`start_at = $${idx++}`); params.push(input.startAt); }
-  if (provided.has('endAt') && input.endAt !== undefined) { sets.push(`end_at = $${idx++}`); params.push(input.endAt); }
-  if (provided.has('seatsTotal') && input.seatsTotal !== undefined) { sets.push(`seats_total = $${idx++}`); params.push(input.seatsTotal); }
-  if (provided.has('pricePerSeat') && input.pricePerSeat !== undefined) { sets.push(`price_per_seat = $${idx++}`); params.push(input.pricePerSeat); }
-  if (provided.has('type') && input.type !== undefined) { sets.push(`type = $${idx++}`); params.push(input.type); }
-  if (provided.has('status') && input.status !== undefined) { sets.push(`status = $${idx++}`); params.push(input.status); }
-  if (provided.has('coverImage') && input.coverImage !== undefined) { sets.push(`cover_image = $${idx++}`); params.push(input.coverImage); }
-  if (provided.has('tags') && input.tags !== undefined) { sets.push(`tags = $${idx++}`); params.push(input.tags); }
-
-  // An empty PATCH is a client bug, not a success: answering 200 with
+  // An empty PUT is a client bug, not a success: answering 200 with
   // `updated: false` hides it.
   if (sets.length === 0) {
     throw new ApiError(400, 'No updatable fields were provided');
   }
+  sets.push('updated_at = now()');
 
   params.push(eventId);
   const [updated] = await query<{ id: string; title: string; status: string }>(
-    `UPDATE dinner_events SET ${sets.join(', ')} WHERE id = $${idx}
+    `UPDATE dinner_events SET ${sets.join(', ')} WHERE id = $${params.length}::UUID
      RETURNING id, title, status`,
     params,
   );
+
+  // The host has to be able to see what the venue changed under them.
+  if (venueIsNotTheHost) {
+    await notifyUser(null, event.host_id, {
+      kind: 'approval',
+      title: 'Your venue updated this experience',
+      body: `${event.title}: ${changed.join(', ')} changed by the venue.`,
+      eventId,
+    });
+  }
+
+  res.json({ data: { event: updated, changedFields: changed } });
+});
+
+// ── Explicit status transitions ──────────────────────────────────────────────
+//
+// The only way a venue moves an experience's status. Each one is guarded, and
+// each one tells the host, because the host is the account that owns the
+// listing and the guests.
+
+const transitionSchema = z.object({ reason: z.string().trim().max(500).optional() });
+
+/** POST /api/partner/events/:id/cancel, soft cancel an experience. */
+router.post('/events/:id/cancel', async (req, res) => {
+  const eventId = String(req.params.id);
+  const reason = transitionSchema.parse(req.body ?? {}).reason ?? '';
+
+  const event = await loadVenueEvent(req, eventId, 'manager');
+  if (event.status === 'cancelled') {
+    throw new ApiError(409, 'This event is already cancelled');
+  }
+
+  await withTransaction(async (client) => {
+    await assertNoCapturedMoney(client, eventId);
+    await softCancel(
+      client, { id: eventId, title: event.title }, req.userId, reason,
+      'was cancelled by the venue.',
+    );
+  });
+
+  await notifyUser(null, event.host_id, {
+    kind: 'approval',
+    title: 'Your experience was cancelled by the venue',
+    body: reason
+      ? `${event.title} was cancelled: ${reason}`
+      : `${event.title} was cancelled by the venue.`,
+    eventId,
+  });
+
+  res.json({ data: { eventId, status: 'cancelled' } });
+});
+
+/** POST /api/partner/events/:id/complete, close out a finished experience. */
+router.post('/events/:id/complete', async (req, res) => {
+  const eventId = String(req.params.id);
+  const event = await loadVenueEvent(req, eventId, 'manager');
+  if (!['confirmed', 'live'].includes(event.status)) {
+    throw new ApiError(409, `A ${event.status} experience cannot be completed`);
+  }
+
+  const [updated] = await query<{ id: string; status: string }>(
+    `UPDATE dinner_events SET status = 'completed', updated_at = now()
+      WHERE id = $1::UUID AND status IN ('confirmed','live')
+      RETURNING id, status`,
+    [eventId],
+  );
+  if (!updated) throw new ApiError(409, 'This experience can no longer be completed');
+
+  await notifyUser(null, event.host_id, {
+    kind: 'approval',
+    title: 'Your experience was marked complete',
+    body: `${event.title} was closed out by the venue.`,
+    eventId,
+  });
+
+  res.json({ data: { event: updated } });
+});
+
+/** POST /api/partner/events/:id/reopen, put a completed experience back up. */
+router.post('/events/:id/reopen', async (req, res) => {
+  const eventId = String(req.params.id);
+  const event = await loadVenueEvent(req, eventId, 'manager');
+  if (event.status !== 'completed') {
+    throw new ApiError(409, `Only a completed experience can be reopened`);
+  }
+
+  const [updated] = await query<{ id: string; status: string }>(
+    `UPDATE dinner_events SET status = 'confirmed', updated_at = now()
+      WHERE id = $1::UUID AND status = 'completed'
+      RETURNING id, status`,
+    [eventId],
+  );
+  if (!updated) throw new ApiError(409, 'This experience can no longer be reopened');
+
+  await notifyUser(null, event.host_id, {
+    kind: 'approval',
+    title: 'Your experience was reopened',
+    body: `${event.title} is bookable again.`,
+    eventId,
+  });
 
   res.json({ data: { event: updated } });
 });
@@ -161,12 +359,14 @@ router.get('/events', async (req, res) => {
   const parsedLimit = Math.min(Number(limit) || 50, 200);
 
   const rows = await query<{
-    id: string; title: string; restaurant_name: string; start_at: Date;
+    id: string; title: string; tagline: string; cover_image: string;
+    restaurant_name: string; start_at: Date;
     seats_total: number; seats_booked: number; price_per_seat: string;
-    status: string; type: string;
+    status: string; type: string; restaurant_id: string; host_id: string;
   }>(
-    `SELECT e.id, e.title, r.name AS restaurant_name, e.start_at,
-            e.seats_total, e.seats_booked, e.price_per_seat, e.status, e.type
+    `SELECT e.id, e.title, e.tagline, e.cover_image, r.name AS restaurant_name,
+            e.start_at, e.seats_total, e.seats_booked, e.price_per_seat,
+            e.status, e.type, e.restaurant_id, e.host_id
      FROM dinner_events e
      JOIN restaurants r ON r.id = e.restaurant_id
      WHERE ${where}
@@ -178,7 +378,17 @@ router.get('/events', async (req, res) => {
   const events = rows.map((e) => ({
       id: e.id,
       title: e.title,
+      // The partner card renders the tagline and the venue's own photo. Both
+      // are written by the create/edit routes above and were simply never
+      // selected here, so the app could not show what the venue had saved.
+      tagline: e.tagline,
+      coverImage: e.cover_image,
       restaurantName: e.restaurant_name,
+      // The app needs both to offer a draft for attachment to a proposal: the
+      // server only accepts a draft that belongs to this venue *and* to the
+      // host being asked, so a venue must be able to tell which rows qualify.
+      restaurantId: e.restaurant_id,
+      hostId: e.host_id,
       startAt: e.start_at,
       seatsTotal: e.seats_total,
       seatsBooked: e.seats_booked,

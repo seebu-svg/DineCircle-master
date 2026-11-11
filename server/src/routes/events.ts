@@ -1,8 +1,11 @@
 import { Router } from 'express';
+import type pg from 'pg';
 import { z, ZodError } from 'zod';
 import { query, withTransaction } from '../db.js';
 import { ApiError, notFound, forbidden, hasHostCapabilities, requireHostStudio } from '../context.js';
 import { notBlockedBetween } from '../blocks.js';
+import { notifyVenue } from '../notify.js';
+import { assertNoCapturedMoney, softCancel } from '../event_lifecycle.js';
 
 const router = Router();
 
@@ -39,6 +42,13 @@ export type EventRow = {
   attendee_ids: string[];
   status: string;
   requires_approval: boolean;
+  decline_reason: string | null;
+  restaurant_approved_at: Date | null;
+  approval_stale_at: Date | null;
+  cancelled_at: Date | null;
+  cancellation_reason: string | null;
+  updated_at: Date | null;
+  created_at: Date;
   host_name: string | null;
   host_handle: string | null;
   host_avatar: string | null;
@@ -117,11 +127,63 @@ export function serializeEvent(row: EventRow) {
     cancellation: row.cancellation,
     attendeeIds: row.attendee_ids,
     status: row.status,
+    // Approval + cancellation trail. The host app renders "Pending venue
+    // approval", "Declined by venue: <reason>" and "Cancelled" straight off
+    // these fields; before they existed the client showed "Published" for an
+    // experience the venue had never seen.
+    declineReason: row.decline_reason ?? '',
+    restaurantApprovedAt: row.restaurant_approved_at,
+    requiresApproval: row.requires_approval,
+    approvalStaleAt: row.approval_stale_at,
+    cancelledAt: row.cancelled_at,
+    cancellationReason: row.cancellation_reason ?? '',
+    updatedAt: row.updated_at ?? null,
+    createdAt: row.created_at,
   };
 }
 
 // Local alias so the existing handlers keep reading like before.
 const serialize = serializeEvent;
+
+/** The venue fields that decide whether a new experience needs sign-off. */
+export type VenueApprovalPolicy = {
+  owner_id: string | null;
+  requires_host_approval: boolean;
+};
+
+/**
+ * The single place that decides where a published experience lands.
+ *
+ * A venue that opted into host approvals reserves the right to see a request
+ * first: a host's published event lands in `requested` (invisible to diners)
+ * until the Partner App approves or declines it. The venue operating its own
+ * event, and every venue with the default policy, keep publishing directly.
+ *
+ * `POST /` and the publishing branch of `PATCH /:id` used to compute this
+ * separately and PATCH hard-coded `'confirmed'`, which let a host publish a
+ * draft straight past the approval queue. Both paths call this now.
+ */
+export function resolveInitialStatus(
+  venue: VenueApprovalPolicy,
+  callerId: string,
+  isDraft: boolean,
+): 'draft' | 'requested' | 'confirmed' {
+  if (isDraft) return 'draft';
+  return venue.requires_host_approval && venue.owner_id !== callerId
+    ? 'requested'
+    : 'confirmed';
+}
+
+/**
+ * Whether a content change by `callerId` has to be re-approved by the venue.
+ * The venue publishing its own experience never re-approves itself.
+ */
+export function venueMustReapprove(
+  venue: VenueApprovalPolicy,
+  callerId: string,
+): boolean {
+  return venue.requires_host_approval && venue.owner_id !== callerId;
+}
 
 /**
  * Visibility rule: public and friends tables are open; follower tables need
@@ -157,15 +219,21 @@ router.get('/', async (req, res) => {
   conditions.push(
     AUDIENCE_GATE.replaceAll('$VIEWER_UUID', '$2').replaceAll('$VIEWER', '$1'),
   );
-  // Drafts and venue-pending events are visible only to their host.
+  // Drafts and venue-pending events are visible only to their host, and a
+  // cancelled experience leaves the public feed entirely instead of lingering
+  // as a bookable ghost.
   conditions.push(
-    "(e.status NOT IN ('draft','requested','declined') OR e.host_id = $2)",
+    "(e.status NOT IN ('draft','requested','declined','cancelled') OR e.host_id = $2)",
   );
   // P2-1: events hosted by anyone in a blocked pair with the viewer leave the
   // personalized feed/search, in both directions (the blocked host stops
   // seeing the blocker's tables too). Existing tickets are unaffected; the
   // bookings surfaces read them straight from `bookings`.
   conditions.push(notBlockedBetween('$2', 'e.host_id'));
+  // Platform moderation: an experience an admin removed leaves the public feed
+  // as well. `flagged` deliberately still shows, because flagging means "an
+  // operator should look", not "guests may not see it".
+  conditions.push(`e.moderation_status <> 'removed'`);
 
   const add = (sqlFragment: string, value: unknown) => {
     params.push(value);
@@ -287,11 +355,20 @@ router.get('/mine', async (req, res) => {
 });
 
 // GET /api/events/:id, one visible event with menu, host and venue.
+// Venue staff may read *any* status: the approval queue and the Direction-B
+// invitation both need to show the host's draft in full, and it used to 404.
 router.get('/:id', async (req, res) => {
   const [event] = await query<EventRow>(
     `${EVENT_SELECT}
      WHERE e.id = $1::UUID
-       AND (e.status NOT IN ('draft','requested','declined') OR e.host_id = $3)
+       AND (e.status NOT IN ('draft','requested','declined') OR e.host_id = $3
+            OR EXISTS (
+              SELECT 1 FROM restaurant_staff rs
+               WHERE rs.restaurant_id = e.restaurant_id AND rs.user_id = $3::UUID
+                 AND rs.status = 'active')
+            OR EXISTS (
+              SELECT 1 FROM restaurants r2
+               WHERE r2.id = e.restaurant_id AND r2.owner_id = $3::UUID))
        AND ${AUDIENCE_GATE.replaceAll('$VIEWER_UUID', '$3').replaceAll('$VIEWER', '$2')}
        AND (${notBlockedBetween('$3', 'e.host_id')}
          OR e.host_id = $3::UUID
@@ -305,7 +382,7 @@ router.get('/:id', async (req, res) => {
 
   // Real view counting (host-studio analytics): every non-host glance bumps the
   // counter. Fire-and-forget so it never blocks or fails the detail response.
-  if (req.userId !== event.host_id && event.status !== 'draft') {
+  if (req.userId !== event.host_id && event.status === 'confirmed') {
     void query('UPDATE dinner_events SET views = views + 1 WHERE id = $1::UUID', [
       req.params.id,
     ]).catch(() => {});
@@ -458,15 +535,9 @@ router.post('/', requireHostStudio, async (req, res) => {
   const gallery = input.gallery.length > 0 ? input.gallery : [input.coverImage];
 
   // A venue that opted into host approvals reserves the right to see a request
-  // first: a host's published event lands in `requested` (invisible to diners)
-  // until the Partner App approves or declines it. The venue operating its own
-  // event, and every venue with the default policy, keep publishing directly.
-  const needsVenueApproval = !isDraft
-    && venue.requires_host_approval
-    && venue.owner_id !== req.userId;
-  const initialStatus = isDraft
-    ? 'draft'
-    : needsVenueApproval ? 'requested' : 'confirmed';
+  // first; the shared resolver keeps this identical to the PATCH publish path.
+  const initialStatus = resolveInitialStatus(venue, req.userId, isDraft);
+  const needsVenueApproval = initialStatus === 'requested';
 
   const [created] = await query<EventRow>(
     `INSERT INTO dinner_events (title, tagline, description, host_id,
@@ -506,17 +577,16 @@ router.post('/', requireHostStudio, async (req, res) => {
   }
 
   // Put the request in front of the venue desk immediately; an approval queue
-  // nobody is told about is how host requests rot for a week.
+  // nobody is told about is how host requests rot for a week. `notifyVenue`
+  // reaches every active staff account, not just the seed `owner_id`.
   if (needsVenueApproval) {
-    await query(
-      `INSERT INTO notifications (restaurant_id, title, body, category, read)
-       VALUES ($1::UUID, 'New host event request', $2, 'event', false)`,
-      [
-        input.restaurantId,
-        `${input.title} (${input.seatsTotal} seats) was requested by a host for `
-          + `${new Date(input.startAt ?? Date.now()).toISOString()}.`,
-      ],
-    );
+    await notifyVenue(null, input.restaurantId, {
+      kind: 'approval',
+      title: 'New host event request',
+      body: `${input.title} (${input.seatsTotal} seats) was requested by a host for `
+        + `${new Date(input.startAt ?? Date.now()).toISOString()}.`,
+      eventId: created.id,
+    });
   }
 
   for (const [i, item] of input.menu.entries()) {
@@ -535,16 +605,58 @@ router.post('/', requireHostStudio, async (req, res) => {
 });
 
 const patchEventSchema = createEventSchema.partial().extend({
-  status: z.enum(['published']).optional(),
+  // Only the two publishing transitions are addressable through PATCH. A raw
+  // `status` write was exactly how the venue's approval queue got bypassed, so
+  // every other status lives behind an explicit transition endpoint.
+  status: z.enum(['published', 'cancelled']).optional(),
+  cancellationReason: z.string().trim().max(500).optional(),
 });
 
-// PATCH /api/events/:id, the host edits their own draft, or publishes it.
-// Publishing re-validates the merged row against the full create schema.
+/** Statuses whose content a host may still change. */
+const EDITABLE_STATUSES = new Set(['draft', 'requested', 'declined', 'confirmed']);
+
+/**
+ * Publishing is refused while the venue's Direction-B proposal for this
+ * experience is unanswered: the host has to accept the collaboration before the
+ * partner's draft may go public on their behalf.
+ */
+async function assertDirectionBAccepted(eventId: string): Promise<void> {
+  const [open] = await query<{ id: string; status: string }>(
+    `SELECT id, status FROM collaboration_invites
+      WHERE experience_id = $1::UUID AND proposed_by = 'restaurant'
+        AND status <> 'accepted'
+      LIMIT 1`,
+    [eventId],
+  );
+  if (open) {
+    throw new ApiError(
+      409,
+      `This experience was proposed by the venue and the proposal is still `
+        + `${open.status}. Accept the collaboration before publishing.`,
+    );
+  }
+}
+
+/**
+ * PATCH /api/events/:id, the host edits their own experience, publishes a
+ * draft, or cancels.
+ *
+ * Two rules make this handler safe:
+ *   1. `status` may only be `published` or `cancelled`. Everything else is a
+ *      venue or ops decision and has an explicit endpoint.
+ *   2. Publishing goes through `resolveInitialStatus`, the same function POST
+ *      uses, so a draft published at an approval-required venue lands in
+ *      `requested` instead of jumping straight to `confirmed`.
+ *
+ * A content edit made after the venue has decided reopens the request
+ * (`requested` + `approval_stale_at`) and re-notifies the venue; there is no
+ * silent edit of an already-approved experience.
+ */
 router.patch('/:id', requireHostStudio, async (req, res) => {
-  const eventId = req.params.id;
-  const bodyStatus = (req.body as { status?: unknown } | undefined)?.status;
-  if (bodyStatus === 'draft') {
-    throw new ApiError(400, 'Published events cannot be reverted to draft');
+  const eventId = String(req.params.id);
+  const rawStatus = (req.body as { status?: unknown } | undefined)?.status;
+  if (rawStatus !== undefined && !['published', 'cancelled'].includes(String(rawStatus))) {
+    throw new ApiError(400, "status may only be 'published' or 'cancelled'");
   }
 
   const [existing] = await query<EventRow>(
@@ -556,6 +668,50 @@ router.patch('/:id', requireHostStudio, async (req, res) => {
   }
 
   const input = patchEventSchema.parse(req.body ?? {});
+
+  // Cancel shares the DELETE implementation so both entry points leave the
+  // same audit trail (and the same guest notifications).
+  if (input.status === 'cancelled') {
+    if (existing.status === 'cancelled') {
+      throw new ApiError(409, 'This event is already cancelled');
+    }
+    await withTransaction(async (client) => {
+      const { rows } = await client.query<{ id: string }>(
+        'SELECT id FROM dinner_events WHERE id = $1 FOR UPDATE', [eventId],
+      );
+      if (!rows[0]) throw notFound('Event');
+      await assertNoCapturedMoney(client, eventId);
+      await softCancel(
+        client, { id: eventId, title: existing.title },
+        req.userId, input.cancellationReason ?? '',
+      );
+    });
+    const [cancelled] = await query<EventRow>(
+      `${EVENT_SELECT} WHERE e.id = $1::UUID`, [eventId],
+    );
+    res.json({ event: serialize(cancelled!), cancelled: true });
+    return;
+  }
+
+  if (!EDITABLE_STATUSES.has(existing.status)) {
+    throw new ApiError(400, `A ${existing.status} experience can no longer be edited`);
+  }
+
+  const targetRestaurantId = input.restaurantId ?? existing.restaurant_id;
+  const [venue] = await query<{
+    owner_id: string | null; requires_host_approval: boolean; name: string;
+  }>(
+    `SELECT owner_id, requires_host_approval, name
+       FROM restaurants WHERE id = $1::UUID`,
+    [targetRestaurantId],
+  );
+  if (!venue) throw new ApiError(422, `Unknown restaurant ${targetRestaurantId}`);
+  const policy: VenueApprovalPolicy = {
+    owner_id: venue.owner_id,
+    requires_host_approval: venue.requires_host_approval,
+  };
+  const reapprove = venueMustReapprove(policy, req.userId);
+
   const columnMap: Record<string, string> = {
     title: 'title', tagline: 'tagline', description: 'description',
     restaurantId: 'restaurant_id', coverImage: 'cover_image',
@@ -571,12 +727,19 @@ router.patch('/:id', requireHostStudio, async (req, res) => {
     ([key, value]) => key in columnMap && value !== undefined,
   );
 
-  if (existing.status !== 'draft' && provided.length > 0) {
-    throw new ApiError(400, 'Only drafts can be edited');
+  const publishing = input.status === 'published';
+  if (publishing && existing.status !== 'draft' && existing.status !== 'declined') {
+    throw new ApiError(400, `A ${existing.status} experience is already published`);
   }
-  const publishing = input.status === 'published' && existing.status === 'draft';
+  if (!publishing && provided.length === 0) {
+    throw new ApiError(400, 'Nothing to update');
+  }
+
+  let nextStatus = existing.status;
+  let staleApproval = false;
 
   if (publishing) {
+    // Publishing re-validates the merged row against the full create schema.
     const merged = {
       title: input.title ?? existing.title,
       tagline: input.tagline ?? existing.tagline,
@@ -608,25 +771,62 @@ router.patch('/:id', requireHostStudio, async (req, res) => {
         : 'invalid data';
       throw new ApiError(422, `Draft not ready to publish: ${issues}`);
     }
+
+    await assertDirectionBAccepted(eventId);
+    nextStatus = resolveInitialStatus(policy, req.userId, false);
+    // Re-publishing a declined experience is a change to a decided request.
+    staleApproval = nextStatus === 'requested' && existing.status === 'declined';
+  } else if (reapprove && existing.status !== 'draft') {
+    // A decided experience changed: send it back for sign-off.
+    nextStatus = 'requested';
+    staleApproval = true;
   }
 
-  if (provided.length > 0 || publishing) {
+  await withTransaction(async (client) => {
     const sets: string[] = [];
     const params: unknown[] = [];
     for (const [key, value] of provided) {
       params.push(value);
       sets.push(`${columnMap[key]} = $${params.length}`);
     }
-    if (publishing) {
-      params.push('confirmed');
+
+    if (publishing || nextStatus !== existing.status) {
+      params.push(nextStatus);
       sets.push(`status = $${params.length}`);
     }
+    if (publishing) {
+      params.push(staleApproval ? new Date() : null);
+      sets.push(`approval_stale_at = $${params.length}`);
+      // A fresh submission clears the previous decline explanation.
+      sets.push(`decline_reason = ''`);
+    } else if (staleApproval) {
+      params.push(new Date());
+      sets.push(`approval_stale_at = $${params.length}`);
+      sets.push(`decline_reason = ''`);
+    }
+    sets.push('updated_at = now()');
+
     params.push(eventId);
-    await query(
+    await client.query(
       `UPDATE dinner_events SET ${sets.join(', ')} WHERE id = $${params.length}::UUID`,
       params,
     );
-  }
+
+    // One notification per publish request, and one per re-approval request.
+    if (nextStatus === 'requested' && (publishing || staleApproval)) {
+      await notifyVenue(client, targetRestaurantId, {
+        kind: 'approval',
+        title: staleApproval
+          ? 'Experience changed and needs re-approval'
+          : 'New experience awaiting approval',
+        body: staleApproval
+          ? `${input.title ?? existing.title} was edited after your decision and is `
+            + 'waiting for approval again.'
+          : `${input.title ?? existing.title} is waiting for your approval.`,
+        eventId,
+      });
+    }
+  });
 
   const [full] = await query<EventRow>(
     `${EVENT_SELECT} WHERE e.id = $1::UUID`, [eventId],
@@ -634,18 +834,23 @@ router.patch('/:id', requireHostStudio, async (req, res) => {
   res.json({ event: serialize(full!) });
 });
 
-// DELETE /api/events/:id, the host cancels an event. Bookings vanish via
-// cascade; every still-active guest gets an activity note about it.
-// Financial-history guard: once any payment has been captured (or earnings
-// accrued) the delete is refused, because the cascade would silently destroy
-// the refund/earnings trail. Those events must stay queryable and each booking
-// is refunded individually through POST /bookings/:id/cancel.
+// DELETE /api/events/:id, the host cancels an event.
+//
+// This is a soft cancel: the row survives so guests, payouts and the proposal
+// that produced it still resolve, but it leaves the feed, search and the
+// booking surface. Old clients keep working because they only check that the
+// call succeeded.
 router.delete('/:id', requireHostStudio, async (req, res) => {
-  const eventId = req.params.id;
+  const eventId = String(req.params.id);
+  const reason = typeof (req.body as { reason?: unknown } | undefined)?.reason === 'string'
+    ? String((req.body as { reason?: unknown }).reason).trim().slice(0, 500)
+    : '';
 
   await withTransaction(async (client) => {
-    const { rows } = await client.query<{ host_id: string; title: string }>(
-      'SELECT host_id, title FROM dinner_events WHERE id = $1 FOR UPDATE',
+    const { rows } = await client.query<{
+      host_id: string; title: string; status: string;
+    }>(
+      'SELECT host_id, title, status FROM dinner_events WHERE id = $1 FOR UPDATE',
       [eventId],
     );
     const event = rows[0];
@@ -653,47 +858,15 @@ router.delete('/:id', requireHostStudio, async (req, res) => {
     if (event.host_id !== req.userId) {
       throw forbidden('Only the host can cancel this event');
     }
-
-    const { rows: money } = await client.query<{ captured: number; accrued: number }>(
-      `SELECT
-         (SELECT count(*) FROM bookings
-           WHERE event_id = $1 AND payment_status = 'paid')::int AS captured,
-         (SELECT count(*) FROM payouts
-           WHERE event_id = $1 AND seats_sold > 0)::int AS accrued`,
-      [eventId],
-    );
-    if ((money[0]?.captured ?? 0) > 0 || (money[0]?.accrued ?? 0) > 0) {
-      throw new ApiError(
-        409,
-        'This event has captured payments or accrued earnings and must stay '
-          + 'on the books. Cancel it by refunding each booking individually '
-          + 'instead of deleting it.',
-      );
+    if (event.status === 'cancelled') {
+      throw new ApiError(409, 'This event is already cancelled');
     }
 
-    const { rows: guests } = await client.query<{ user_id: string }>(
-      `SELECT DISTINCT user_id FROM bookings
-       WHERE event_id = $1 AND status <> 'cancelled'`,
-      [eventId],
-    );
-
-    for (const guest of guests) {
-      await client.query(
-        `INSERT INTO activity (actor_id, kind, title, body, event_id, is_unread)
-         VALUES ($1, 'reminder', $2, $3, $4, true)`,
-        [
-          guest.user_id,
-          'An event you booked was cancelled',
-          `${event.title} was cancelled by the host. Your payment will be refunded.`,
-          eventId,
-        ],
-      );
-    }
-
-    await client.query('DELETE FROM dinner_events WHERE id = $1', [eventId]);
+    await assertNoCapturedMoney(client, eventId);
+    await softCancel(client, { id: eventId, title: event.title }, req.userId, reason);
   });
 
-  res.json({ deleted: true, eventId });
+  res.json({ cancelled: true, eventId });
 });
 
 export default router;

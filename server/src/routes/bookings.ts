@@ -36,6 +36,9 @@ type BookingRow = {
   cover_image: string;
   host_name: string | null;
   restaurant_name: string | null;
+  guest_name: string | null;
+  guest_email: string | null;
+  guest_phone: string | null;
 };
 
 const BOOKING_SELECT = `
@@ -63,6 +66,9 @@ function serialize(row: BookingRow) {
     paymentStatus: row.payment_status,
     status: row.status,
     checkedIn: row.checked_in,
+    guestName: row.guest_name,
+    guestEmail: row.guest_email,
+    guestPhone: row.guest_phone,
     createdAt: row.created_at,
     startAt: row.start_at,
     isUpcoming: new Date(row.start_at).getTime() > Date.now(),
@@ -122,6 +128,12 @@ const createBookingSchema = z.object({
   // method from the client must not be labelled with a card brand nobody used.
   paymentLabel: z.string().trim().min(1).max(40).default('Pay at venue'),
   promoCode: z.string().trim().max(24).optional(),
+  // Guest contact the host needs to reach the diner. Optional so older clients
+  // keep working, but validated when present: a fabricated placeholder address
+  // is worse than none at all.
+  guestName: z.string().trim().max(120).optional(),
+  guestEmail: z.union([z.string().trim().email().max(160), z.literal('')]).optional(),
+  guestPhone: z.string().trim().max(40).optional(),
 });
 
 type EventLockRow = {
@@ -173,10 +185,11 @@ router.post('/events/:id/bookings', async (req, res) => {
       [eventId],
     );
     const event = rows[0];
-    // Drafts, venue-pending requests and venue-declined events are not bookable
-    //, treat them as unknown to guests so the venue's decision cannot be
-    // bypassed by holding a stale event id.
-    if (!event || ['draft', 'requested', 'declined'].includes(event.status)) {
+    // Drafts, venue-pending requests, venue-declined and cancelled/completed
+    // events are not bookable, treat them as unknown to guests so the venue's
+    // decision (or the host's cancellation) cannot be bypassed by holding a
+    // stale event id.
+    if (!event || ['draft', 'requested', 'declined', 'cancelled', 'completed'].includes(event.status)) {
       throw notFound('Event');
     }
 
@@ -254,13 +267,15 @@ router.post('/events/:id/bookings', async (req, res) => {
       id: string; event_id: string; user_id: string; seats: number;
       price_per_seat: string; total_amount: string; reference: string;
       payment_label: string; payment_status: string; status: string; created_at: Date;
+      guest_name: string | null; guest_email: string | null; guest_phone: string | null;
     }>(
       `INSERT INTO bookings (event_id, user_id, seats, price_per_seat,
                              total_amount, reference, payment_label, status,
-                             payment_status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                             payment_status, guest_name, guest_email, guest_phone)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING id, event_id, user_id, seats, price_per_seat, total_amount,
-                 reference, payment_label, payment_status, status, created_at`,
+                 reference, payment_label, payment_status, status, created_at,
+                 guest_name, guest_email, guest_phone`,
       [
         eventId,
         userId,
@@ -271,6 +286,9 @@ router.post('/events/:id/bookings', async (req, res) => {
         storedLabel,
         initialStatus,
         initialPayment,
+        input.guestName || null,
+        input.guestEmail || null,
+        input.guestPhone || null,
       ],
     );
     const booking = insertedRows[0];
@@ -339,6 +357,9 @@ router.post('/events/:id/bookings', async (req, res) => {
       paymentLabel: result.booking.payment_label,
       paymentStatus: result.booking.payment_status,
       status: result.booking.status,
+      guestName: result.booking.guest_name,
+      guestEmail: result.booking.guest_email,
+      guestPhone: result.booking.guest_phone,
       createdAt: result.booking.created_at,
     },
     event: {

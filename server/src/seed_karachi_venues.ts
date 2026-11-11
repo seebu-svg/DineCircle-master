@@ -589,7 +589,7 @@ const VENUES: Venue[] = [
     about:
       'A Clifton café doing all-day breakfast, sandwiches and serious coffee. '
       + 'Popular for long weekend brunches. ' + DEMO_NOTE,
-    cuisines: ['Cafe', 'Continental', 'Brunch'],
+    cuisines: ['Café', 'Continental', 'Brunch'],
     area: 'Clifton',
     address: 'Clifton Block 4, Karachi',
     priceRange: '$$',
@@ -672,7 +672,7 @@ const VENUES: Venue[] = [
     about:
       'A compact DHA Phase 6 espresso bar with pastries, sandwiches and a '
       + 'steady laptop crowd. ' + DEMO_NOTE,
-    cuisines: ['Cafe', 'Coffee', 'Desserts'],
+    cuisines: ['Café', 'Coffee', 'Desserts'],
     area: 'DHA Phase 6',
     address: 'DHA Phase 6, Karachi',
     priceRange: '$$',
@@ -755,7 +755,7 @@ const VENUES: Venue[] = [
     about:
       'A Clifton café with a French-leaning pastry counter, crepes and a '
       + 'garden-style room. ' + DEMO_NOTE,
-    cuisines: ['Cafe', 'French', 'Desserts'],
+    cuisines: ['Café', 'French', 'Desserts'],
     area: 'Clifton',
     address: 'Clifton Block 6, Karachi',
     priceRange: '$$',
@@ -822,7 +822,7 @@ const VENUES: Venue[] = [
     about:
       'A Zamzama chocolate café with a dessert-heavy menu, fondues and a '
       + 'quiet upstairs room. ' + DEMO_NOTE,
-    cuisines: ['Cafe', 'Chocolate', 'Desserts'],
+    cuisines: ['Café', 'Chocolate', 'Desserts'],
     area: 'Zamzama',
     address: 'Zamzama Boulevard, Karachi',
     priceRange: '$$',
@@ -889,7 +889,7 @@ const VENUES: Venue[] = [
     about:
       'A Zamzama coffee house with a broad drinks menu, breakfast plates and '
       + 'plenty of table space. ' + DEMO_NOTE,
-    cuisines: ['Cafe', 'Coffee', 'Breakfast'],
+    cuisines: ['Café', 'Coffee', 'Breakfast'],
     area: 'Zamzama',
     address: 'Zamzama Boulevard, Karachi',
     priceRange: '$$',

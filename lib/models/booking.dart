@@ -1,4 +1,5 @@
 import '../utils/money.dart';
+import '../utils/venue_time.dart';
 import 'dinner.dart';
 import 'user_profile.dart';
 
@@ -186,7 +187,17 @@ class Booking {
 
   String? get formattedCheckInTime {
     if (checkInTime == null) return null;
-    return '${checkInTime!.hour.toString().padLeft(2, '0')}:${checkInTime!.minute.toString().padLeft(2, '0')}';
+    return formatVenueTime(checkInTime!);
+  }
+
+  /// Whether this booking still belongs under "Upcoming" when compared at
+  /// [now]. As with table reservations a live status alone is not enough: a
+  /// `confirmed` booking for an event that has already started must not sit in
+  /// the Upcoming tab, or the app appears to accept bookings in the past.
+  bool isUpcomingAt(DateTime now) {
+    final live = status == BookingStatus.confirmed ||
+        status == BookingStatus.pending;
+    return live && dinner.dateTime.isAfter(now);
   }
 
   @override

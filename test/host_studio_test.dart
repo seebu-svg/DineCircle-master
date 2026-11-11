@@ -59,6 +59,34 @@ void main() {
     addTearDown(() => FlutterError.onError = original);
   }
 
+  /// Renders Host Studio on the Experiences tab against [events], with a host
+  /// session and an empty collaboration wallet so only the event surface is
+  /// under test.
+  Future<void> pumpStudio(
+    WidgetTester tester,
+    FakeEventsRepository events,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+    tolerateOverflow();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          _signedInHost(),
+          authReadyProvider.overrideWithValue(true),
+          eventsRepositoryProvider.overrideWithValue(events),
+          hostsRepositoryProvider.overrideWithValue(FakeHostsRepository()),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.darkTheme,
+          home: const HostDashboardScreen(initialTab: 1),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
   group('WalletController', () {
     test(
       'a valid withdrawal reduces available and posts a ledger row',
@@ -374,7 +402,6 @@ void main() {
           bookings: 6,
           pending: 0,
           checkedIn: 3,
-          gross: 570,
         ),
         HostEventStat(
           eventId: 'e2',
@@ -384,7 +411,6 @@ void main() {
           bookings: 5,
           pending: 0,
           checkedIn: 2,
-          gross: 190,
         ),
       ],
     );
@@ -407,33 +433,6 @@ void main() {
   // P0-2: Host Studio reads GET /events/mine and shows saved drafts with
   // Edit / Publish / Delete actions.
   group('Host Studio drafts', () {
-    List<Override> draftsOverrides(FakeEventsRepository events) => [
-      _signedInHost(),
-      authReadyProvider.overrideWithValue(true),
-      eventsRepositoryProvider.overrideWithValue(events),
-      hostsRepositoryProvider.overrideWithValue(FakeHostsRepository()),
-    ];
-
-    Future<void> pumpDashboard(
-      WidgetTester tester,
-      FakeEventsRepository events,
-    ) async {
-      tester.view.physicalSize = const Size(1080, 2400);
-      tester.view.devicePixelRatio = 3.0;
-      addTearDown(tester.view.reset);
-      tolerateOverflow();
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: draftsOverrides(events),
-          child: MaterialApp(
-            theme: AppTheme.darkTheme,
-            home: const HostDashboardScreen(initialTab: 1),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-    }
-
     testWidgets('Drafts section lists drafts from mine() with actions', (
       tester,
     ) async {
@@ -448,7 +447,7 @@ void main() {
           fixtureDinner(id: 'e1', title: 'Omakase Night'),
         ],
       );
-      await pumpDashboard(tester, events);
+      await pumpStudio(tester, events);
 
       expect(find.text('Drafts'), findsOneWidget);
       // The Overview tab pre-builds too and also lists the draft card.
@@ -470,7 +469,7 @@ void main() {
           ),
         ],
       );
-      await pumpDashboard(tester, events);
+      await pumpStudio(tester, events);
 
       final publish = find.text('Publish');
       await tester.ensureVisible(publish);
@@ -503,7 +502,7 @@ void main() {
           message: 'Draft not ready to publish: title too short',
         ),
       );
-      await pumpDashboard(tester, events);
+      await pumpStudio(tester, events);
 
       final publish = find.text('Publish');
       await tester.ensureVisible(publish);
@@ -527,7 +526,7 @@ void main() {
           ),
         ],
       );
-      await pumpDashboard(tester, events);
+      await pumpStudio(tester, events);
 
       final trash = find.byIcon(Icons.delete_outline_rounded);
       await tester.ensureVisible(trash);
@@ -541,6 +540,140 @@ void main() {
 
       expect(events.cancelEventCalls, 1);
       expect(find.text('Draft deleted'), findsOneWidget);
+    });
+  });
+
+  // Phase 7: the two venue-gated states must keep their own identity in Host
+  // Studio, and the proposal/invite response methods must carry the payload the
+  // audit found the client dropping.
+  group('Venue approval states', () {
+    test('requested and declined have their own labels and stay editable', () {
+      expect(HostEventStatus.requested.label, 'Pending venue approval');
+      expect(HostEventStatus.declined.label, 'Declined by venue');
+      expect(HostEventStatus.requested.isAwaitingVenue, isTrue);
+      expect(HostEventStatus.declined.isAwaitingVenue, isTrue);
+      expect(HostEventStatus.published.isAwaitingVenue, isFalse);
+      expect(HostEventStatus.draft.isAwaitingVenue, isFalse);
+    });
+
+    testWidgets(
+      'an awaiting and a declined experience get their own sections',
+      (tester) async {
+        final events = FakeEventsRepository(
+          mineEvents: [
+            fixtureDinner(
+              id: 'q1',
+              title: 'Cellar Supper',
+              hostStatus: HostEventStatus.requested,
+            ),
+            fixtureDinner(
+              id: 'q2',
+              title: 'Rooftop Brunch',
+              hostStatus: HostEventStatus.declined,
+              declineReason: 'Kitchen is closed on Mondays.',
+            ),
+          ],
+        );
+        await pumpStudio(tester, events);
+
+        expect(find.text('Awaiting venue approval'), findsOneWidget);
+        // The declined row is listed by the section and by the card below it.
+        expect(find.text('Cellar Supper'), findsWidgets);
+        expect(find.text('Venue note'), findsOneWidget);
+        expect(find.text('Kitchen is closed on Mondays.'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'publishing at a gated venue says it went to the venue, not to diners',
+      (tester) async {
+        final events = FakeEventsRepository(
+          mineEvents: [
+            fixtureDinner(
+              id: 'd1',
+              title: 'Rooftop Draft',
+              hostStatus: HostEventStatus.draft,
+            ),
+          ],
+          // The venue reserves approval, so the write answers `requested`.
+          patchResult: fixtureDinner(
+            id: 'd1',
+            title: 'Rooftop Draft',
+            hostStatus: HostEventStatus.requested,
+          ),
+        );
+        await pumpStudio(tester, events);
+
+        final publish = find.text('Publish');
+        await tester.ensureVisible(publish);
+        await tester.pump();
+        await tester.tap(publish);
+        await tester.pumpAndSettle();
+
+        expect(events.lastPatch, {'status': 'published'});
+        expect(find.textContaining('for approval'), findsOneWidget);
+        expect(find.text('Draft published'), findsNothing);
+      },
+    );
+  });
+
+  group('Proposal and invite payloads', () {
+    test('declining an invite forwards the reason', () async {
+      final hosts = FakeHostsRepository(
+        invites: [fixtureInvite(id: 'i9')],
+      );
+      final container = await containerWith([
+        _signedInHost(),
+        hostsRepositoryProvider.overrideWithValue(hosts),
+      ]);
+
+      await container
+          .read(invitesControllerProvider)
+          .decline('i9', reason: 'Both desks were already booked.');
+
+      expect(hosts.respondCalls, 1);
+      expect(hosts.lastRespondInviteId, 'i9');
+      expect(hosts.lastRespondAccept, isFalse);
+      expect(hosts.lastRespondReason, 'Both desks were already booked.');
+    });
+
+    test('a proposal carries the draft it attaches', () async {
+      final hosts = FakeHostsRepository();
+      final container = await containerWith([
+        _signedInHost(),
+        hostsRepositoryProvider.overrideWithValue(hosts),
+      ]);
+
+      final invite = await container
+          .read(collaborationsControllerProvider)
+          .sendProposal(
+            restaurantId: 'r7',
+            title: 'Winter Series',
+            message: 'Publish this with us',
+            experienceId: 'd-77',
+          );
+
+      expect(hosts.lastProposalExperienceId, 'd-77');
+      expect(invite.experienceId, 'd-77');
+    });
+
+    test('completing a collaboration forwards the closing experience', () async {
+      final hosts = FakeHostsRepository(
+        collaborations: [
+          fixtureInvite(id: 'c8', status: 'accepted', proposedBy: 'host'),
+        ],
+      );
+      final container = await containerWith([
+        _signedInHost(),
+        hostsRepositoryProvider.overrideWithValue(hosts),
+      ]);
+
+      await container
+          .read(collaborationsControllerProvider)
+          .completeProposal('c8', experienceId: 'evt-8');
+
+      expect(hosts.lastCompleteCollabId, 'c8');
+      expect(hosts.lastCompleteExperienceId, 'evt-8');
     });
   });
 }

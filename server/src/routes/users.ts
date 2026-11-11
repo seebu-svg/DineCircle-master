@@ -617,7 +617,12 @@ const accountTypeSchema = z.object({
  * act on. Drafts are excluded on purpose, nobody has booked a draft, and it
  * is still there (unpublished) if the account goes Professional again.
  */
-async function activeHostedExperiences(userId: string) {
+/**
+ * Upcoming experiences that still need this account to be in Professional mode.
+ * Exported because the admin console's host downgrade runs the same guard: a
+ * diner-facing `409` and a console-facing one must not disagree.
+ */
+export async function activeHostedExperiences(userId: string) {
   return query<{
     id: string;
     title: string;

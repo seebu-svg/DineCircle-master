@@ -28,8 +28,10 @@ class BookingConfirmedScreen extends StatelessWidget {
         booking?.formattedTotal ??
         'Rs ${(dinner.pricePerSeat * 1.1).toStringAsFixed(2)}';
     final paymentMethod = booking?.paymentMethodLabel ?? 'Not recorded';
-    final bookingId =
-        '#DC-${dinner.id.hashCode.abs().toString().substring(0, 6)}';
+    // Show the reference the server actually stored (`bookings.reference`). The
+    // old value was derived from the dinner id's hash, so every diner booking
+    // the same event saw the identical code and it never matched the record.
+    final bookingId = booking?.reference ?? dinner.id;
 
     return Scaffold(
       appBar: AppBar(
@@ -71,7 +73,7 @@ class BookingConfirmedScreen extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Your seat has been reserved. A confirmation has been sent to your email.',
+              'Your seat is held — show this pass at the venue.',
               style: AppTextStyles.bodySmall,
               textAlign: TextAlign.center,
             ),

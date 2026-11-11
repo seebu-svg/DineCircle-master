@@ -124,6 +124,9 @@ class BookingsController {
     required int seats,
     String? promoCode,
     String paymentLabel = Booking.kDefaultPaymentMethod,
+    String? guestName,
+    String? guestEmail,
+    String? guestPhone,
   }) async {
     final booking = await _ref
         .read(bookingsRepositoryProvider)
@@ -133,6 +136,9 @@ class BookingsController {
           seats: seats,
           promoCode: promoCode,
           paymentLabel: paymentLabel,
+          guestName: guestName,
+          guestEmail: guestEmail,
+          guestPhone: guestPhone,
         );
     _ref.invalidate(myBookingsProvider);
     return booking;

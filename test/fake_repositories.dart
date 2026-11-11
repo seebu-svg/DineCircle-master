@@ -79,6 +79,8 @@ Dinner fixtureDinner({
   ],
   List<UserProfile> attendees = const [],
   HostEventStatus hostStatus = HostEventStatus.published,
+  String? declineReason,
+  DateTime? approvalStaleAt,
 }) => Dinner(
   id: id,
   title: title,
@@ -93,6 +95,8 @@ Dinner fixtureDinner({
   menu: menu,
   attendees: attendees,
   hostStatus: hostStatus,
+  declineReason: declineReason,
+  approvalStaleAt: approvalStaleAt,
 );
 
 Review fixtureReview() => Review(
@@ -137,6 +141,7 @@ class FakeEventsRepository implements EventsRepository {
     this.mineEvents,
     this.error,
     this.patchError,
+    this.patchResult,
     this.delay = Duration.zero,
   });
 
@@ -145,6 +150,12 @@ class FakeEventsRepository implements EventsRepository {
   final List<Dinner>? mineEvents;
   final Object? error;
   final Object? patchError;
+
+  /// The record a patch answers with. At a venue that requires approval the
+  /// server returns the event as `requested` rather than `confirmed`, and the
+  /// host copy has to follow the response instead of the intent, so a test has
+  /// to be able to say what came back.
+  final Dinner? patchResult;
   final Duration delay;
 
   Future<void> _gate() async {
@@ -248,6 +259,7 @@ class FakeEventsRepository implements EventsRepository {
     patchEventCalls += 1;
     lastPatchId = id;
     lastPatch = patch;
+    if (patchResult != null) return patchResult!;
     if (events.any((d) => d.id == id)) {
       return events.firstWhere((d) => d.id == id);
     }
@@ -879,6 +891,9 @@ class FakeBookingsRepository implements BookingsRepository {
   String? lastPromo;
   int lastSeats = 0;
   String lastPaymentLabel = Booking.kDefaultPaymentMethod;
+  String? lastGuestName;
+  String? lastGuestEmail;
+  String? lastGuestPhone;
   String? lastApprovedId;
   String? lastDeclinedId;
 
@@ -900,9 +915,15 @@ class FakeBookingsRepository implements BookingsRepository {
     required int seats,
     String? promoCode,
     String paymentLabel = Booking.kDefaultPaymentMethod,
+    String? guestName,
+    String? guestEmail,
+    String? guestPhone,
   }) async {
     _maybeThrow();
     joinCalls += 1;
+    lastGuestName = guestName;
+    lastGuestEmail = guestEmail;
+    lastGuestPhone = guestPhone;
     lastSeats = seats;
     lastPromo = promoCode;
     lastPaymentLabel = paymentLabel;
@@ -1162,11 +1183,13 @@ CollaborationInvite fixtureInvite({
 HostAnalytics fixtureAnalytics({
   int totalEventsHosted = 4,
   int totalBookings = 28,
-  int totalSeatsSold = 52,
+  int totalSeatsReserved = 52,
   double grossRevenue = 4200,
   double hostNetEarnings = 3780,
+  int seatsSold = 52,
   double averageSeatFillRate = 0.82,
   double averageRating = 4.7,
+  int reviewCount = 12,
   int upcomingCount = 2,
   int completedCount = 2,
   int totalViews = 4770,
@@ -1177,11 +1200,13 @@ HostAnalytics fixtureAnalytics({
 }) => HostAnalytics(
   totalEventsHosted: totalEventsHosted,
   totalBookings: totalBookings,
-  totalSeatsSold: totalSeatsSold,
+  totalSeatsReserved: totalSeatsReserved,
   grossRevenue: grossRevenue,
   hostNetEarnings: hostNetEarnings,
+  seatsSold: seatsSold,
   averageSeatFillRate: averageSeatFillRate,
   averageRating: averageRating,
+  reviewCount: reviewCount,
   upcomingCount: upcomingCount,
   completedCount: completedCount,
   totalViews: totalViews,
@@ -1238,7 +1263,6 @@ HostEventStat fixtureEventStat({
   int bookings = 6,
   int pending = 1,
   int checkedIn = 3,
-  double gross = 570,
 }) => HostEventStat(
   eventId: eventId,
   title: title,
@@ -1248,7 +1272,6 @@ HostEventStat fixtureEventStat({
   bookings: bookings,
   pending: pending,
   checkedIn: checkedIn,
-  gross: gross,
 );
 
 /// A controllable [HostsRepository]. Reads return the supplied fixtures; the
@@ -1300,6 +1323,10 @@ class FakeHostsRepository implements HostsRepository {
   int withdrawalCalls = 0;
   String? lastRespondInviteId;
   bool? lastRespondAccept;
+
+  /// The note the host chose to send with a decline, so a test can prove the
+  /// app actually asks for one instead of declining silently.
+  String? lastRespondReason;
   double? lastWithdrawAmount;
   String? lastWithdrawMethod;
 
@@ -1311,10 +1338,14 @@ class FakeHostsRepository implements HostsRepository {
   String? lastProposalRestaurantId;
   String? lastProposalTitle;
   String? lastProposalMessage;
+
+  /// The draft a proposal was sent on top of, for either direction.
+  String? lastProposalExperienceId;
   int cancelProposalCalls = 0;
   String? lastCancelCollabId;
   int completeProposalCalls = 0;
   String? lastCompleteCollabId;
+  String? lastCompleteExperienceId;
   int discoverPartnersCalls = 0;
   int promotableEventsCalls = 0;
   int promoteEventCalls = 0;
@@ -1384,12 +1415,14 @@ class FakeHostsRepository implements HostsRepository {
   Future<CollaborationInvite> respondToInvite(
     String hostId,
     String inviteId,
-    bool accept,
-  ) async {
+    bool accept, {
+    String? reason,
+  }) async {
     _maybeThrow();
     respondCalls += 1;
     lastRespondInviteId = inviteId;
     lastRespondAccept = accept;
+    lastRespondReason = reason;
     final index = _invites.indexWhere((i) => i.id == inviteId);
     if (index == -1) throw StateError('unknown invite $inviteId');
     final flipped = _invites[index].copyWith(isAccepted: accept);
@@ -1479,17 +1512,20 @@ class FakeHostsRepository implements HostsRepository {
     required String restaurantId,
     required String title,
     required String message,
+    String? experienceId,
   }) async {
     _maybeThrow();
     sendProposalCalls += 1;
     lastProposalRestaurantId = restaurantId;
     lastProposalTitle = title;
     lastProposalMessage = message;
+    lastProposalExperienceId = experienceId;
     final invite = fixtureInvite(
       id: 'new-proposal',
       title: title,
       status: 'invited',
       proposedBy: 'host',
+      experienceId: experienceId,
     );
     _collaborations.add(invite);
     return invite;
@@ -1524,10 +1560,12 @@ class FakeHostsRepository implements HostsRepository {
   Future<CollaborationInvite> completeProposal({
     required String hostId,
     required String collabId,
+    String? experienceId,
   }) async {
     _maybeThrow();
     completeProposalCalls += 1;
     lastCompleteCollabId = collabId;
+    lastCompleteExperienceId = experienceId;
     final index = _collaborations.indexWhere((c) => c.id == collabId);
     if (index == -1) {
       return fixtureInvite(

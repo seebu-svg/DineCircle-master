@@ -19,6 +19,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_text_styles.dart';
 import '../../utils/opening_hours.dart';
+import '../../utils/venue_time.dart';
 import '../../widgets/buttons.dart';
 import '../../widgets/common_widgets.dart';
 import '../../widgets/data_view.dart';
@@ -1641,14 +1642,12 @@ class _YourTableCard extends ConsumerWidget {
   }
 
   String _formatReservationDateTime(DateTime dt) {
+    final local = dt.toLocal();
     final date =
-        '${dt.day.toString().padLeft(2, '0')}/'
-        '${dt.month.toString().padLeft(2, '0')}/'
-        '${dt.year}';
-    final time =
-        '${dt.hour.toString().padLeft(2, '0')}:'
-        '${dt.minute.toString().padLeft(2, '0')}';
-    return '$date at $time';
+        '${local.day.toString().padLeft(2, '0')}/'
+        '${local.month.toString().padLeft(2, '0')}/'
+        '${local.year}';
+    return '$date at ${formatVenueTime(dt)}';
   }
 }
 

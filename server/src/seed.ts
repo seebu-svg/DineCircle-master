@@ -10,8 +10,9 @@
  * and mock table reservations. Against that: 18 creator host profiles (10
  * borrowed public handles plus 8 clearly fictional personas), 150 test diners
  * with Karachi home areas, 60 demo events with course menus taken from the
- * host venue's own kitchen, 300 bookings, up to 120 reviews, payouts, a PKR
- * host wallet, the social graph (diner→creator follows, venue follows, saved
+ * host venue's own kitchen, 300 bookings, up to 120 event reviews, demo venue
+ * reviews written by seeded reviewer accounts, payouts, a PKR host wallet, the
+ * social graph (diner→creator follows, venue follows, saved
  * events, saved places) and the notification and collab-invite feeds.
  *
  * Seventeen venues are seeded `partnership_status = 'verified'` so creators can
@@ -32,6 +33,7 @@
  */
 import { randomBytes, scryptSync } from 'node:crypto';
 import { pool } from './db.js';
+import { seedVenueReviews } from './seed_venue_reviews.js';
 
 /** Shared test password for all seeded Karachi accounts. */
 const DEMO_PASSWORD = 'dinecircle123';
@@ -360,7 +362,7 @@ const K_RESTAURANTS: readonly KVenue[] = [
     books: ['seafood', 'bbq'], hours: ['13:00', '23:30'],
     zones: ['Seafront Deck', 'Verandah', 'Family Section'], plus: true },
   { name: "Xander's Clifton", area: 'Clifton', event: 'Weekend Brunch Meetup',
-    tagline: 'Coffee-house classics, all day', cuisines: ['Continental', 'Cafe', 'Brunch'],
+    tagline: 'Coffee-house classics, all day', cuisines: ['Continental', 'Café', 'Brunch'],
     price: '$$', rating: '3.90', reviews: 2140, cover: 'assets/images/venue_interior.png',
     tags: ['brunch', 'cafe', 'meetup'], lat: 24.8122, lng: 67.0332,
     books: ['cafe', 'grill'], hours: ['09:00', '23:00'],
@@ -444,7 +446,7 @@ const K_RESTAURANTS: readonly KVenue[] = [
     books: ['biryani', 'karahi'], hours: ['11:00', '23:30'],
     zones: ['Counter', 'Hall', 'Family Screen'], plus: false },
   { name: 'Sierra Coffee', area: 'DHA Phase 5', event: 'Slow Brunch and Filter Coffee',
-    tagline: 'Roastery tables, laptops welcome', cuisines: ['Cafe', 'Continental', 'Brunch'],
+    tagline: 'Roastery tables, laptops welcome', cuisines: ['Café', 'Continental', 'Brunch'],
     price: '$$', rating: '4.40', reviews: 1560, cover: 'assets/images/venue_bar.png',
     tags: ['coffee', 'brunch', 'work-friendly'], lat: 24.8205, lng: 67.0680,
     books: ['cafe', 'mezze'], hours: ['08:00', '23:00'],
@@ -686,7 +688,17 @@ async function seedKarachi(): Promise<void> {
         id, `${first} ${last}`, `${first}.${last}${i}`.toLowerCase(),
         `+92311${String(i).padStart(7, '0')}`, `diner${String(i + 1).padStart(3, '0')}.demo@example.test`,
         demoHash(), 'Karachi', item(K_AREAS, i),
-        `Test diner #${i + 1} for the Karachi environment.`, 'user',
+        // Neutral profile copy. The previous "Test diner #n for the Karachi
+        // environment" shipped to real devices and read as leftover QA data.
+        item(
+          [
+            'Always looking for the next good table.',
+            'Weekend dinners, long conversations, new places.',
+            'Here for the food and the company.',
+            'Trying every new menu in town, one dinner at a time.',
+          ],
+          i,
+        ), 'user',
         int(0, 40), int(0, 200), int(1, 18), Number((3.5 + rand() * 1.5).toFixed(2)), int(0, 12),
         item(K_AVATARS, i), [pick(K_TASTES), pick(K_TASTES)],
         i % 6 === 0 ? [item(K_DIETARY, i)] : [], i % 9 === 0 ? [item(K_ALLERGIES, i)] : [],
@@ -1042,6 +1054,12 @@ async function seedKarachi(): Promise<void> {
   await q('UPDATE users SET is_demo = true');
   await q('UPDATE restaurants SET is_demo = true');
   await q('UPDATE dinner_events SET is_demo = true');
+
+  // ── venue reviews, written by the demo reviewer accounts ─────────────────
+  // The same rows `npm run db:seed:reviews` writes, so a full reseed also
+  // leaves the restaurant storefronts with a review feed (and with rating
+  // aggregates that match it) instead of an empty section.
+  await seedVenueReviews();
 }
 
 async function main(): Promise<void> {
@@ -1179,12 +1197,15 @@ async function main(): Promise<void> {
       ('32323232-3232-3232-3232-323232323232','${U.nora}',250.00,'PayPal','processing','${at(-2, 9, 0)}')`);
 
   // ── collaboration invites (restaurant → host) ────────────────────────────
+  // One *active* row per (host, venue): `uq_collab_active` enforces it, so the
+  // second Skyline Rooftop offer is seeded as declined rather than doubling up
+  // on an already-accepted partnership.
   await q(`INSERT INTO collaboration_invites (id, host_id, restaurant_id, title, message, status, created_at)
     VALUES
       ('31313131-3131-3131-3131-313131313131','${U.nora}','${R.rooftop}','Rooftop Sunset Series',
        'The sunset series is confirmed for monthly editions. Your September edition sold out in 48 hours. The October slot is yours whenever you are ready.','accepted','${at(-9, 10, 0)}'),
       ('31313131-3131-3131-3131-313131313132','${U.nora}','${R.rooftop}','Omakase Collaboration Night',
-       'Our head chef loved your last tasting night. We would like to co-host a 4-night omakase series this season: chef\u2019s counter, full creative control on the menu.','invited','${at(-1, 8, 0)}'),
+       'Our head chef loved your last tasting night. We would like to co-host a 4-night omakase series this season: chef\u2019s counter, full creative control on the menu.','declined','${at(-1, 8, 0)}'),
       ('31313131-3131-3131-3131-313131313133','${U.nora}','${R.trattoria}','Brand-Sponsored Pasta Evening',
        'A wine brand partner wants to sponsor a steak & pasta tasting evening hosted by you. We cover the venue, product and a guaranteed honorarium. 20 seats, invite-only.','invited','${at(-3, 15, 0)}')`);
 
@@ -1331,6 +1352,15 @@ async function main(): Promise<void> {
       ('Hyderabad','Pakistan',ARRAY['Latifabad','Qasimabad'],25.3960,68.3578)`);
 
   await seedKarachi();
+
+  // ── counters rebuilt from the follow graph ───────────────────────────────
+  // Creator rows carry public Instagram figures (128,400 for Fatima Tariq).
+  // Those are presentation copy, not DineCircle follows, and Host Studio
+  // promises "N followers will see this" from this column, so the counters
+  // must equal the graph that actually exists, after every follow row is in.
+  await q(`UPDATE users u
+     SET followers_count = (SELECT count(*) FROM follows f WHERE f.followee_id = u.id),
+         following_count = (SELECT count(*) FROM follows f WHERE f.follower_id = u.id)`);
 
   const counts = await pool.query(`
     SELECT (SELECT count(*) FROM users)         AS users,

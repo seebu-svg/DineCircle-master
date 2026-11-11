@@ -4,15 +4,32 @@ import 'dinner.dart';
 import 'booking.dart';
 
 /// Lifecycle status of a hosted event (host-side view)
-enum HostEventStatus { draft, published, pausedBookings, completed, cancelled }
+///
+/// `requested` and `declined` are the venue-approval states. They used to be
+/// folded into `published` and `cancelled`, which told a host an experience was
+/// live while the venue had never seen it, and told them it was cancelled when
+/// the venue had merely said no.
+enum HostEventStatus {
+  draft,
+  requested,
+  published,
+  declined,
+  pausedBookings,
+  completed,
+  cancelled,
+}
 
 extension HostEventStatusX on HostEventStatus {
   String get label {
     switch (this) {
       case HostEventStatus.draft:
         return 'Draft';
+      case HostEventStatus.requested:
+        return 'Pending venue approval';
       case HostEventStatus.published:
         return 'Published';
+      case HostEventStatus.declined:
+        return 'Declined by venue';
       case HostEventStatus.pausedBookings:
         return 'Bookings Paused';
       case HostEventStatus.completed:
@@ -21,6 +38,11 @@ extension HostEventStatusX on HostEventStatus {
         return 'Cancelled';
     }
   }
+
+  /// A waiting or declined experience is still editable: the host fixes what
+  /// the venue flagged and sends it back, so Host Studio must not lock it.
+  bool get isAwaitingVenue =>
+      this == HostEventStatus.requested || this == HostEventStatus.declined;
 }
 
 /// Status of a guest seat request for a hosted event
@@ -112,6 +134,17 @@ class CollaborationInvite {
   /// Restaurant cuisine tags (from the server JOIN).
   final List<String> restaurantCuisines;
 
+  /// When the receiving side answered, and the reason they gave. Only set once
+  /// the proposal is decided, which is what lets the outbox show a real
+  /// outcome instead of a bare status word.
+  final DateTime? respondedAt;
+  final String declineReason;
+
+  /// The experience this proposal is about, when one is attached. A venue
+  /// proposing to a host (Direction B) publishes on top of a draft, so the host
+  /// has to see what they are accepting without a second request.
+  final LinkedExperience? experience;
+
   const CollaborationInvite({
     required this.id,
     required this.restaurant,
@@ -124,6 +157,9 @@ class CollaborationInvite {
     this.experienceId,
     this.restaurantRating = 0,
     this.restaurantCuisines = const [],
+    this.respondedAt,
+    this.declineReason = '',
+    this.experience,
   });
 
   CollaborationInvite copyWith({
@@ -143,6 +179,9 @@ class CollaborationInvite {
       experienceId: experienceId ?? this.experienceId,
       restaurantRating: restaurantRating,
       restaurantCuisines: restaurantCuisines,
+      respondedAt: respondedAt,
+      declineReason: declineReason,
+      experience: experience,
     );
   }
 
@@ -152,6 +191,8 @@ class CollaborationInvite {
   bool get isDeclined => status == 'declined';
   bool get isCancelled => status == 'cancelled';
   bool get isCompleted => status == 'completed';
+
+  bool get isOpen => isPending;
 
   String get statusLabel {
     switch (status) {
@@ -176,6 +217,32 @@ class CollaborationInvite {
     if (diff.inDays == 1) return 'Yesterday';
     return '${diff.inDays} days ago';
   }
+}
+
+/// The experience summary carried inside a proposal.
+///
+/// Both sides of a proposal must see the same thing. The server ships this
+/// alongside every invite so Accept/Decline is never an uninformed click, and
+/// so the host can open the draft behind a venue's proposal.
+class LinkedExperience {
+  final String id;
+  final String title;
+  final String? coverImage;
+  final DateTime? startAt;
+
+  /// Server status of the linked experience, usually `draft` for a venue's
+  /// proposal and `confirmed` once the host has published it.
+  final String status;
+
+  const LinkedExperience({
+    required this.id,
+    required this.title,
+    this.coverImage,
+    this.startAt,
+    this.status = 'draft',
+  });
+
+  bool get isDraft => status == 'draft';
 }
 
 /// A host payout record
@@ -240,7 +307,6 @@ class HostEventStat {
   final int bookings;
   final int pending;
   final int checkedIn;
-  final double gross;
 
   const HostEventStat({
     required this.eventId,
@@ -251,7 +317,6 @@ class HostEventStat {
     required this.bookings,
     required this.pending,
     required this.checkedIn,
-    required this.gross,
   });
 
   double get conversion => views == 0 ? 0 : (bookings / views) * 100;
@@ -311,11 +376,24 @@ class HostSummary {
   final double netTotal;
   final double lifetimeGross;
   final double commissionTotal;
+
+  /// Seats on the payout ledger. Kept for the partner app's contract; the
+  /// customer app shows [seatsReserved] because a free RSVP reserves a seat
+  /// without selling one.
   final int seatsSold;
+
+  /// Live `dinner_events.seats_booked` total: seats reserved across events.
+  final int seatsReserved;
+
   final double averageSeatPrice;
   final int hostedCount;
   final int upcomingCount;
   final double averageFillRate;
+
+  /// Review average for this host's experiences; 0 when [reviewCount] is 0.
+  final double averageRating;
+  final int reviewCount;
+
   final DateTime? nextPayoutDate;
   final double platformCommissionRate;
   final double available;
@@ -328,10 +406,13 @@ class HostSummary {
     required this.lifetimeGross,
     required this.commissionTotal,
     required this.seatsSold,
+    this.seatsReserved = 0,
     required this.averageSeatPrice,
     required this.hostedCount,
     required this.upcomingCount,
     required this.averageFillRate,
+    this.averageRating = 0,
+    this.reviewCount = 0,
     this.nextPayoutDate,
     this.platformCommissionRate = 0.10,
     this.available = 0,
@@ -357,11 +438,20 @@ class HostTrendPoint {
 class HostAnalytics {
   final int totalEventsHosted;
   final int totalBookings;
-  final int totalSeatsSold;
+
+  /// Seats reserved (free RSVPs included), never "sold".
+  final int totalSeatsReserved;
+
+  /// Recorded gross from the payouts ledger. Never inferred from bookings.
   final double grossRevenue;
   final double hostNetEarnings;
+
+  /// Seats on the payout ledger, the denominator for [averageSeatPrice].
+  final int seatsSold;
+
   final double averageSeatFillRate;
   final double averageRating;
+  final int reviewCount;
   final int upcomingCount;
   final int completedCount;
   final int totalViews;
@@ -373,11 +463,13 @@ class HostAnalytics {
   const HostAnalytics({
     required this.totalEventsHosted,
     required this.totalBookings,
-    required this.totalSeatsSold,
+    required this.totalSeatsReserved,
     required this.grossRevenue,
     required this.hostNetEarnings,
+    this.seatsSold = 0,
     required this.averageSeatFillRate,
     required this.averageRating,
+    this.reviewCount = 0,
     required this.upcomingCount,
     required this.completedCount,
     required this.totalViews,
@@ -387,8 +479,11 @@ class HostAnalytics {
     required this.performance,
   });
 
+  /// Average price of a seat that was actually paid out. Zero when the ledger
+  /// is empty: dividing recorded money by reserved seats would mix two
+  /// different sources.
   double get averageSeatPrice =>
-      totalSeatsSold > 0 ? grossRevenue / totalSeatsSold : 0;
+      seatsSold > 0 ? grossRevenue / seatsSold : 0;
 
   double get commission => grossRevenue - hostNetEarnings;
 }

@@ -41,7 +41,8 @@ services:
         value: 5
       - key: DATABASE_CONNECT_TIMEOUT_MS
         value: 30000
-      # Comma-separated browser origins (the marketing site). Mobile clients
-      # send no Origin header and need nothing here.
+      # Comma-separated browser origins: the marketing site and the hosted
+      # admin console (for example https://admin.dinecircle.app). Mobile
+      # clients send no Origin header and need nothing here.
       - key: CORS_ALLOWED_ORIGINS
         sync: false

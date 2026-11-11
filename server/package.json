@@ -15,6 +15,7 @@
     "db:schema:dist": "node dist/schema.js",
     "db:seed": "tsx src/seed.ts",
     "db:seed:karachi": "tsx src/seed_karachi_venues.ts",
+    "db:seed:reviews": "tsx src/seed_reviews.ts",
     "db:seed:dist": "node dist/seed.js",
     "db:reset": "npm run db:schema && npm run db:seed",
     "db:setup": "npm run db:schema && npm run db:seed",
