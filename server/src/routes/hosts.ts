@@ -386,13 +386,28 @@ router.post('/:id/collabs/propose', async (req, res) => {
     throw new ApiError(409, 'An active collaboration already exists with this restaurant');
   }
 
-  const [created] = await query<InviteRow>(
-    `${INVITE_SELECT.replace('FROM collaboration_invites ci',
-      `FROM (INSERT INTO collaboration_invites (host_id, restaurant_id, title, message, proposed_by)
-            VALUES ($1::UUID, $2::UUID, $3, $4, 'host')
-            RETURNING *) ci`)}`,
-    [hostId, input.restaurantId, input.title, input.message],
-  );
+  // A data-modifying CTE is the only place Postgres accepts an INSERT inside a
+  // SELECT: `FROM (INSERT ... RETURNING *)` is a syntax error at "INTO", which
+  // made every call to this route answer 500. Insert, then read the row back
+  // through the same joins the list endpoints use.
+  let createdId: string;
+  try {
+    const [inserted] = await query<{ id: string }>(
+      `INSERT INTO collaboration_invites (host_id, restaurant_id, title, message, proposed_by)
+       VALUES ($1::UUID, $2::UUID, $3, $4, 'host')
+       RETURNING id`,
+      [hostId, input.restaurantId, input.title, input.message],
+    );
+    createdId = inserted!.id;
+  } catch (error) {
+    // `uq_collab_active` is the real guard against two concurrent sends: the
+    // pre-check above cannot see the row another request is about to insert.
+    if ((error as { code?: string }).code === '23505') {
+      throw new ApiError(409, 'An active collaboration already exists with this restaurant');
+    }
+    throw error;
+  }
+  const [created] = await query<InviteRow>(INVITE_BY_ID, [createdId]);
 
   // Notify the restaurant owner about the new proposal.
   if (restaurant.owner_id) {
